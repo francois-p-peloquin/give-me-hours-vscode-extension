@@ -27,7 +27,7 @@
       "properties": {
         "giveMeHours.workingDirectory": {
           "type": "string",
-          "default": "",
+          "default": "/Users/francoispeloquin/Web/",
           "description": "The folder where the Give Me Hours script will run. Leave empty to use the current workspace folder."
         },
         "giveMeHours.duration": {
