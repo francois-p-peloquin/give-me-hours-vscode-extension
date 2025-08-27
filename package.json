@@ -10,14 +10,12 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "give-me-hours.helloWorld",
-        "title": "Hello World"
-      },
       {
         "command": "give-me-hours.openWelcome",
         "title": "Give Me Hours: Open Welcome Page"

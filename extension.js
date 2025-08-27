@@ -22,19 +22,59 @@ function activate(context) {
 	// Create status bar item
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 	statusBarItem.text = "$(clock) Give Me Hours";
-	statusBarItem.tooltip = "Click to open Give Me Hours page";
+	statusBarItem.tooltip = "Click to view your working hours";
 	statusBarItem.command = 'give-me-hours.openWelcome';
+	statusBarItem.backgroundColor = undefined; // No background color by default
 	statusBarItem.show();
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('give-me-hours.helloWorld', function () {
-		// The code you place here will be executed every time your command is executed
+	// Function to update status bar with current hours
+	async function updateStatusBar() {
+		try {
+			const config = getConfiguration();
+			if (!isWorkingDirectoryConfigured()) {
+				statusBarItem.text = "$(clock) Give Me Hours";
+				statusBarItem.tooltip = "Click to configure working directory";
+				return;
+			}
 
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from Give Me Hours!');
-	});
+			const workingDirectory = getWorkingDirectory();
+			const tempGiveMeHours = new GiveMeHours();
+			const duration = tempGiveMeHours.parseDuration(config.duration);
+			
+			const giveMeHours = new GiveMeHours({
+				duration: duration,
+				hoursRounding: config.hoursRounding,
+				projectStartupTime: config.projectStartupTime,
+				showSummary: false, // Don't need summaries for status bar
+				maxWords: config.words,
+				debug: false
+			});
+
+			const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
+			
+			if (result.total.seconds > 0) {
+				statusBarItem.text = `$(clock) Give Me Hours: ${result.total.formatted}`;
+				statusBarItem.tooltip = `Today's working hours: ${result.total.formatted} - Click to view details`;
+			} else {
+				statusBarItem.text = `$(clock) Give Me Hours: 0:00`;
+				statusBarItem.tooltip = `No working hours logged today - Click to view details`;
+			}
+		} catch (error) {
+			statusBarItem.text = "$(clock) Give Me Hours";
+			if (error.message.includes('Git global username is not set')) {
+				statusBarItem.tooltip = "Git username not set - Click to configure";
+			} else {
+				statusBarItem.tooltip = "Click to view your working hours";
+			}
+		}
+	}
+
+	// Update status bar on startup and periodically
+	updateStatusBar();
+	
+	// Update status bar every 10 minutes
+	const statusBarInterval = setInterval(updateStatusBar, 10 * 60 * 1000);
+
 
 	// Register the new command to open welcome page
 	const openWelcomeDisposable = vscode.commands.registerCommand('give-me-hours.openWelcome', function () {
@@ -205,6 +245,9 @@ function activate(context) {
 				data: result
 			});
 
+			// Update status bar with new results
+			updateStatusBar();
+
 		} catch (error) {
 			console.error('Error calculating hours:', error);
 			
@@ -224,7 +267,13 @@ function activate(context) {
 		}
 	}
 
-	context.subscriptions.push(disposable, openWelcomeDisposable, openSettingsDisposable, statusBarItem);
+	// Add cleanup for the status bar interval
+	context.subscriptions.push(
+		openWelcomeDisposable, 
+		openSettingsDisposable, 
+		statusBarItem,
+		{ dispose: () => clearInterval(statusBarInterval) }
+	);
 }
 
 // This method is called when your extension is deactivated
