@@ -12,10 +12,46 @@
   "activationEvents": [],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{
-      "command": "give-me-hours.helloWorld",
-      "title": "Hello World"
-    }]
+    "commands": [
+      {
+        "command": "give-me-hours.helloWorld",
+        "title": "Hello World"
+      },
+      {
+        "command": "give-me-hours.openWelcome",
+        "title": "Give Me Hours: Open Welcome Page"
+      }
+    ],
+    "configuration": {
+      "title": "Give Me Hours",
+      "properties": {
+        "giveMeHours.workingDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "The folder where the Give Me Hours script will run. Leave empty to use the current workspace folder."
+        },
+        "giveMeHours.duration": {
+          "type": "string",
+          "default": "1h",
+          "description": "Maximum gap between commits (e.g., '1h', '30m', '90s')"
+        },
+        "giveMeHours.hoursRounding": {
+          "type": "number",
+          "default": 0.25,
+          "description": "Round up hours to nearest increment (default: 0.25 = 15 minutes)"
+        },
+        "giveMeHours.paddingBefore": {
+          "type": "number",
+          "default": 0.5,
+          "description": "Add time before each work session in hours (default: 0.5 = 30 minutes)"
+        },
+        "giveMeHours.words": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum words in summary mode"
+        }
+      }
+    }
   },
   "scripts": {
     "lint": "eslint .",

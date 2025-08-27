@@ -1,0 +1,238 @@
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+class GitHours {
+    constructor(options = {}) {
+        this.duration = options.duration || 3600; // 1 hour in seconds
+        this.hoursRounding = options.hoursRounding || 0.25;
+        this.paddingBefore = options.paddingBefore || 0.5;
+        this.debug = options.debug || false;
+    }
+
+    parseDuration(durationStr) {
+        const match = durationStr.match(/^([0-9]*\.?[0-9]+)([hms]?)$/);
+        if (!match) return 3600; // default to 1 hour
+
+        const value = parseFloat(match[1]);
+        const unit = match[2];
+
+        switch (unit) {
+            case 'h':
+            case '':
+                return Math.floor(value * 3600);
+            case 'm':
+                return Math.floor(value * 60);
+            case 's':
+                return Math.floor(value);
+            default:
+                return 3600;
+        }
+    }
+
+    roundHours(seconds, rounding) {
+        const hoursDecimal = seconds / 3600;
+        const roundedHours = Math.ceil(hoursDecimal / rounding) * rounding;
+        return Math.floor(roundedHours * 3600);
+    }
+
+    addPaddingBefore(seconds, paddingBeforeHours) {
+        const paddingSeconds = Math.floor(paddingBeforeHours * 3600);
+        return seconds + paddingSeconds;
+    }
+
+    formatDuration(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+
+        if (hours > 0) {
+            return `${hours}:${minutes.toString().padStart(2, '0')}`;
+        } else if (minutes > 0) {
+            return `0:${minutes.toString().padStart(2, '0')}`;
+        } else {
+            return '0:00';
+        }
+    }
+
+    getGitUsername() {
+        try {
+            return execSync('git config --global user.name', { encoding: 'utf8' }).trim();
+        } catch (error) {
+            throw new Error('Git global username is not set. Set it with: git config --global user.name "Your Name"');
+        }
+    }
+
+    buildGitCommand(since, before, author) {
+        let cmd = "git log --pretty=format:'%at|%an|%s' --reverse";
+        cmd += ` --since="${since}" --before="${before}"`;
+        
+        if (author) {
+            cmd += ` --author="${author}"`;
+        }
+        
+        return cmd;
+    }
+
+    getGitCommits(since, before, author) {
+        try {
+            const cmd = this.buildGitCommand(since, before, author);
+            if (this.debug) {
+                console.log(`Running: ${cmd}`);
+            }
+            return execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+        } catch (error) {
+            return '';
+        }
+    }
+
+    calculateWorkingHours(commitsOutput) {
+        let totalSeconds = 0;
+        let prevTimestamp = null;
+        const lines = commitsOutput.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+            const [timestamp, author, message] = line.split('|');
+            if (!timestamp) continue;
+
+            const currentTimestamp = parseInt(timestamp);
+
+            if (prevTimestamp !== null) {
+                const interval = currentTimestamp - prevTimestamp;
+
+                if (this.debug) {
+                    console.log(`${new Date(prevTimestamp * 1000).toISOString()} ${author} ${message}`);
+                    console.log(`${this.formatDuration(interval)} >`);
+                }
+
+                if (interval <= this.duration) {
+                    totalSeconds += interval;
+                }
+            }
+
+            prevTimestamp = currentTimestamp;
+        }
+
+        return totalSeconds;
+    }
+
+    getHoursForRepo(since, before, author, repoPath = '.') {
+        const originalCwd = process.cwd();
+        
+        try {
+            process.chdir(repoPath);
+            
+            // Check if we're in a git repository
+            try {
+                execSync('git rev-parse --git-dir', { stdio: 'ignore' });
+            } catch (error) {
+                return 0;
+            }
+
+            const commitsOutput = this.getGitCommits(since, before, author);
+            if (!commitsOutput) {
+                return 0;
+            }
+
+            let totalSeconds = this.calculateWorkingHours(commitsOutput);
+
+            // Apply rounding and padding if time was worked
+            if (totalSeconds > 0) {
+                if (this.hoursRounding > 0) {
+                    totalSeconds = this.roundHours(totalSeconds, this.hoursRounding);
+                }
+                if (this.paddingBefore > 0) {
+                    totalSeconds = this.addPaddingBefore(totalSeconds, this.paddingBefore);
+                }
+            }
+
+            return totalSeconds;
+        } finally {
+            process.chdir(originalCwd);
+        }
+    }
+
+    getDateRange(dateArg = 'today') {
+        const now = new Date();
+        let startDate, endDate;
+
+        switch (dateArg) {
+            case 'today':
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+                break;
+            case 'yesterday':
+                const yesterday = new Date(now);
+                yesterday.setDate(yesterday.getDate() - 1);
+                startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+                endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+                break;
+            default:
+                // Assume YYYY-MM-DD format
+                const dateMatch = dateArg.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (dateMatch) {
+                    const year = parseInt(dateMatch[1]);
+                    const month = parseInt(dateMatch[2]) - 1; // Month is 0-indexed
+                    const day = parseInt(dateMatch[3]);
+                    startDate = new Date(year, month, day);
+                    endDate = new Date(year, month, day, 23, 59, 59);
+                } else {
+                    throw new Error('Invalid date format. Please use YYYY-MM-DD');
+                }
+        }
+
+        return {
+            start: startDate.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ''),
+            end: endDate.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '')
+        };
+    }
+
+    async getHoursForDirectory(directoryPath, dateArg = 'today') {
+        const gitUsername = this.getGitUsername();
+        const { start, end } = this.getDateRange(dateArg);
+        
+        const results = [];
+        let totalHoursSeconds = 0;
+
+        try {
+            const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
+            
+            for (const entry of entries) {
+                if (entry.isDirectory() && !entry.name.startsWith('.')) {
+                    const subDir = path.join(directoryPath, entry.name);
+                    const gitDir = path.join(subDir, '.git');
+                    
+                    if (fs.existsSync(gitDir)) {
+                        const hoursSeconds = this.getHoursForRepo(start, end, gitUsername, subDir);
+                        
+                        if (hoursSeconds > 0) {
+                            const hoursFormatted = this.formatDuration(hoursSeconds);
+                            totalHoursSeconds += hoursSeconds;
+                            
+                            results.push({
+                                folder: entry.name,
+                                hours: hoursFormatted,
+                                seconds: hoursSeconds
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            throw new Error(`Error reading directory ${directoryPath}: ${error.message}`);
+        }
+
+        const totalFormatted = this.formatDuration(totalHoursSeconds);
+        
+        return {
+            results,
+            total: {
+                formatted: totalFormatted,
+                seconds: totalHoursSeconds
+            },
+            dateRange: { start, end },
+            gitUsername
+        };
+    }
+}
+
+module.exports = GitHours;

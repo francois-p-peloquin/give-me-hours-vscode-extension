@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+    <title>Give Me Hours</title>
+    <style>
+        body {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            color: var(--vscode-titleBar-activeForeground);
+            font-size: 1.5em;
+        }
+
+        .info {
+            color: var(--vscode-descriptionForeground);
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--vscode-descriptionForeground);
+            margin: 50px 0;
+        }
+
+        .error {
+            color: var(--vscode-errorForeground);
+            background-color: var(--vscode-inputValidation-errorBackground);
+            border: 1px solid var(--vscode-inputValidation-errorBorder);
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .hours-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: var(--vscode-editor-background);
+        }
+
+        .hours-table th,
+        .hours-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .hours-table th {
+            background-color: var(--vscode-list-hoverBackground);
+            color: var(--vscode-list-focusForeground);
+            font-weight: 600;
+        }
+
+        .hours-table tr:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+
+        .total-row {
+            font-weight: bold;
+            color: var(--vscode-textLink-foreground);
+            border-top: 2px solid var(--vscode-panel-border);
+        }
+
+        .no-results {
+            text-align: center;
+            color: var(--vscode-descriptionForeground);
+            margin: 50px 0;
+            font-style: italic;
+        }
+
+        .refresh-button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .refresh-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        .settings-link {
+            color: var(--vscode-textLink-foreground);
+            text-decoration: none;
+            margin-left: 10px;
+        }
+
+        .settings-link:hover {
+            text-decoration: underline;
+        }
+
+        .config-info {
+            background-color: var(--vscode-editor-inactiveSelectionBackground);
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Give Me Hours</h1>
+        <div class="info">
+            <span id="dateRange">Loading...</span>
+            <button class="refresh-button" onclick="refreshHours()">Refresh</button>
+            <button class="refresh-button" onclick="selectFolder()">Select Folder</button>
+            <a href="#" class="settings-link" onclick="openSettings()">Settings</a>
+        </div>
+        <div class="info">
+            Git User: <span id="gitUser">Loading...</span>
+        </div>
+        <div class="config-info" id="configInfo">
+            Loading configuration...
+        </div>
+    </div>
+
+    <div id="loading" class="loading">
+        Calculating working hours...
+    </div>
+
+    <div id="error" class="error" style="display: none;">
+    </div>
+
+    <div id="results" style="display: none;">
+        <table class="hours-table">
+            <thead>
+                <tr>
+                    <th>Repository</th>
+                    <th>Hours Worked</th>
+                </tr>
+            </thead>
+            <tbody id="hoursTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <div id="noResults" class="no-results" style="display: none;">
+        No working hours found for today.
+        <br><br>
+        Make sure you have git repositories in your configured working directory
+        and that you've made commits today.
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        function refreshHours() {
+            showLoading();
+            vscode.postMessage({ command: 'refresh' });
+        }
+
+        function selectFolder() {
+            vscode.postMessage({ command: 'selectFolder' });
+        }
+
+        function openSettings() {
+            vscode.postMessage({ command: 'openSettings' });
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('noResults').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('noResults').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error').textContent = message;
+        }
+
+        function showResults(data) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+
+            // Update header info
+            document.getElementById('dateRange').textContent = `From ${data.dateRange.start} to ${data.dateRange.end}`;
+            document.getElementById('gitUser').textContent = data.gitUsername;
+
+            // Update config info
+            const configText = `Duration: ${data.config.duration} | Rounding: ${data.config.hoursRounding}h | Padding: ${data.config.paddingBefore}h | Directory: ${data.config.workingDirectory || 'Current workspace'}`;
+            document.getElementById('configInfo').textContent = configText;
+
+            if (data.results.length === 0) {
+                document.getElementById('noResults').style.display = 'block';
+                document.getElementById('results').style.display = 'none';
+            } else {
+                document.getElementById('noResults').style.display = 'none';
+                document.getElementById('results').style.display = 'block';
+
+                const tbody = document.getElementById('hoursTableBody');
+                tbody.innerHTML = '';
+
+                // Add repository rows
+                data.results.forEach(result => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${result.folder}</td>
+                        <td>${result.hours}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                // Add total row
+                if (data.total.seconds > 0) {
+                    const totalRow = document.createElement('tr');
+                    totalRow.className = 'total-row';
+                    totalRow.innerHTML = `
+                        <td>TOTAL</td>
+                        <td>${data.total.formatted}</td>
+                    `;
+                    tbody.appendChild(totalRow);
+                }
+            }
+        }
+
+        // Handle messages from the extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.type) {
+                case 'showResults':
+                    showResults(message.data);
+                    break;
+                case 'showError':
+                    showError(message.error);
+                    break;
+            }
+        });
+
+        // Request initial data load
+        vscode.postMessage({ command: 'refresh' });
+    </script>
+</body>
+</html>

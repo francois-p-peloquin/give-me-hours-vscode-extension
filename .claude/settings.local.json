@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run lint)",
+      "Read(/Users/francoispeloquin/Web/give-me-hours-homebrew/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
