@@ -90,6 +90,7 @@ function activate(context) {
 		// Handle messages from webview
 		panel.webview.onDidReceiveMessage(
 			async message => {
+				console.log('Received message from webview:', message);
 				switch (message.command) {
 					case 'refresh':
 						await calculateAndSendHours(panel);
@@ -103,19 +104,27 @@ function activate(context) {
 						}
 						break;
 					case 'selectFolder':
-						const folderUri = await vscode.window.showOpenDialog({
-							canSelectFiles: false,
-							canSelectFolders: true,
-							canSelectMany: false,
-							openLabel: 'Select Working Directory'
-						});
-						
-						if (folderUri && folderUri[0]) {
-							const config = vscode.workspace.getConfiguration('giveMeHours');
-							await config.update('workingDirectory', folderUri[0].fsPath, vscode.ConfigurationTarget.Global);
-							vscode.window.showInformationMessage(`Working directory set to: ${folderUri[0].fsPath}`);
-							// Refresh the panel after setting the directory
-							await calculateAndSendHours(panel);
+						console.log('selectFolder command received');
+						try {
+							const folderUri = await vscode.window.showOpenDialog({
+								canSelectFiles: false,
+								canSelectFolders: true,
+								canSelectMany: false,
+								openLabel: 'Select Working Directory'
+							});
+							
+							console.log('Folder dialog result:', folderUri);
+							
+							if (folderUri && folderUri[0]) {
+								const config = vscode.workspace.getConfiguration('giveMeHours');
+								await config.update('workingDirectory', folderUri[0].fsPath, vscode.ConfigurationTarget.Global);
+								vscode.window.showInformationMessage(`Working directory set to: ${folderUri[0].fsPath}`);
+								// Refresh the panel after setting the directory
+								await calculateAndSendHours(panel);
+							}
+						} catch (error) {
+							console.error('Error in selectFolder:', error);
+							vscode.window.showErrorMessage(`Error selecting folder: ${error.message}`);
 						}
 						break;
 				}

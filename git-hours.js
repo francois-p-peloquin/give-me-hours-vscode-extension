@@ -1,6 +1,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const process = require('process');
 
 class GitHours {
     constructor(options = {}) {
@@ -65,11 +66,11 @@ class GitHours {
     buildGitCommand(since, before, author) {
         let cmd = "git log --pretty=format:'%at|%an|%s' --reverse";
         cmd += ` --since="${since}" --before="${before}"`;
-        
+
         if (author) {
             cmd += ` --author="${author}"`;
         }
-        
+
         return cmd;
     }
 
@@ -117,10 +118,10 @@ class GitHours {
 
     getHoursForRepo(since, before, author, repoPath = '.') {
         const originalCwd = process.cwd();
-        
+
         try {
             process.chdir(repoPath);
-            
+
             // Check if we're in a git repository
             try {
                 execSync('git rev-parse --git-dir', { stdio: 'ignore' });
@@ -189,25 +190,25 @@ class GitHours {
     async getHoursForDirectory(directoryPath, dateArg = 'today') {
         const gitUsername = this.getGitUsername();
         const { start, end } = this.getDateRange(dateArg);
-        
+
         const results = [];
         let totalHoursSeconds = 0;
 
         try {
             const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
-            
+
             for (const entry of entries) {
                 if (entry.isDirectory() && !entry.name.startsWith('.')) {
                     const subDir = path.join(directoryPath, entry.name);
                     const gitDir = path.join(subDir, '.git');
-                    
+
                     if (fs.existsSync(gitDir)) {
                         const hoursSeconds = this.getHoursForRepo(start, end, gitUsername, subDir);
-                        
+
                         if (hoursSeconds > 0) {
                             const hoursFormatted = this.formatDuration(hoursSeconds);
                             totalHoursSeconds += hoursSeconds;
-                            
+
                             results.push({
                                 folder: entry.name,
                                 hours: hoursFormatted,
@@ -222,7 +223,7 @@ class GitHours {
         }
 
         const totalFormatted = this.formatDuration(totalHoursSeconds);
-        
+
         return {
             results,
             total: {
@@ -234,5 +235,8 @@ class GitHours {
         };
     }
 }
+
+const test = new GitHours();
+test.getHoursForDirectory(process.cwd, 'today')
 
 module.exports = GitHours;
