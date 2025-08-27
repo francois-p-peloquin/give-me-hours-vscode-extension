@@ -117,6 +117,48 @@
             margin: 10px 0;
             font-size: 0.9em;
         }
+
+        .summary-column {
+            max-width: 400px;
+            word-wrap: break-word;
+        }
+
+        .summary-column.hidden {
+            display: none;
+        }
+
+        #datePicker {
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 0 10px;
+            font-family: var(--vscode-font-family);
+        }
+
+        #configuredControls {
+            margin-top: 10px;
+        }
+
+        #configuredControls label {
+            color: var(--vscode-descriptionForeground);
+            margin-right: 5px;
+        }
+
+        button:disabled {
+            background-color: var(--vscode-button-secondaryBackground) !important;
+            color: var(--vscode-button-secondaryForeground) !important;
+            cursor: not-allowed !important;
+            opacity: 0.6 !important;
+        }
+
+        input:disabled {
+            background-color: var(--vscode-input-background) !important;
+            color: var(--vscode-descriptionForeground) !important;
+            cursor: not-allowed !important;
+            opacity: 0.6 !important;
+        }
     </style>
 </head>
 <body>
@@ -124,14 +166,19 @@
         <h1>Give Me Hours</h1>
         <div class="info">
             <span id="dateRange">Loading...</span>
-            <button class="refresh-button" onclick="refreshHours()">Refresh</button>
+            <div id="configuredControls" style="display: none;">
+                <label for="datePicker">Date: </label>
+                <input type="date" id="datePicker" onchange="onDateChange()">
+                <button class="refresh-button" onclick="refreshHours()">Refresh</button>
+                <button class="refresh-button" onclick="toggleSummary()" id="summaryToggle">Hide Summary</button>
+            </div>
             <button class="refresh-button" onclick="selectFolder()">Select Folder</button>
             <a href="#" class="settings-link" onclick="openSettings()">Settings</a>
         </div>
-        <div class="info">
+        <div class="info" id="gitUserInfo" style="display: none;">
             Git User: <span id="gitUser">Loading...</span>
         </div>
-        <div class="config-info" id="configInfo">
+        <div class="config-info" id="configInfo" style="display: none;">
             Loading configuration...
         </div>
     </div>
@@ -149,6 +196,7 @@
                 <tr>
                     <th>Repository</th>
                     <th>Hours Worked</th>
+                    <th id="summaryHeader" class="summary-column">Summary</th>
                 </tr>
             </thead>
             <tbody id="hoursTableBody">
@@ -167,18 +215,87 @@
         const vscode = acquireVsCodeApi();
 
         function refreshHours() {
+            if (document.querySelector('button').disabled) return; // Prevent multiple clicks
             showLoading();
             vscode.postMessage({ command: 'refresh' });
         }
 
         function selectFolder() {
+            if (document.querySelector('button').disabled) return; // Prevent multiple clicks
             console.log('selectFolder() called');
             vscode.postMessage({ command: 'selectFolder' });
             console.log('selectFolder message sent');
         }
 
         function openSettings() {
+            if (document.querySelector('button').disabled) return; // Prevent multiple clicks
             vscode.postMessage({ command: 'openSettings' });
+        }
+
+        function toggleSummary() {
+            if (document.querySelector('button').disabled) return; // Prevent multiple clicks
+            console.log('toggleSummary() called');
+            showLoading();
+            vscode.postMessage({ command: 'toggleSummary' });
+        }
+
+        function onDateChange() {
+            if (document.getElementById('datePicker').disabled) return; // Prevent multiple changes
+            const selectedDate = document.getElementById('datePicker').value;
+            console.log('Date changed to:', selectedDate);
+            showLoading();
+            vscode.postMessage({ command: 'dateChanged', date: selectedDate });
+        }
+
+        function initializeDatePicker() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('datePicker').value = today;
+        }
+
+        function showConfiguredElements() {
+            document.getElementById('configuredControls').style.display = 'block';
+            document.getElementById('gitUserInfo').style.display = 'block';
+            document.getElementById('configInfo').style.display = 'block';
+        }
+
+        function hideConfiguredElements() {
+            document.getElementById('configuredControls').style.display = 'none';
+            document.getElementById('gitUserInfo').style.display = 'none';
+            document.getElementById('configInfo').style.display = 'none';
+        }
+
+        function disableButtons() {
+            const buttons = document.querySelectorAll('button');
+            const datePicker = document.getElementById('datePicker');
+            
+            buttons.forEach(button => {
+                button.disabled = true;
+                button.style.opacity = '0.6';
+                button.style.cursor = 'not-allowed';
+            });
+            
+            if (datePicker) {
+                datePicker.disabled = true;
+                datePicker.style.opacity = '0.6';
+                datePicker.style.cursor = 'not-allowed';
+            }
+        }
+
+        function enableButtons() {
+            const buttons = document.querySelectorAll('button');
+            const datePicker = document.getElementById('datePicker');
+            
+            buttons.forEach(button => {
+                button.disabled = false;
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+            });
+            
+            if (datePicker) {
+                datePicker.disabled = false;
+                datePicker.style.opacity = '1';
+                datePicker.style.cursor = 'auto';
+            }
         }
 
         function showLoading() {
@@ -186,6 +303,7 @@
             document.getElementById('results').style.display = 'none';
             document.getElementById('noResults').style.display = 'none';
             document.getElementById('error').style.display = 'none';
+            disableButtons();
         }
 
         function showError(message) {
@@ -194,11 +312,23 @@
             document.getElementById('noResults').style.display = 'none';
             document.getElementById('error').style.display = 'block';
             document.getElementById('error').textContent = message;
+            
+            // Hide configured elements when there's an error (likely no working directory)
+            hideConfiguredElements();
+            enableButtons();
         }
 
         function showResults(data) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'none';
+            
+            // Show configured elements since we have a working directory
+            showConfiguredElements();
+            
+            // Initialize date picker if not already set
+            if (!document.getElementById('datePicker').value) {
+                initializeDatePicker();
+            }
 
             // Update header info
             document.getElementById('dateRange').textContent = `From ${data.dateRange.start} to ${data.dateRange.end}`;
@@ -207,6 +337,18 @@
             // Update config info
             const configText = `Duration: ${data.config.duration} | Rounding: ${data.config.hoursRounding}h | Padding: ${data.config.paddingBefore}h | Directory: ${data.config.workingDirectory || 'Current workspace'}`;
             document.getElementById('configInfo').textContent = configText;
+
+            // Update summary toggle button
+            const summaryToggle = document.getElementById('summaryToggle');
+            const summaryHeader = document.getElementById('summaryHeader');
+            
+            if (data.config.showSummary) {
+                summaryToggle.textContent = 'Hide Summary';
+                summaryHeader.style.display = '';
+            } else {
+                summaryToggle.textContent = 'Show Summary';
+                summaryHeader.style.display = 'none';
+            }
 
             if (data.results.length === 0) {
                 document.getElementById('noResults').style.display = 'block';
@@ -221,9 +363,11 @@
                 // Add repository rows
                 data.results.forEach(result => {
                     const row = document.createElement('tr');
+                    const summaryCell = data.config.showSummary ? `<td class="summary-column">${result.summary || ''}</td>` : '';
                     row.innerHTML = `
                         <td>${result.folder}</td>
                         <td>${result.hours}</td>
+                        ${summaryCell}
                     `;
                     tbody.appendChild(row);
                 });
@@ -232,13 +376,18 @@
                 if (data.total.seconds > 0) {
                     const totalRow = document.createElement('tr');
                     totalRow.className = 'total-row';
+                    const summaryCell = data.config.showSummary ? '<td class="summary-column"></td>' : '';
                     totalRow.innerHTML = `
                         <td>TOTAL</td>
                         <td>${data.total.formatted}</td>
+                        ${summaryCell}
                     `;
                     tbody.appendChild(totalRow);
                 }
             }
+            
+            // Re-enable buttons after data loads
+            enableButtons();
         }
 
         // Handle messages from the extension

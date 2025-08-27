@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
-const GitHours = require('./git-hours');
+const GiveMeHours = require('./give-me-hours');
 const fs = require('fs');
 const path = require('path');
 
@@ -16,6 +16,8 @@ function activate(context) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "give-me-hours" is now active!');
+
+	let currentDate = 'today'; // Track the current date selection
 
 	// Create status bar item
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -46,7 +48,8 @@ function activate(context) {
 			duration: config.get('duration', '1h'),
 			hoursRounding: config.get('hoursRounding', 0.25),
 			paddingBefore: config.get('paddingBefore', 0.5),
-			words: config.get('words', 50)
+			words: config.get('words', 50),
+			showSummary: config.get('showSummary', true)
 		};
 	}
 
@@ -127,6 +130,30 @@ function activate(context) {
 							vscode.window.showErrorMessage(`Error selecting folder: ${error.message}`);
 						}
 						break;
+					case 'toggleSummary':
+						console.log('toggleSummary command received');
+						try {
+							const config = vscode.workspace.getConfiguration('giveMeHours');
+							const currentValue = config.get('showSummary', true);
+							await config.update('showSummary', !currentValue, vscode.ConfigurationTarget.Global);
+							// Refresh the panel to show/hide summary
+							await calculateAndSendHours(panel);
+						} catch (error) {
+							console.error('Error in toggleSummary:', error);
+							vscode.window.showErrorMessage(`Error toggling summary: ${error.message}`);
+						}
+						break;
+					case 'dateChanged':
+						console.log('dateChanged command received:', message.date);
+						try {
+							currentDate = message.date || 'today';
+							// Refresh the panel with the new date
+							await calculateAndSendHours(panel);
+						} catch (error) {
+							console.error('Error in dateChanged:', error);
+							vscode.window.showErrorMessage(`Error changing date: ${error.message}`);
+						}
+						break;
 				}
 			},
 			undefined,
@@ -153,19 +180,21 @@ function activate(context) {
 			const workingDirectory = getWorkingDirectory();
 
 			// Create a temporary instance to access parseDuration
-			const tempGitHours = new GitHours();
-			const duration = tempGitHours.parseDuration(config.duration);
+			const tempGiveMeHours = new GiveMeHours();
+			const duration = tempGiveMeHours.parseDuration(config.duration);
 			
-			// Create GitHours instance with user settings
-			const gitHours = new GitHours({
+			// Create GiveMeHours instance with user settings
+			const giveMeHours = new GiveMeHours({
 				duration: duration,
 				hoursRounding: config.hoursRounding,
 				paddingBefore: config.paddingBefore,
+				showSummary: config.showSummary,
+				maxWords: config.words,
 				debug: false
 			});
 
 			// Get hours for the working directory
-			const result = await gitHours.getHoursForDirectory(workingDirectory, 'today');
+			const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
 			
 			// Add config info to result
 			result.config = config;

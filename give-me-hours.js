@@ -3,12 +3,14 @@ const fs = require('fs');
 const path = require('path');
 const process = require('process');
 
-class GitHours {
+class GiveMeHours {
     constructor(options = {}) {
         this.duration = options.duration || 3600; // 1 hour in seconds
         this.hoursRounding = options.hoursRounding || 0.25;
         this.paddingBefore = options.paddingBefore || 0.5;
         this.debug = options.debug || false;
+        this.showSummary = options.showSummary !== undefined ? options.showSummary : true;
+        this.maxWords = options.maxWords || 50;
     }
 
     parseDuration(durationStr) {
@@ -53,6 +55,31 @@ class GitHours {
         } else {
             return '0:00';
         }
+    }
+
+    generateSummary(commitsOutput) {
+        const lines = commitsOutput.split('\n').filter(line => line.trim());
+        const messages = [];
+        
+        for (const line of lines) {
+            const parts = line.split('|');
+            if (parts.length >= 3) {
+                const message = parts[2].trim();
+                if (message && !messages.includes(message)) {
+                    messages.push(message);
+                }
+            }
+        }
+        
+        // Join messages with semicolons and limit by word count
+        const summary = messages.join('; ');
+        const words = summary.split(' ');
+        
+        if (words.length > this.maxWords) {
+            return words.slice(0, this.maxWords).join(' ') + '...';
+        }
+        
+        return summary;
     }
 
     getGitUsername() {
@@ -126,15 +153,16 @@ class GitHours {
             try {
                 execSync('git rev-parse --git-dir', { stdio: 'ignore' });
             } catch (error) {
-                return 0;
+                return { seconds: 0, summary: '' };
             }
 
             const commitsOutput = this.getGitCommits(since, before, author);
             if (!commitsOutput) {
-                return 0;
+                return { seconds: 0, summary: '' };
             }
 
             let totalSeconds = this.calculateWorkingHours(commitsOutput);
+            const summary = this.showSummary ? this.generateSummary(commitsOutput) : '';
 
             // Apply rounding and padding if time was worked
             if (totalSeconds > 0) {
@@ -146,7 +174,7 @@ class GitHours {
                 }
             }
 
-            return totalSeconds;
+            return { seconds: totalSeconds, summary };
         } finally {
             process.chdir(originalCwd);
         }
@@ -203,16 +231,17 @@ class GitHours {
                     const gitDir = path.join(subDir, '.git');
 
                     if (fs.existsSync(gitDir)) {
-                        const hoursSeconds = this.getHoursForRepo(start, end, gitUsername, subDir);
+                        const result = this.getHoursForRepo(start, end, gitUsername, subDir);
 
-                        if (hoursSeconds > 0) {
-                            const hoursFormatted = this.formatDuration(hoursSeconds);
-                            totalHoursSeconds += hoursSeconds;
+                        if (result.seconds > 0) {
+                            const hoursFormatted = this.formatDuration(result.seconds);
+                            totalHoursSeconds += result.seconds;
 
                             results.push({
                                 folder: entry.name,
                                 hours: hoursFormatted,
-                                seconds: hoursSeconds
+                                seconds: result.seconds,
+                                summary: result.summary
                             });
                         }
                     }
@@ -236,7 +265,4 @@ class GitHours {
     }
 }
 
-const test = new GitHours();
-test.getHoursForDirectory(process.cwd, 'today')
-
-module.exports = GitHours;
+module.exports = GiveMeHours;

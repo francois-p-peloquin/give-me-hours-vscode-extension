@@ -27,7 +27,7 @@
       "properties": {
         "giveMeHours.workingDirectory": {
           "type": "string",
-          "default": "/Users/francoispeloquin/Web/",
+          "default": "",
           "description": "The folder where the Give Me Hours script will run. Leave empty to use the current workspace folder."
         },
         "giveMeHours.duration": {
@@ -49,6 +49,11 @@
           "type": "number",
           "default": 50,
           "description": "Maximum words in summary mode"
+        },
+        "giveMeHours.showSummary": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show commit summary column in the results table"
         }
       }
     }
