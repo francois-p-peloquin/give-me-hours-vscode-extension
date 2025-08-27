@@ -110,13 +110,6 @@
             text-decoration: underline;
         }
 
-        .config-info {
-            background-color: var(--vscode-editor-inactiveSelectionBackground);
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
-            font-size: 0.9em;
-        }
 
         .summary-column {
             max-width: 400px;
@@ -165,21 +158,33 @@
     <div class="header">
         <h1>Give Me Hours</h1>
         <div class="info">
-            <span id="dateRange">Loading...</span>
             <div id="configuredControls" style="display: none;">
                 <label for="datePicker">Date: </label>
                 <input type="date" id="datePicker" onchange="onDateChange()">
                 <button class="refresh-button" onclick="refreshHours()">Refresh</button>
                 <button class="refresh-button" onclick="toggleSummary()" id="summaryToggle">Hide Summary</button>
+                <button class="refresh-button" onclick="openSettings()">Settings</button>
             </div>
-            <button class="refresh-button" onclick="selectFolder()">Select Folder</button>
-            <a href="#" class="settings-link" onclick="openSettings()">Settings</a>
         </div>
         <div class="info" id="gitUserInfo" style="display: none;">
             Git User: <span id="gitUser">Loading...</span>
         </div>
-        <div class="config-info" id="configInfo" style="display: none;">
-            Loading configuration...
+        <div class="info" id="durationInfo" style="display: none;">
+            Duration: <span id="duration">Loading...</span>
+        </div>
+        <div class="info" id="roundingInfo" style="display: none;">
+            Hours Rounding: <span id="rounding">Loading...</span>
+        </div>
+        <div class="info" id="startupTimeInfo" style="display: none;">
+            Project Startup Time: <span id="startupTime">Loading...</span>
+        </div>
+        <div class="info" id="directoryInfo" style="display: none;">
+            Directory: <span id="directory">Loading...</span>
+            <button class="refresh-button" onclick="selectFolder()" style="margin-left: 10px;">Select Folder</button>
+        </div>
+        <div class="info" id="noFolderInfo">
+            <button class="refresh-button" onclick="selectFolder()">Select Folder</button>
+            <button class="refresh-button" onclick="openSettings()" style="margin-left: 10px;">Settings</button>
         </div>
     </div>
 
@@ -255,13 +260,21 @@
         function showConfiguredElements() {
             document.getElementById('configuredControls').style.display = 'block';
             document.getElementById('gitUserInfo').style.display = 'block';
-            document.getElementById('configInfo').style.display = 'block';
+            document.getElementById('durationInfo').style.display = 'block';
+            document.getElementById('roundingInfo').style.display = 'block';
+            document.getElementById('startupTimeInfo').style.display = 'block';
+            document.getElementById('directoryInfo').style.display = 'block';
+            document.getElementById('noFolderInfo').style.display = 'none';
         }
 
         function hideConfiguredElements() {
             document.getElementById('configuredControls').style.display = 'none';
             document.getElementById('gitUserInfo').style.display = 'none';
-            document.getElementById('configInfo').style.display = 'none';
+            document.getElementById('durationInfo').style.display = 'none';
+            document.getElementById('roundingInfo').style.display = 'none';
+            document.getElementById('startupTimeInfo').style.display = 'none';
+            document.getElementById('directoryInfo').style.display = 'none';
+            document.getElementById('noFolderInfo').style.display = 'block';
         }
 
         function disableButtons() {
@@ -318,6 +331,39 @@
             enableButtons();
         }
 
+        function showGitUserError(message, config) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('noResults').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error').textContent = message;
+            
+            // Show configured elements since folder is set, but Git user isn't
+            showConfiguredElements();
+            
+            // Initialize date picker
+            if (!document.getElementById('datePicker').value) {
+                initializeDatePicker();
+            }
+            
+            // Populate config info
+            document.getElementById('gitUser').textContent = 'Not set';
+            document.getElementById('duration').textContent = config.duration;
+            document.getElementById('rounding').textContent = `${config.hoursRounding}h`;
+            document.getElementById('startupTime').textContent = `${config.projectStartupTime}h`;
+            document.getElementById('directory').textContent = config.workingDirectory || 'Current workspace';
+            
+            // Update summary toggle button
+            const summaryToggle = document.getElementById('summaryToggle');
+            if (config.showSummary) {
+                summaryToggle.textContent = 'Hide Summary';
+            } else {
+                summaryToggle.textContent = 'Show Summary';
+            }
+            
+            enableButtons();
+        }
+
         function showResults(data) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'none';
@@ -330,13 +376,12 @@
                 initializeDatePicker();
             }
 
-            // Update header info
-            document.getElementById('dateRange').textContent = `From ${data.dateRange.start} to ${data.dateRange.end}`;
+            // Update user and config info
             document.getElementById('gitUser').textContent = data.gitUsername;
-
-            // Update config info
-            const configText = `Duration: ${data.config.duration} | Rounding: ${data.config.hoursRounding}h | Padding: ${data.config.paddingBefore}h | Directory: ${data.config.workingDirectory || 'Current workspace'}`;
-            document.getElementById('configInfo').textContent = configText;
+            document.getElementById('duration').textContent = data.config.duration;
+            document.getElementById('rounding').textContent = `${data.config.hoursRounding}h`;
+            document.getElementById('startupTime').textContent = `${data.config.projectStartupTime}h`;
+            document.getElementById('directory').textContent = data.config.workingDirectory || 'Current workspace';
 
             // Update summary toggle button
             const summaryToggle = document.getElementById('summaryToggle');
@@ -399,6 +444,9 @@
                     break;
                 case 'showError':
                     showError(message.error);
+                    break;
+                case 'showGitUserError':
+                    showGitUserError(message.error, message.config);
                     break;
             }
         });

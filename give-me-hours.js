@@ -7,7 +7,7 @@ class GiveMeHours {
     constructor(options = {}) {
         this.duration = options.duration || 3600; // 1 hour in seconds
         this.hoursRounding = options.hoursRounding || 0.25;
-        this.paddingBefore = options.paddingBefore || 0.5;
+        this.projectStartupTime = options.projectStartupTime || 0.5;
         this.debug = options.debug || false;
         this.showSummary = options.showSummary !== undefined ? options.showSummary : true;
         this.maxWords = options.maxWords || 50;
@@ -39,9 +39,9 @@ class GiveMeHours {
         return Math.floor(roundedHours * 3600);
     }
 
-    addPaddingBefore(seconds, paddingBeforeHours) {
-        const paddingSeconds = Math.floor(paddingBeforeHours * 3600);
-        return seconds + paddingSeconds;
+    addProjectStartupTime(seconds, startupTimeHours) {
+        const startupSeconds = Math.floor(startupTimeHours * 3600);
+        return seconds + startupSeconds;
     }
 
     formatDuration(seconds) {
@@ -164,13 +164,13 @@ class GiveMeHours {
             let totalSeconds = this.calculateWorkingHours(commitsOutput);
             const summary = this.showSummary ? this.generateSummary(commitsOutput) : '';
 
-            // Apply rounding and padding if time was worked
+            // Apply rounding and project startup time if time was worked
             if (totalSeconds > 0) {
                 if (this.hoursRounding > 0) {
                     totalSeconds = this.roundHours(totalSeconds, this.hoursRounding);
                 }
-                if (this.paddingBefore > 0) {
-                    totalSeconds = this.addPaddingBefore(totalSeconds, this.paddingBefore);
+                if (this.projectStartupTime > 0) {
+                    totalSeconds = this.addProjectStartupTime(totalSeconds, this.projectStartupTime);
                 }
             }
 

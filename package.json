@@ -3,6 +3,7 @@
   "displayName": "Give Me Hours",
   "description": "A command-line tool to list out hours worked based on git log hours in a working directory.",
   "version": "0.0.1",
+  "publisher": "give-me-hours",
   "engines": {
     "vscode": "^1.103.0"
   },
@@ -20,6 +21,10 @@
       {
         "command": "give-me-hours.openWelcome",
         "title": "Give Me Hours: Open Welcome Page"
+      },
+      {
+        "command": "give-me-hours.openSettings",
+        "title": "Give Me Hours: Open Settings"
       }
     ],
     "configuration": {
@@ -28,32 +33,43 @@
         "giveMeHours.workingDirectory": {
           "type": "string",
           "default": "",
-          "description": "The folder where the Give Me Hours script will run. Leave empty to use the current workspace folder."
+          "description": "The folder containing your git repositories. Use the 'Select Folder' button in the extension or set this path manually.",
+          "markdownDescription": "The folder containing your git repositories. Use the **Select Folder** button in the extension or set this path manually."
         },
         "giveMeHours.duration": {
           "type": "string",
           "default": "1h",
-          "description": "Maximum gap between commits (e.g., '1h', '30m', '90s')"
+          "description": "Maximum gap between commits to count as continuous work. Examples: '1h' (1 hour), '30m' (30 minutes), '90s' (90 seconds)",
+          "pattern": "^[0-9]*\\.?[0-9]+[hms]?$",
+          "patternErrorMessage": "Duration must be a number followed by 'h' (hours), 'm' (minutes), or 's' (seconds). Examples: '1h', '30m', '90s'"
         },
         "giveMeHours.hoursRounding": {
           "type": "number",
           "default": 0.25,
-          "description": "Round up hours to nearest increment (default: 0.25 = 15 minutes)"
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Round up hours to nearest increment. 0.25 = 15 minutes, 0.5 = 30 minutes, 1 = 1 hour. Set to 0 to disable rounding.",
+          "markdownDescription": "Round up hours to nearest increment:\n- `0.25` = 15 minutes\n- `0.5` = 30 minutes\n- `1` = 1 hour\n- `0` = disable rounding"
         },
-        "giveMeHours.paddingBefore": {
+        "giveMeHours.projectStartupTime": {
           "type": "number",
           "default": 0.5,
-          "description": "Add time before each work session in hours (default: 0.5 = 30 minutes)"
+          "minimum": 0,
+          "maximum": 4,
+          "description": "Add time before each work session in hours for project startup/setup. 0.5 = 30 minutes of setup/thinking time. Set to 0 to disable.",
+          "markdownDescription": "Add time before each work session in hours for project startup/setup:\n- `0.5` = 30 minutes (default)\n- `1` = 1 hour\n- `0` = no startup time"
         },
         "giveMeHours.words": {
           "type": "number",
           "default": 50,
-          "description": "Maximum words in summary mode"
+          "minimum": 10,
+          "maximum": 200,
+          "description": "Maximum number of words to show in commit summaries. Longer summaries will be truncated with '...'."
         },
         "giveMeHours.showSummary": {
           "type": "boolean",
           "default": true,
-          "description": "Show commit summary column in the results table"
+          "description": "Show commit summary column in the results table. You can also toggle this using the button in the extension."
         }
       }
     }

@@ -41,13 +41,18 @@ function activate(context) {
 		createHoursPanel(context);
 	});
 
+	// Register the command to open settings
+	const openSettingsDisposable = vscode.commands.registerCommand('give-me-hours.openSettings', function () {
+		vscode.commands.executeCommand('workbench.action.openSettings', 'giveMeHours');
+	});
+
 	function getConfiguration() {
 		const config = vscode.workspace.getConfiguration('giveMeHours');
 		return {
 			workingDirectory: config.get('workingDirectory', ''),
 			duration: config.get('duration', '1h'),
 			hoursRounding: config.get('hoursRounding', 0.25),
-			paddingBefore: config.get('paddingBefore', 0.5),
+			projectStartupTime: config.get('projectStartupTime', 0.5),
 			words: config.get('words', 50),
 			showSummary: config.get('showSummary', true)
 		};
@@ -99,12 +104,7 @@ function activate(context) {
 						await calculateAndSendHours(panel);
 						break;
 					case 'openSettings':
-						try {
-							await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:give-me-hours');
-						} catch (error) {
-							// Fallback to general settings search
-							await vscode.commands.executeCommand('workbench.action.openSettings', 'giveMeHours');
-						}
+						await vscode.commands.executeCommand('workbench.action.openSettings', 'giveMeHours');
 						break;
 					case 'selectFolder':
 						console.log('selectFolder command received');
@@ -165,8 +165,8 @@ function activate(context) {
 	}
 
 	async function calculateAndSendHours(panel) {
+		const config = getConfiguration();
 		try {
-			const config = getConfiguration();
 			
 			// Check if working directory is configured
 			if (!isWorkingDirectoryConfigured()) {
@@ -187,7 +187,7 @@ function activate(context) {
 			const giveMeHours = new GiveMeHours({
 				duration: duration,
 				hoursRounding: config.hoursRounding,
-				paddingBefore: config.paddingBefore,
+				projectStartupTime: config.projectStartupTime,
 				showSummary: config.showSummary,
 				maxWords: config.words,
 				debug: false
@@ -207,14 +207,24 @@ function activate(context) {
 
 		} catch (error) {
 			console.error('Error calculating hours:', error);
-			panel.webview.postMessage({
-				type: 'showError',
-				error: error.message
-			});
+			
+			// Check if it's a Git user error
+			if (error.message.includes('Git global username is not set')) {
+				panel.webview.postMessage({
+					type: 'showGitUserError',
+					error: 'Git global username is not set. Please set it with: git config --global user.name "Your Name"',
+					config: config
+				});
+			} else {
+				panel.webview.postMessage({
+					type: 'showError',
+					error: error.message
+				});
+			}
 		}
 	}
 
-	context.subscriptions.push(disposable, openWelcomeDisposable, statusBarItem);
+	context.subscriptions.push(disposable, openWelcomeDisposable, openSettingsDisposable, statusBarItem);
 }
 
 // This method is called when your extension is deactivated
