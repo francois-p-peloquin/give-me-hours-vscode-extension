@@ -262,7 +262,12 @@
             <div id="configuredControls" style="display: none;">
                 <label for="datePicker">Date: </label>
                 <input type="date" id="datePicker" onchange="onDateChange()">
-                <button class="refresh-button" onclick="refreshHours()">Refresh</button>
+                <label for="timeFormat" style="margin-left: 20px;">Show time as: </label>
+                <input type="radio" id="timeFormatDecimal" name="timeFormat" value="decimal" onchange="onTimeFormatChange()" checked>
+                <label for="timeFormatDecimal" style="margin-right: 10px;">Decimal</label>
+                <input type="radio" id="timeFormatChrono" name="timeFormat" value="chrono" onchange="onTimeFormatChange()">
+                <label for="timeFormatChrono">Chrono</label>
+                <button class="refresh-button" onclick="refreshHours()" style="margin-left: 20px;">Refresh</button>
                 <button class="refresh-button" onclick="toggleSummary()" id="summaryToggle">Hide Summary</button>
                 <button class="refresh-button" onclick="openSettings()">Settings</button>
             </div>
@@ -388,6 +393,36 @@
             console.log('Date changed to:', selectedDate);
             showLoading();
             vscode.postMessage({ command: 'dateChanged', date: selectedDate });
+        }
+
+        function onTimeFormatChange() {
+            const decimalSelected = document.getElementById('timeFormatDecimal').checked;
+            console.log('Time format changed to:', decimalSelected ? 'decimal' : 'chrono');
+            
+            // Convert all existing time displays
+            const timeElements = document.querySelectorAll('[data-seconds]');
+            timeElements.forEach(element => {
+                const seconds = parseInt(element.getAttribute('data-seconds'));
+                element.textContent = formatTime(seconds, decimalSelected);
+            });
+        }
+
+        function formatTime(seconds, useDecimal = false) {
+            if (useDecimal) {
+                const hours = seconds / 3600;
+                return hours.toFixed(2);
+            } else {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                
+                if (hours > 0) {
+                    return `${hours}:${minutes.toString().padStart(2, '0')}`;
+                } else if (minutes > 0) {
+                    return `0:${minutes.toString().padStart(2, '0')}`;
+                } else {
+                    return '0:00';
+                }
+            }
         }
 
         function initializeDatePicker() {
@@ -533,7 +568,11 @@
                 
                 if (column === 'hours') {
                     const hoursCell = row.cells[1];
-                    if (hoursCell) data.push(hoursCell.textContent.trim());
+                    if (hoursCell) {
+                        const spanElement = hoursCell.querySelector('[data-seconds]');
+                        const text = spanElement ? spanElement.textContent.trim() : hoursCell.textContent.trim();
+                        data.push(text);
+                    }
                 } else if (column === 'summary') {
                     const summaryCell = row.cells[2];
                     if (summaryCell && summaryCell.style.display !== 'none') {
@@ -549,12 +588,15 @@
 
         function copyCellData(element, column) {
             const row = element.closest('tr');
-            if (!row || row.classList.contains('total-row')) return;
+            if (!row) return;
             
             let text = '';
             if (column === 'hours') {
                 const hoursCell = row.cells[1];
-                if (hoursCell) text = hoursCell.textContent.trim();
+                if (hoursCell) {
+                    const spanElement = hoursCell.querySelector('[data-seconds]');
+                    text = spanElement ? spanElement.textContent.trim() : hoursCell.textContent.trim();
+                }
             } else if (column === 'summary') {
                 const summaryCell = row.cells[2];
                 if (summaryCell) text = summaryCell.textContent.trim();
@@ -676,12 +718,14 @@
                 tbody.innerHTML = '';
 
                 // Add repository rows
+                const useDecimal = document.getElementById('timeFormatDecimal').checked;
                 data.results.forEach(result => {
                     const row = document.createElement('tr');
+                    const formattedTime = formatTime(result.seconds, useDecimal);
                     row.innerHTML = `
                         <td>${result.folder}</td>
                         <td class="cell-with-copy">
-                            ${result.hours}
+                            <span data-seconds="${result.seconds}">${formattedTime}</span>
                             <span class="cell-copy-icon" onclick="copyCellData(this, 'hours')" title="Copy hours">
                                 <svg viewBox="0 0 16 16">
                                     <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
@@ -704,9 +748,10 @@
                 if (data.total.seconds > 0) {
                     const totalRow = document.createElement('tr');
                     totalRow.className = 'total-row';
+                    const totalFormatted = formatTime(data.total.seconds, useDecimal);
                     totalRow.innerHTML = `
                         <td>TOTAL</td>
-                        <td>${data.total.formatted}</td>
+                        <td><span data-seconds="${data.total.seconds}">${totalFormatted}</span></td>
                         <td class="summary-column"></td>
                     `;
                     tbody.appendChild(totalRow);
