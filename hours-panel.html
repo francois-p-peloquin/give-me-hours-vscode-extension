@@ -152,6 +152,54 @@
             cursor: not-allowed !important;
             opacity: 0.6 !important;
         }
+
+        .copy-icon {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-left: 6px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            vertical-align: middle;
+        }
+
+        .copy-icon:hover {
+            opacity: 1;
+        }
+
+        .copy-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: var(--vscode-foreground);
+        }
+
+        .cell-with-copy {
+            position: relative;
+            padding-right: 24px;
+        }
+
+        .cell-copy-icon {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .cell-copy-icon:hover {
+            opacity: 1;
+        }
+
+        .cell-copy-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: var(--vscode-foreground);
+        }
     </style>
 </head>
 <body>
@@ -311,6 +359,111 @@
             }
         }
 
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showTemporaryMessage('Copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    fallbackCopyTextToClipboard(text);
+                });
+            } else {
+                fallbackCopyTextToClipboard(text);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showTemporaryMessage('Copied to clipboard!');
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+                showTemporaryMessage('Copy failed');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showTemporaryMessage(message) {
+            const messageEl = document.createElement('div');
+            messageEl.textContent = message;
+            messageEl.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background-color: var(--vscode-notifications-background);
+                color: var(--vscode-notifications-foreground);
+                border: 1px solid var(--vscode-notifications-border);
+                padding: 8px 12px;
+                border-radius: 4px;
+                z-index: 1000;
+                font-size: 12px;
+                opacity: 0;
+                transition: opacity 0.3s;
+            `;
+            
+            document.body.appendChild(messageEl);
+            
+            setTimeout(() => messageEl.style.opacity = '1', 10);
+            setTimeout(() => {
+                messageEl.style.opacity = '0';
+                setTimeout(() => document.body.removeChild(messageEl), 300);
+            }, 2000);
+        }
+
+        function copyColumnData(column) {
+            const tbody = document.getElementById('hoursTableBody');
+            if (!tbody || tbody.children.length === 0) return;
+            
+            let data = [];
+            const rows = Array.from(tbody.children);
+            
+            rows.forEach(row => {
+                if (row.classList.contains('total-row')) return; // Skip total row
+                
+                if (column === 'hours') {
+                    const hoursCell = row.cells[1];
+                    if (hoursCell) data.push(hoursCell.textContent.trim());
+                } else if (column === 'summary') {
+                    const summaryCell = row.cells[2];
+                    if (summaryCell && summaryCell.style.display !== 'none') {
+                        data.push(summaryCell.textContent.trim());
+                    }
+                }
+            });
+            
+            if (data.length > 0) {
+                copyToClipboard(data.join('\n'));
+            }
+        }
+
+        function copyCellData(element, column) {
+            const row = element.closest('tr');
+            if (!row || row.classList.contains('total-row')) return;
+            
+            let text = '';
+            if (column === 'hours') {
+                const hoursCell = row.cells[1];
+                if (hoursCell) text = hoursCell.textContent.trim();
+            } else if (column === 'summary') {
+                const summaryCell = row.cells[2];
+                if (summaryCell) text = summaryCell.textContent.trim();
+            }
+            
+            if (text) {
+                copyToClipboard(text);
+            }
+        }
+
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('results').style.display = 'none';
@@ -408,10 +561,26 @@
                 // Add repository rows
                 data.results.forEach(result => {
                     const row = document.createElement('tr');
-                    const summaryCell = data.config.showSummary ? `<td class="summary-column">${result.summary || ''}</td>` : '';
+                    const summaryCell = data.config.showSummary ? `
+                        <td class="summary-column cell-with-copy">
+                            ${result.summary || ''}
+                            <span class="cell-copy-icon" onclick="copyCellData(this, 'summary')" title="Copy summary">
+                                <svg viewBox="0 0 16 16">
+                                    <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
+                                </svg>
+                            </span>
+                        </td>
+                    ` : '';
                     row.innerHTML = `
                         <td>${result.folder}</td>
-                        <td>${result.hours}</td>
+                        <td class="cell-with-copy">
+                            ${result.hours}
+                            <span class="cell-copy-icon" onclick="copyCellData(this, 'hours')" title="Copy hours">
+                                <svg viewBox="0 0 16 16">
+                                    <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
+                                </svg>
+                            </span>
+                        </td>
                         ${summaryCell}
                     `;
                     tbody.appendChild(row);
