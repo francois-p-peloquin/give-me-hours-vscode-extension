@@ -170,17 +170,14 @@ function activate(context) {
 							vscode.window.showErrorMessage(`Error selecting folder: ${error.message}`);
 						}
 						break;
-					case 'toggleSummary':
-						console.log('toggleSummary command received');
+					case 'updateSummaryVisibility':
+						console.log('updateSummaryVisibility command received:', message.visible);
 						try {
 							const config = vscode.workspace.getConfiguration('giveMeHours');
-							const currentValue = config.get('showSummary', true);
-							await config.update('showSummary', !currentValue, vscode.ConfigurationTarget.Global);
-							// Refresh the panel to show/hide summary
-							await calculateAndSendHours(panel);
+							await config.update('showSummary', message.visible, vscode.ConfigurationTarget.Global);
 						} catch (error) {
-							console.error('Error in toggleSummary:', error);
-							vscode.window.showErrorMessage(`Error toggling summary: ${error.message}`);
+							console.error('Error in updateSummaryVisibility:', error);
+							vscode.window.showErrorMessage(`Error updating summary visibility: ${error.message}`);
 						}
 						break;
 					case 'dateChanged':
@@ -224,11 +221,12 @@ function activate(context) {
 			const duration = tempGiveMeHours.parseDuration(config.duration);
 			
 			// Create GiveMeHours instance with user settings
+			// Always fetch summaries since we now toggle visibility with JS
 			const giveMeHours = new GiveMeHours({
 				duration: duration,
 				hoursRounding: config.hoursRounding,
 				projectStartupTime: config.projectStartupTime,
-				showSummary: config.showSummary,
+				showSummary: true, // Always fetch summaries
 				maxWords: config.words,
 				debug: false
 			});

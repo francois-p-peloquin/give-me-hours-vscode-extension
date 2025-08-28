@@ -200,6 +200,59 @@
             height: 100%;
             fill: var(--vscode-foreground);
         }
+
+        .accordion {
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .accordion-header {
+            background-color: var(--vscode-list-hoverBackground);
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            user-select: none;
+        }
+
+        .accordion-header:hover {
+            background-color: var(--vscode-list-focusBackground);
+        }
+
+        .accordion-arrow {
+            transition: transform 0.2s;
+            font-size: 12px;
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .accordion-content {
+            padding: 15px;
+            border-top: 1px solid var(--vscode-panel-border);
+            background-color: var(--vscode-editor-background);
+        }
+
+        .accordion.collapsed .accordion-content {
+            display: none;
+        }
+
+        .accordion.collapsed .accordion-arrow {
+            transform: rotate(-90deg);
+        }
+
+        .config-item {
+            margin-bottom: 10px;
+        }
+
+        .config-description {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            margin-top: 2px;
+            line-height: 1.3;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -214,21 +267,38 @@
                 <button class="refresh-button" onclick="openSettings()">Settings</button>
             </div>
         </div>
-        <div class="info" id="gitUserInfo" style="display: none;">
-            Git User: <span id="gitUser">Loading...</span>
-        </div>
-        <div class="info" id="durationInfo" style="display: none;">
-            Duration: <span id="duration">Loading...</span>
-        </div>
-        <div class="info" id="roundingInfo" style="display: none;">
-            Hours Rounding: <span id="rounding">Loading...</span>
-        </div>
-        <div class="info" id="startupTimeInfo" style="display: none;">
-            Project Startup Time: <span id="startupTime">Loading...</span>
-        </div>
-        <div class="info" id="directoryInfo" style="display: none;">
-            Directory: <span id="directory">Loading...</span>
-            <button class="refresh-button" onclick="selectFolder()" style="margin-left: 10px;">Select Folder</button>
+        <div class="accordion collapsed" id="configAccordion" style="display: none;">
+            <div class="accordion-header" onclick="toggleAccordion()">
+                <span>Configuration Details</span>
+                <span class="accordion-arrow">▼</span>
+            </div>
+            <div class="accordion-content">
+                <div class="config-item">
+                    <div class="info">Git User: <span id="gitUser">Loading...</span></div>
+                </div>
+                <div class="config-item">
+                    <div class="info">Duration: <span id="duration">Loading...</span></div>
+                </div>
+                <div class="config-item">
+                    <div class="info">
+                        Hours Rounding: <span id="rounding">Loading...</span>
+                        <div class="config-description">Round work hours to the nearest decimal.</div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <div class="info">
+                        Project Startup Time: <span id="startupTime">Loading...</span>
+                        <div class="config-description">Amount of work time before first commit.</div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <div class="info">
+                        Directory: <span id="directory">Loading...</span>
+                        <button class="refresh-button" onclick="selectFolder()" style="margin-left: 10px;">Select Folder</button>
+                        <div class="config-description">The folder containing all of your working Git repos.</div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="info" id="noFolderInfo">
             <button class="refresh-button" onclick="selectFolder()">Select Folder</button>
@@ -288,8 +358,28 @@
         function toggleSummary() {
             if (document.querySelector('button').disabled) return; // Prevent multiple clicks
             console.log('toggleSummary() called');
-            showLoading();
-            vscode.postMessage({ command: 'toggleSummary' });
+            
+            const summaryHeader = document.getElementById('summaryHeader');
+            const summaryToggle = document.getElementById('summaryToggle');
+            const summaryCells = document.querySelectorAll('.summary-column');
+            
+            // Toggle visibility
+            const isCurrentlyVisible = summaryHeader.style.display !== 'none';
+            const newDisplay = isCurrentlyVisible ? 'none' : '';
+            
+            // Update header and all summary cells
+            summaryHeader.style.display = newDisplay;
+            summaryCells.forEach(cell => {
+                if (cell !== summaryHeader) { // Don't apply to header twice
+                    cell.style.display = newDisplay;
+                }
+            });
+            
+            // Update button text
+            summaryToggle.textContent = isCurrentlyVisible ? 'Show Summary' : 'Hide Summary';
+            
+            // Update the setting in the background without reloading data
+            vscode.postMessage({ command: 'updateSummaryVisibility', visible: !isCurrentlyVisible });
         }
 
         function onDateChange() {
@@ -301,27 +391,38 @@
         }
 
         function initializeDatePicker() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('datePicker').value = today;
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayString = `${year}-${month}-${day}`;
+            document.getElementById('datePicker').value = todayString;
+        }
+
+        function toggleAccordion() {
+            const accordion = document.getElementById('configAccordion');
+            accordion.classList.toggle('collapsed');
+        }
+
+        function openAccordion() {
+            const accordion = document.getElementById('configAccordion');
+            accordion.classList.remove('collapsed');
+        }
+
+        function closeAccordion() {
+            const accordion = document.getElementById('configAccordion');
+            accordion.classList.add('collapsed');
         }
 
         function showConfiguredElements() {
             document.getElementById('configuredControls').style.display = 'block';
-            document.getElementById('gitUserInfo').style.display = 'block';
-            document.getElementById('durationInfo').style.display = 'block';
-            document.getElementById('roundingInfo').style.display = 'block';
-            document.getElementById('startupTimeInfo').style.display = 'block';
-            document.getElementById('directoryInfo').style.display = 'block';
+            document.getElementById('configAccordion').style.display = 'block';
             document.getElementById('noFolderInfo').style.display = 'none';
         }
 
         function hideConfiguredElements() {
             document.getElementById('configuredControls').style.display = 'none';
-            document.getElementById('gitUserInfo').style.display = 'none';
-            document.getElementById('durationInfo').style.display = 'none';
-            document.getElementById('roundingInfo').style.display = 'none';
-            document.getElementById('startupTimeInfo').style.display = 'none';
-            document.getElementById('directoryInfo').style.display = 'none';
+            document.getElementById('configAccordion').style.display = 'none';
             document.getElementById('noFolderInfo').style.display = 'block';
         }
 
@@ -481,6 +582,7 @@
             
             // Hide configured elements when there's an error (likely no working directory)
             hideConfiguredElements();
+            // No need to open accordion here since configured elements are hidden
             enableButtons();
         }
 
@@ -493,6 +595,8 @@
             
             // Show configured elements since folder is set, but Git user isn't
             showConfiguredElements();
+            // Open accordion to show configuration issues
+            openAccordion();
             
             // Initialize date picker
             if (!document.getElementById('datePicker').value) {
@@ -523,6 +627,8 @@
             
             // Show configured elements since we have a working directory
             showConfiguredElements();
+            // Close accordion since everything is working properly
+            closeAccordion();
             
             // Initialize date picker if not already set
             if (!document.getElementById('datePicker').value) {
@@ -536,16 +642,27 @@
             document.getElementById('startupTime').textContent = `${data.config.projectStartupTime}h`;
             document.getElementById('directory').textContent = data.config.workingDirectory || 'Current workspace';
 
-            // Update summary toggle button
+            // Update summary toggle button and column visibility
             const summaryToggle = document.getElementById('summaryToggle');
             const summaryHeader = document.getElementById('summaryHeader');
+            const summaryCells = document.querySelectorAll('.summary-column');
             
             if (data.config.showSummary) {
                 summaryToggle.textContent = 'Hide Summary';
                 summaryHeader.style.display = '';
+                summaryCells.forEach(cell => {
+                    if (cell !== summaryHeader) {
+                        cell.style.display = '';
+                    }
+                });
             } else {
                 summaryToggle.textContent = 'Show Summary';
                 summaryHeader.style.display = 'none';
+                summaryCells.forEach(cell => {
+                    if (cell !== summaryHeader) {
+                        cell.style.display = 'none';
+                    }
+                });
             }
 
             if (data.results.length === 0) {
@@ -561,16 +678,6 @@
                 // Add repository rows
                 data.results.forEach(result => {
                     const row = document.createElement('tr');
-                    const summaryCell = data.config.showSummary ? `
-                        <td class="summary-column cell-with-copy">
-                            ${result.summary || ''}
-                            <span class="cell-copy-icon" onclick="copyCellData(this, 'summary')" title="Copy summary">
-                                <svg viewBox="0 0 16 16">
-                                    <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
-                                </svg>
-                            </span>
-                        </td>
-                    ` : '';
                     row.innerHTML = `
                         <td>${result.folder}</td>
                         <td class="cell-with-copy">
@@ -581,7 +688,14 @@
                                 </svg>
                             </span>
                         </td>
-                        ${summaryCell}
+                        <td class="summary-column cell-with-copy">
+                            ${result.summary || ''}
+                            <span class="cell-copy-icon" onclick="copyCellData(this, 'summary')" title="Copy summary">
+                                <svg viewBox="0 0 16 16">
+                                    <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
+                                </svg>
+                            </span>
+                        </td>
                     `;
                     tbody.appendChild(row);
                 });
@@ -590,11 +704,10 @@
                 if (data.total.seconds > 0) {
                     const totalRow = document.createElement('tr');
                     totalRow.className = 'total-row';
-                    const summaryCell = data.config.showSummary ? '<td class="summary-column"></td>' : '';
                     totalRow.innerHTML = `
                         <td>TOTAL</td>
                         <td>${data.total.formatted}</td>
-                        ${summaryCell}
+                        <td class="summary-column"></td>
                     `;
                     tbody.appendChild(totalRow);
                 }

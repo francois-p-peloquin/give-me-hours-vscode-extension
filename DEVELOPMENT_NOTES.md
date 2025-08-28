@@ -113,3 +113,25 @@ Local Git Repositories
 ## 🎉 Project Status: COMPLETE
 
 The Give Me Hours VSCode extension is now a fully functional, professional-grade tool that provides an excellent user experience for tracking git-based working hours. All original bash script functionality has been preserved and enhanced with modern VSCode integration features.
+
+### 📝 Recent Updates (Session 2)
+- ✅ **Copy-to-Clipboard Feature**: Added copy icons to Hours and Summary columns in data table
+  - Individual cell copy functionality with always-visible icons
+  - Uses modern `navigator.clipboard` API with fallback support
+  - Shows temporary success notifications
+- ✅ **Performance Optimization**: Summary toggle now uses pure JS instead of backend refresh
+  - Instant column visibility toggle without reloading data
+  - Backend always fetches summaries, frontend controls display
+  - Significantly improved response time for show/hide summary
+- ✅ **Configuration UI Enhancement**: Added collapsible accordion for config details
+  - Descriptive text for Hours Rounding and Project Startup Time settings
+  - Smart accordion behavior: closed by default, opens when config issues detected
+  - Clean interface for normal usage, helpful visibility for troubleshooting
+- ✅ **Timezone Fix**: Fixed date picker showing tomorrow's date in PST
+  - Replaced `toISOString()` with local date methods to avoid UTC conversion issues
+
+### 🔧 Technical Implementation Notes
+- **Copy Icons**: SVG-based with VSCode theme integration, positioned absolutely in table cells
+- **Accordion State**: Managed by CSS classes with JS toggle, auto-opens for Git user errors
+- **Summary Toggle**: Frontend-only with `display: none/''`, setting syncs in background via `updateSummaryVisibility`
+- **Date Handling**: Uses `getFullYear()`, `getMonth()`, `getDate()` for timezone-safe local dates
