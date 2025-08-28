@@ -4,6 +4,10 @@
   "description": "A command-line tool to list out hours worked based on git log hours in a working directory.",
   "version": "0.0.1",
   "publisher": "give-me-hours",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/francois-p-peloquin/give-me-hours-vscode-extension"
+  },
   "engines": {
     "vscode": "^1.103.0"
   },
