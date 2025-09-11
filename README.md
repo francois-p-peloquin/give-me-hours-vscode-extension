@@ -69,7 +69,7 @@ Access settings via:
 
 ### Duration Examples
 - `1h` or `1` = 1 hour
-- `30m` = 30 minutes  
+- `30m` = 30 minutes
 - `90s` = 90 seconds
 
 ### Rounding Examples
@@ -125,7 +125,7 @@ git config --global user.email "your.email@example.com"
 ### VSCode Theme Integration
 The extension automatically adapts to your VSCode theme:
 - Dark themes: Uses dark color palette
-- Light themes: Uses light color palette  
+- Light themes: Uses light color palette
 - High contrast themes: Maintains accessibility
 
 ### Summary Display
@@ -155,7 +155,7 @@ Toggle commit summaries on/off to customize your view:
 ```
 give-me-hours/
 ├── give-me-hours.js      # Core calculation engine
-├── hours-panel.html      # Main webview interface  
+├── hours-panel.html      # Main webview interface
 ├── extension.js          # VSCode extension logic
 ├── package.json          # Extension manifest
 ├── README.md            # This file
@@ -192,3 +192,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Happy coding and time tracking! 🚀**
+
+# Development
+To run in any directory, try the following, pointing to your working directory:
+```bash
+node give-me-hours.js /Users/francoispeloquin/Web
+```
+
+To review what Git is logging in each folder, use:
+```bash
+git log --pretty=format:'%at|%s' --reverse --since="2025-09-01"  --before="2025-09-02" --author="Francois Peloquin"
+```
