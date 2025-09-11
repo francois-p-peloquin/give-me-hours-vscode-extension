@@ -60,7 +60,7 @@ class GiveMeHours {
     generateSummary(commitsOutput) {
         const lines = commitsOutput.split('\n').filter(line => line.trim());
         const messages = [];
-        
+
         for (const line of lines) {
             const parts = line.split('|');
             if (parts.length >= 3) {
@@ -70,15 +70,15 @@ class GiveMeHours {
                 }
             }
         }
-        
+
         // Join messages with semicolons and limit by word count
         const summary = messages.join('; ');
         const words = summary.split(' ');
-        
+
         if (words.length > this.maxWords) {
             return words.slice(0, this.maxWords).join(' ') + '...';
         }
-        
+
         return summary;
     }
 
@@ -107,8 +107,11 @@ class GiveMeHours {
             if (this.debug) {
                 console.log(`Running: ${cmd}`);
             }
-            return execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+            return execSync(cmd, { encoding: 'utf8', stdio: 'pipe' });
         } catch (error) {
+            if (this.debug) {
+                console.error(`Error executing git command: ${error}`);
+            }
             return '';
         }
     }
@@ -222,6 +225,27 @@ class GiveMeHours {
         const results = [];
         let totalHoursSeconds = 0;
 
+        // Check if the directoryPath itself is a git repository
+        // const mainGitDir = path.join(directoryPath, '.git');
+        // if (fs.existsSync(mainGitDir)) {
+        //     if (this.debug) {
+        //         console.log(`\nChecking git repository: ${directoryPath}`);
+        //     }
+        //     const result = this.getHoursForRepo(start, end, gitUsername, directoryPath);
+
+        //     if (result.seconds > 0) {
+        //         const hoursFormatted = this.formatDuration(result.seconds);
+        //         totalHoursSeconds += result.seconds;
+
+        //         results.push({
+        //             folder: path.basename(directoryPath), // Use the directory name
+        //             hours: hoursFormatted,
+        //             seconds: result.seconds,
+        //             summary: result.summary
+        //         });
+        //     }
+        // }
+
         try {
             const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
 
@@ -231,6 +255,9 @@ class GiveMeHours {
                     const gitDir = path.join(subDir, '.git');
 
                     if (fs.existsSync(gitDir)) {
+                        if (this.debug) {
+                            console.log(`\nChecking git repository: ${subDir}`);
+                        }
                         const result = this.getHoursForRepo(start, end, gitUsername, subDir);
 
                         if (result.seconds > 0) {
@@ -266,3 +293,56 @@ class GiveMeHours {
 }
 
 module.exports = GiveMeHours;
+
+// This block allows the script to be run directly from the command line
+if (require.main === module) {
+    async function main() {
+        try {
+            // Get directory from command line arguments, or use current directory
+            const directoryPath = process.argv[2] || process.cwd();
+            const dateArg = process.argv[3] || 'today';
+
+            console.log(`Calculating hours for "${directoryPath}" for "${dateArg}"...`);
+
+            const giveMeHours = new GiveMeHours({
+                duration: 3600,      // Default: 1 hour
+                hoursRounding: 0.25, // Default: 15 minutes
+                projectStartupTime: 0.5, // Default: 30 minutes
+                showSummary: true,
+                maxWords: 50,
+                debug: true       // Enable debug mode
+            });
+
+            const result = await giveMeHours.getHoursForDirectory(directoryPath, dateArg);
+
+
+            console.log(`
+---
+
+Results for ${result.dateRange.start} to ${result.dateRange.end} ---
+`);
+            console.log(`Git Username: ${result.gitUsername}
+`);
+
+            if (result.results.length > 0) {
+                result.results.forEach(res => {
+                    console.log(`- ${res.folder}: ${res.hours}`);
+                    if (res.summary) {
+                        console.log(`  Summary: ${res.summary}`);
+                    }
+                });
+                console.log(`
+Total: ${result.total.formatted}`);
+            } else {
+                console.log('No activity found for the specified period.');
+            }
+
+        } catch (error) {
+            console.error(`
+Error: ${error.message}`);
+            process.exit(1);
+        }
+    }
+
+    main();
+}
