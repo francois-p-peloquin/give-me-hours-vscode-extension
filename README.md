@@ -59,13 +59,24 @@ Access settings via:
 ### Available Settings
 
 | Setting | Default | Description |
-|---------|---------|-------------|
+|---|---|---|
 | **Working Directory** | _(empty)_ | Folder containing your git repositories |
 | **Duration** | `1h` | Maximum gap between commits to count as continuous work |
 | **Hours Rounding** | `0.25` | Round hours to nearest increment (0.25 = 15 min) |
 | **Project Startup Time** | `0.5` | Add time before each work session (0.5 = 30 min) |
+| **Min Commit Time** | `0.5` | Minimum time credited for a single commit or a commit after a long break, in hours. 0.5 = 30 minutes. |
 | **Words** | `50` | Maximum words in commit summaries |
 | **Show Summary** | `true` | Display commit message summaries in table |
+| **Data Type** | `rounded` | Choose between `rounded` and `clean` hours. |
+
+### Data Types: Clean vs. Rounded Hours
+
+You can now choose how your hours are calculated and displayed:
+
+- **Rounded Hours (default)**: This mode includes all the smart calculations, such as rounding and project startup time. This is useful for getting a more realistic view of your billable hours.
+- **Clean Hours**: This mode shows the raw, unadjusted time calculated from your commit history. This is useful for getting a precise measure of your coding time without any adjustments.
+
+Use the "Hours type" toggle in the extension's main interface to switch between these modes.
 
 ### Duration Examples
 - `1h` or `1` = 1 hour

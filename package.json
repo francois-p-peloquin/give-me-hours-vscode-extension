@@ -73,7 +73,7 @@
           "default": 50,
           "minimum": 10,
           "maximum": 200,
-          "description": "Maximum number of words to show in commit summaries. Longer summaries will be truncated with '...'
+          "description": "Maximum number of words to show in commit summaries. Longer summaries will be truncated with '...'"
         },
         "giveMeHours.showSummary": {
           "type": "boolean",
