@@ -241,27 +241,6 @@ class GiveMeHours {
         const results = [];
         let totalHoursSeconds = 0;
 
-        // Check if the directoryPath itself is a git repository
-        // const mainGitDir = path.join(directoryPath, '.git');
-        // if (fs.existsSync(mainGitDir)) {
-        //     if (this.debug) {
-        //         console.log(`\nChecking git repository: ${directoryPath}`);
-        //     }
-        //     const result = this.getHoursForRepo(start, end, gitUsername, directoryPath);
-
-        //     if (result.seconds > 0) {
-        //         const hoursFormatted = this.formatDuration(result.seconds);
-        //         totalHoursSeconds += result.seconds;
-
-        //         results.push({
-        //             folder: path.basename(directoryPath), // Use the directory name
-        //             hours: hoursFormatted,
-        //             seconds: result.seconds,
-        //             summary: result.summary
-        //         });
-        //     }
-        // }
-
         try {
             const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
 
