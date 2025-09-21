@@ -139,8 +139,13 @@ class GiveMeHours {
                         console.log(`${this.formatDuration(interval)} >`);
                     }
 
+                    // If working time is less than our specified duration
                     if (interval <= this.duration) {
                         totalSeconds += interval;
+                    }
+                    // Otherwise, just add the minimum time worked per commit
+                    else {
+                        totalSeconds += minSecondsWorked;
                     }
                 }
 
@@ -169,20 +174,26 @@ class GiveMeHours {
                 return { seconds: 0, summary: '' };
             }
 
-            let totalSeconds = this.calculateWorkingHours(commitsOutput);
+            let totalSeconds = this.calculateWorkingHours(commitsOutput, this.projectStartupTime * 3600);
             const summary = this.showSummary ? this.generateSummary(commitsOutput) : '';
+
+            let totalSecondsRounded = totalSeconds;
 
             // Apply rounding and project startup time if time was worked
             if (totalSeconds > 0) {
                 if (this.hoursRounding > 0) {
-                    totalSeconds = this.roundHours(totalSeconds, this.hoursRounding);
+                    totalSecondsRounded = this.roundHours(totalSeconds, this.hoursRounding);
                 }
                 if (this.projectStartupTime > 0) {
-                    totalSeconds = this.addProjectStartupTime(totalSeconds, this.projectStartupTime);
+                    totalSecondsRounded = this.addProjectStartupTime(totalSeconds, this.projectStartupTime);
                 }
             }
 
-            return { seconds: totalSeconds, summary };
+            return {
+                seconds: totalSeconds,
+                secondsRounded: totalSecondsRounded,
+                summary
+            };
         } finally {
             process.chdir(originalCwd);
         }
