@@ -61,12 +61,19 @@
           "description": "Add time before each work session in hours for project startup/setup. 0.5 = 30 minutes of setup/thinking time. Set to 0 to disable.",
           "markdownDescription": "Add time before each work session in hours for project startup/setup:\n- `0.5` = 30 minutes (default)\n- `1` = 1 hour\n- `0` = no startup time"
         },
+        "giveMeHours.minCommitTime": {
+          "type": "number",
+          "default": 0.5,
+          "minimum": 0,
+          "description": "Minimum time credited for a single commit or a commit after a long break, in hours. 0.5 = 30 minutes.",
+          "markdownDescription": "Minimum time credited for a single commit or a commit after a long break, in hours. `0.5` = 30 minutes."
+        },
         "giveMeHours.words": {
           "type": "number",
           "default": 50,
           "minimum": 10,
           "maximum": 200,
-          "description": "Maximum number of words to show in commit summaries. Longer summaries will be truncated with '...'"
+          "description": "Maximum number of words to show in commit summaries. Longer summaries will be truncated with '...'
         },
         "giveMeHours.showSummary": {
           "type": "boolean",

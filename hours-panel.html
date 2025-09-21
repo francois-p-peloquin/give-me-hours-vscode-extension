@@ -309,6 +309,12 @@
                 </div>
                 <div class="config-item">
                     <div class="info">
+                        Min Commit Time: <span id="minCommitTime">Loading...</span>
+                        <div class="config-description">Minimum time credited for a single commit or a commit after a long break.</div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <div class="info">
                         Directory: <span id="directory">Loading...</span>
                         <button class="refresh-button" onclick="selectFolder()" style="margin-left: 10px;">Select Folder</button>
                         <div class="config-description">The folder containing all of your working Git repos.</div>
@@ -700,6 +706,7 @@
             document.getElementById('duration').textContent = data.config.duration;
             document.getElementById('rounding').textContent = `${data.config.hoursRounding}h`;
             document.getElementById('startupTime').textContent = `${data.config.projectStartupTime}h`;
+            document.getElementById('minCommitTime').textContent = `${data.config.minCommitTime}h`;
             document.getElementById('directory').textContent = data.config.workingDirectory || 'Current workspace';
 
             // Set the radio buttons for data type

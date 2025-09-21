@@ -8,6 +8,7 @@ class GiveMeHours {
         this.duration = options.duration || 3600; // 1 hour in seconds
         this.hoursRounding = options.hoursRounding || 0.25;
         this.projectStartupTime = options.projectStartupTime || 0.5;
+        this.minCommitTime = options.minCommitTime || 0.5; // in hours
         this.debug = options.debug || false;
         this.showSummary = options.showSummary !== undefined ? options.showSummary : true;
         this.maxWords = options.maxWords || 50;
@@ -117,10 +118,11 @@ class GiveMeHours {
         }
     }
 
-    calculateWorkingHours(commitsOutput, minSecondsWorked = 30 * 60) {
+    calculateWorkingHours(commitsOutput) {
         let totalSeconds = 0;
         let prevTimestamp = null;
         const lines = commitsOutput.split('\n').filter(line => line.trim());
+        const minSecondsWorked = this.minCommitTime * 3600;
 
         if (lines.length === 1) { // Only one commit
             totalSeconds += minSecondsWorked;
@@ -175,7 +177,7 @@ class GiveMeHours {
                 return { seconds: 0, summary: '' };
             }
 
-            let totalSeconds = this.calculateWorkingHours(commitsOutput, this.projectStartupTime * 3600);
+            let totalSeconds = this.calculateWorkingHours(commitsOutput);
             const summary = this.showSummary ? this.generateSummary(commitsOutput) : '';
 
             let totalSecondsRounded = totalSeconds;

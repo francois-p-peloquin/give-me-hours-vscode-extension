@@ -45,6 +45,7 @@ function activate(context) {
 				duration: duration,
 				hoursRounding: config.hoursRounding,
 				projectStartupTime: config.projectStartupTime,
+				minCommitTime: config.minCommitTime,
 				showSummary: false, // Don't need summaries for status bar
 				maxWords: config.words,
 				debug: false,
@@ -94,6 +95,7 @@ function activate(context) {
 			duration: config.get('duration', '1h'),
 			hoursRounding: config.get('hoursRounding', 0.25),
 			projectStartupTime: config.get('projectStartupTime', 0.5),
+			minCommitTime: config.get('minCommitTime', 0.5),
 			words: config.get('words', 50),
 			showSummary: config.get('showSummary', true),
 			dataType: config.get('dataType', 'rounded')
@@ -240,6 +242,7 @@ function activate(context) {
 				duration: duration,
 				hoursRounding: config.hoursRounding,
 				projectStartupTime: config.projectStartupTime,
+				minCommitTime: config.minCommitTime,
 				showSummary: true, // Always fetch summaries
 				maxWords: config.words,
 				debug: false,
