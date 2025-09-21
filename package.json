@@ -66,12 +66,22 @@
           "default": 50,
           "minimum": 10,
           "maximum": 200,
-          "description": "Maximum number of words to show in commit summaries. Longer summaries will be truncated with '...'."
+          "description": "Maximum number of words to show in commit summaries. Longer summaries will be truncated with '...'"
         },
         "giveMeHours.showSummary": {
           "type": "boolean",
           "default": true,
           "description": "Show commit summary column in the results table. You can also toggle this using the button in the extension."
+        },
+        "giveMeHours.dataType": {
+          "type": "string",
+          "default": "rounded",
+          "enum": [
+            "rounded",
+            "clean"
+          ],
+          "description": "Choose the data type for calculating hours. 'Rounded' includes rounding and startup time, while 'Clean' shows the raw calculated hours.",
+          "markdownDescription": "Choose the data type for calculating hours:\n- `rounded`: Includes rounding and project startup time (default).\n- `clean`: Shows the raw, unadjusted calculated hours."
         }
       }
     }

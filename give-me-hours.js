@@ -11,6 +11,7 @@ class GiveMeHours {
         this.debug = options.debug || false;
         this.showSummary = options.showSummary !== undefined ? options.showSummary : true;
         this.maxWords = options.maxWords || 50;
+        this.dataType = options.dataType || 'rounded';
     }
 
     parseDuration(durationStr) {
@@ -92,10 +93,10 @@ class GiveMeHours {
 
     buildGitCommand(since, before, author) {
         let cmd = "git log --pretty=format:'%at|%an|%s' --reverse";
-        cmd += ` --since="${since}" --before="${before}"`;
+        cmd += ` --since=\"${since}\" --before=\"${before}\"`;
 
         if (author) {
-            cmd += ` --author="${author}"`;
+            cmd += ` --author=\"${author}\"`;
         }
 
         return cmd;
@@ -254,7 +255,7 @@ class GiveMeHours {
                             console.log(`\nChecking git repository: ${subDir}`);
                         }
                         const result = this.getHoursForRepo(start, end, gitUsername, subDir);
-                        const useSecondsClean = false; // TODO: add option to choose between clean and rounded
+                        const useSecondsClean = this.dataType === 'clean';
                         const seconds = useSecondsClean ? result.secondsClean : result.secondsRounded;
 
                         if (seconds > 0) {

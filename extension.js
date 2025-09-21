@@ -47,7 +47,8 @@ function activate(context) {
 				projectStartupTime: config.projectStartupTime,
 				showSummary: false, // Don't need summaries for status bar
 				maxWords: config.words,
-				debug: false
+				debug: false,
+				dataType: config.dataType
 			});
 
 			const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
@@ -94,7 +95,8 @@ function activate(context) {
 			hoursRounding: config.get('hoursRounding', 0.25),
 			projectStartupTime: config.get('projectStartupTime', 0.5),
 			words: config.get('words', 50),
-			showSummary: config.get('showSummary', true)
+			showSummary: config.get('showSummary', true),
+			dataType: config.get('dataType', 'rounded')
 		};
 	}
 
@@ -191,6 +193,18 @@ function activate(context) {
 							vscode.window.showErrorMessage(`Error changing date: ${error.message}`);
 						}
 						break;
+					case 'dataTypeChanged':
+						console.log('dataTypeChanged command received:', message.dataType);
+						try {
+							const config = vscode.workspace.getConfiguration('giveMeHours');
+							await config.update('dataType', message.dataType, vscode.ConfigurationTarget.Global);
+							// Refresh the panel with the new data type
+							await calculateAndSendHours(panel);
+						} catch (error) {
+							console.error('Error in dataTypeChanged:', error);
+							vscode.window.showErrorMessage(`Error changing data type: ${error.message}`);
+						}
+						break;
 				}
 			},
 			undefined,
@@ -228,7 +242,8 @@ function activate(context) {
 				projectStartupTime: config.projectStartupTime,
 				showSummary: true, // Always fetch summaries
 				maxWords: config.words,
-				debug: false
+				debug: false,
+				dataType: config.dataType
 			});
 
 			// Get hours for the working directory

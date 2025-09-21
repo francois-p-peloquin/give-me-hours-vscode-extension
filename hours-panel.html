@@ -262,11 +262,19 @@
             <div id="configuredControls" style="display: none;">
                 <label for="datePicker">Date: </label>
                 <input type="date" id="datePicker" onchange="onDateChange()">
+
+                <label for="dataType" style="margin-left: 20px;">Hours type: </label>
+                <input type="radio" id="dataTypeRounded" name="dataType" value="rounded" onchange="onDataTypeChange()" checked>
+                <label for="dataTypeRounded" style="margin-right: 10px;">Rounded</label>
+                <input type="radio" id="dataTypeClean" name="dataType" value="clean" onchange="onDataTypeChange()">
+                <label for="dataTypeClean">Clean</label>
+
                 <label for="timeFormat" style="margin-left: 20px;">Show time as: </label>
                 <input type="radio" id="timeFormatDecimal" name="timeFormat" value="decimal" onchange="onTimeFormatChange()" checked>
                 <label for="timeFormatDecimal" style="margin-right: 10px;">Decimal</label>
                 <input type="radio" id="timeFormatChrono" name="timeFormat" value="chrono" onchange="onTimeFormatChange()">
                 <label for="timeFormatChrono">Chrono</label>
+
                 <button class="refresh-button" onclick="refreshHours()" style="margin-left: 20px;">Refresh</button>
                 <button class="refresh-button" onclick="toggleSummary()" id="summaryToggle">Hide Summary</button>
                 <button class="refresh-button" onclick="openSettings()">Settings</button>
@@ -366,15 +374,15 @@
         function toggleSummary() {
             if (document.querySelector('button').disabled) return; // Prevent multiple clicks
             console.log('toggleSummary() called');
-            
+
             const summaryHeader = document.getElementById('summaryHeader');
             const summaryToggle = document.getElementById('summaryToggle');
             const summaryCells = document.querySelectorAll('.summary-column');
-            
+
             // Toggle visibility
             const isCurrentlyVisible = summaryHeader.style.display !== 'none';
             const newDisplay = isCurrentlyVisible ? 'none' : '';
-            
+
             // Update header and all summary cells
             summaryHeader.style.display = newDisplay;
             summaryCells.forEach(cell => {
@@ -382,10 +390,10 @@
                     cell.style.display = newDisplay;
                 }
             });
-            
+
             // Update button text
             summaryToggle.textContent = isCurrentlyVisible ? 'Show Summary' : 'Hide Summary';
-            
+
             // Update the setting in the background without reloading data
             vscode.postMessage({ command: 'updateSummaryVisibility', visible: !isCurrentlyVisible });
         }
@@ -398,10 +406,17 @@
             vscode.postMessage({ command: 'dateChanged', date: selectedDate });
         }
 
+        function onDataTypeChange() {
+            const dataType = document.getElementById('dataTypeRounded').checked ? 'rounded' : 'clean';
+            console.log('Data type changed to:', dataType);
+            showLoading();
+            vscode.postMessage({ command: 'dataTypeChanged', dataType: dataType });
+        }
+
         function onTimeFormatChange() {
             const decimalSelected = document.getElementById('timeFormatDecimal').checked;
             console.log('Time format changed to:', decimalSelected ? 'decimal' : 'chrono');
-            
+
             // Convert all existing time displays
             const timeElements = document.querySelectorAll('[data-seconds]');
             timeElements.forEach(element => {
@@ -417,7 +432,7 @@
             } else {
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
-                
+
                 if (hours > 0) {
                     return `${hours}:${minutes.toString().padStart(2, '0')}`;
                 } else if (minutes > 0) {
@@ -467,13 +482,13 @@
         function disableButtons() {
             const buttons = document.querySelectorAll('button');
             const datePicker = document.getElementById('datePicker');
-            
+
             buttons.forEach(button => {
                 button.disabled = true;
                 button.style.opacity = '0.6';
                 button.style.cursor = 'not-allowed';
             });
-            
+
             if (datePicker) {
                 datePicker.disabled = true;
                 datePicker.style.opacity = '0.6';
@@ -484,13 +499,13 @@
         function enableButtons() {
             const buttons = document.querySelectorAll('button');
             const datePicker = document.getElementById('datePicker');
-            
+
             buttons.forEach(button => {
                 button.disabled = false;
                 button.style.opacity = '1';
                 button.style.cursor = 'pointer';
             });
-            
+
             if (datePicker) {
                 datePicker.disabled = false;
                 datePicker.style.opacity = '1';
@@ -520,7 +535,7 @@
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
-            
+
             try {
                 document.execCommand('copy');
                 showTemporaryMessage('Copied to clipboard!');
@@ -528,7 +543,7 @@
                 console.error('Fallback: Oops, unable to copy', err);
                 showTemporaryMessage('Copy failed');
             }
-            
+
             document.body.removeChild(textArea);
         }
 
@@ -549,9 +564,9 @@
                 opacity: 0;
                 transition: opacity 0.3s;
             `;
-            
+
             document.body.appendChild(messageEl);
-            
+
             setTimeout(() => messageEl.style.opacity = '1', 10);
             setTimeout(() => {
                 messageEl.style.opacity = '0';
@@ -562,13 +577,13 @@
         function copyColumnData(column) {
             const tbody = document.getElementById('hoursTableBody');
             if (!tbody || tbody.children.length === 0) return;
-            
+
             let data = [];
             const rows = Array.from(tbody.children);
-            
+
             rows.forEach(row => {
                 if (row.classList.contains('total-row')) return; // Skip total row
-                
+
                 if (column === 'hours') {
                     const hoursCell = row.cells[1];
                     if (hoursCell) {
@@ -583,7 +598,7 @@
                     }
                 }
             });
-            
+
             if (data.length > 0) {
                 copyToClipboard(data.join('\n'));
             }
@@ -592,7 +607,7 @@
         function copyCellData(element, column) {
             const row = element.closest('tr');
             if (!row) return;
-            
+
             let text = '';
             if (column === 'hours') {
                 const hoursCell = row.cells[1];
@@ -604,7 +619,7 @@
                 const summaryCell = row.cells[2];
                 if (summaryCell) text = summaryCell.textContent.trim();
             }
-            
+
             if (text) {
                 copyToClipboard(text);
             }
@@ -624,7 +639,7 @@
             document.getElementById('noResults').style.display = 'none';
             document.getElementById('error').style.display = 'block';
             document.getElementById('error').textContent = message;
-            
+
             // Hide configured elements when there's an error (likely no working directory)
             hideConfiguredElements();
             // No need to open accordion here since configured elements are hidden
@@ -637,24 +652,24 @@
             document.getElementById('noResults').style.display = 'none';
             document.getElementById('error').style.display = 'block';
             document.getElementById('error').textContent = message;
-            
+
             // Show configured elements since folder is set, but Git user isn't
             showConfiguredElements();
             // Open accordion to show configuration issues
             openAccordion();
-            
+
             // Initialize date picker
             if (!document.getElementById('datePicker').value) {
                 initializeDatePicker();
             }
-            
+
             // Populate config info
             document.getElementById('gitUser').textContent = 'Not set';
             document.getElementById('duration').textContent = config.duration;
             document.getElementById('rounding').textContent = `${config.hoursRounding}h`;
             document.getElementById('startupTime').textContent = `${config.projectStartupTime}h`;
             document.getElementById('directory').textContent = config.workingDirectory || 'Current workspace';
-            
+
             // Update summary toggle button
             const summaryToggle = document.getElementById('summaryToggle');
             if (config.showSummary) {
@@ -662,19 +677,19 @@
             } else {
                 summaryToggle.textContent = 'Show Summary';
             }
-            
+
             enableButtons();
         }
 
         function showResults(data) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'none';
-            
+
             // Show configured elements since we have a working directory
             showConfiguredElements();
             // Close accordion since everything is working properly
             closeAccordion();
-            
+
             // Initialize date picker if not already set
             if (!document.getElementById('datePicker').value) {
                 initializeDatePicker();
@@ -687,16 +702,23 @@
             document.getElementById('startupTime').textContent = `${data.config.projectStartupTime}h`;
             document.getElementById('directory').textContent = data.config.workingDirectory || 'Current workspace';
 
+            // Set the radio buttons for data type
+            if (data.config.dataType === 'clean') {
+                document.getElementById('dataTypeClean').checked = true;
+            } else {
+                document.getElementById('dataTypeRounded').checked = true;
+            }
+
             // Update summary toggle button and column visibility
             const summaryToggle = document.getElementById('summaryToggle');
             const summaryHeader = document.getElementById('summaryHeader');
             const summaryCells = document.querySelectorAll('.summary-column');
-            
+
             if (data.config.showSummary) {
                 summaryToggle.textContent = 'Hide Summary';
                 summaryHeader.style.display = '';
                 summaryCells.forEach(cell => {
-                    if (cell !== summaryHeader) {
+                    if (cell !== summaryHeader) { // Don't apply to header twice
                         cell.style.display = '';
                     }
                 });
@@ -704,7 +726,7 @@
                 summaryToggle.textContent = 'Show Summary';
                 summaryHeader.style.display = 'none';
                 summaryCells.forEach(cell => {
-                    if (cell !== summaryHeader) {
+                    if (cell !== summaryHeader) { // Don't apply to header twice
                         cell.style.display = 'none';
                     }
                 });
@@ -760,7 +782,7 @@
                     tbody.appendChild(totalRow);
                 }
             }
-            
+
             // Re-enable buttons after data loads
             enableButtons();
         }
