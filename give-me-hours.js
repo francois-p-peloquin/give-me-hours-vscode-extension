@@ -116,31 +116,36 @@ class GiveMeHours {
         }
     }
 
-    calculateWorkingHours(commitsOutput) {
+    calculateWorkingHours(commitsOutput, minSecondsWorked = 30 * 60) {
         let totalSeconds = 0;
         let prevTimestamp = null;
         const lines = commitsOutput.split('\n').filter(line => line.trim());
 
-        for (const line of lines) {
-            const [timestamp, author, message] = line.split('|');
-            if (!timestamp) continue;
+        if (lines.length === 1) { // Only one commit
+            totalSeconds += minSecondsWorked;
+        }
+        else { // Multiple commits
+            for (const line of lines) {
+                const [timestamp, author, message] = line.split('|');
+                if (!timestamp) continue;
 
-            const currentTimestamp = parseInt(timestamp);
+                const currentTimestamp = parseInt(timestamp);
 
-            if (prevTimestamp !== null) {
-                const interval = currentTimestamp - prevTimestamp;
+                if (prevTimestamp !== null) {
+                    const interval = currentTimestamp - prevTimestamp;
 
-                if (this.debug) {
-                    console.log(`${new Date(prevTimestamp * 1000).toISOString()} ${author} ${message}`);
-                    console.log(`${this.formatDuration(interval)} >`);
+                    if (this.debug) {
+                        console.log(`${new Date(prevTimestamp * 1000).toISOString()} ${author} ${message}`);
+                        console.log(`${this.formatDuration(interval)} >`);
+                    }
+
+                    if (interval <= this.duration) {
+                        totalSeconds += interval;
+                    }
                 }
 
-                if (interval <= this.duration) {
-                    totalSeconds += interval;
-                }
+                prevTimestamp = currentTimestamp;
             }
-
-            prevTimestamp = currentTimestamp;
         }
 
         return totalSeconds;
