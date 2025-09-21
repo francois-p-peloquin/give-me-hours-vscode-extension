@@ -190,8 +190,8 @@ class GiveMeHours {
             }
 
             return {
-                seconds: totalSeconds,
                 secondsRounded: totalSecondsRounded,
+                secondsClean: totalSeconds,
                 summary
             };
         } finally {
@@ -254,15 +254,17 @@ class GiveMeHours {
                             console.log(`\nChecking git repository: ${subDir}`);
                         }
                         const result = this.getHoursForRepo(start, end, gitUsername, subDir);
+                        const useSecondsClean = false; // TODO: add option to choose between clean and rounded
+                        const seconds = useSecondsClean ? result.secondsClean : result.secondsRounded;
 
-                        if (result.seconds > 0) {
-                            const hoursFormatted = this.formatDuration(result.seconds);
-                            totalHoursSeconds += result.seconds;
+                        if (seconds > 0) {
+                            const hoursFormatted = this.formatDuration(seconds);
+                            totalHoursSeconds += seconds;
 
                             results.push({
                                 folder: entry.name,
                                 hours: hoursFormatted,
-                                seconds: result.seconds,
+                                seconds: seconds,
                                 summary: result.summary
                             });
                         }
