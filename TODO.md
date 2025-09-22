@@ -10,9 +10,12 @@
         * Make sure I can see this data easily in the console log.
     2. [x] Enable returning data for multiple dates. This is why we made the data structured by folder and then an array of dates. This is also for the future calendar feature.
       * By default, return one date, but also allow multiple dates to return.
-    3. Move rounding logic (hoursRounding, projectStartupTime, minCommitTime) into front-end JS on hours-pannel.html (or better, a separate file).
-      * Considerations: Can the front end be redone to work with React? That would make the data changes a lot faster.
-      * We can use Material UI or a similar library to simplify the logic.
+    3. [x] Move rounding logic (hoursRounding, projectStartupTime, minCommitTime) into front-end JS on hours-pannel.html (or better, a separate file).
+    4. Reactify front end
+      * Requirements:
+        * Use @vscode/webview-ui-toolkit library or alternate React framework
+        * React code should live in /src folder
+        * TSX optional, but acceptable.
 <!--
     4. Create a day view and a week view.
       * If
