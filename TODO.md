@@ -16,6 +16,8 @@
         * Use @vscode/webview-ui-toolkit library or alternate React framework
         * React code should live in /src folder
         * TSX optional, but acceptable.
+        * Move rounding calculations into individual helper function libraries that can be used by front end
+        * All data should be present for the front end on load, so all rounding, adding min time etc should be done on the front end.
 <!--
     4. Create a day view and a week view.
       * If
