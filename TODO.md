@@ -1,8 +1,9 @@
 # TODO:
-* Accordion for configuration settings.
-* Style busted table.
+* [x] We need an accordion for the configuration settings on the panel.
+* [x] Style busted table. Should be a nice orderly table, full width, with a clear header.
 * Loading state initially is just blank screen. Fix this. Say "Loading..." at the least.
-* Loading state on Refresh, on date change.
+  * Still too slow
+* [x] Loading state on Refresh, on date change.
 * Footer bar should always match the settings in the widget page.
 * Week view vs date view.
 * Nice to haves:
