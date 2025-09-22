@@ -141,19 +141,28 @@ function activate(context) {
 			}
 		);
 
-		panel.webview.html = `<!DOCTYPE html>
-		<html lang="en">
-		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>Give Me Hours</title>
-		</head>
-		<body>
-			<h1>Hello World</h1>
-		</body>
-		</html>`;
+		const buildPath = vscode.Uri.joinPath(context.extensionUri, 'build');
+		const indexPath = vscode.Uri.joinPath(buildPath, 'index.html');
 
-        panel.webview.cspSource = "https://vscode.dev";
+		fs.readFile(indexPath.fsPath, 'utf8', (err, html) => {
+			if (err) {
+				console.error(err);
+				return;
+			}
+
+			const nonce = getNonce();
+
+			// Replace placeholders in the HTML with the correct resource URIs
+			const webviewHtml = html.replace(
+				/<link href="\/static\/css\/(main\..*?\.css)" rel="stylesheet">/g,
+				(match, p1) => `<link href="${panel.webview.asWebviewUri(vscode.Uri.joinPath(buildPath, 'static', 'css', p1))}" rel="stylesheet">`
+			).replace(
+				/<script defer="defer" src="\/static\/js\/(main\..*?\.js)"><\/script>/g,
+				(match, p1) => `<script defer="defer" nonce="${nonce}" src="${panel.webview.asWebviewUri(vscode.Uri.joinPath(buildPath, 'static', 'js', p1))}"></script>`
+			);
+
+			panel.webview.html = webviewHtml;
+		});
 
 		// Handle messages from webview
 		panel.webview.onDidReceiveMessage(
