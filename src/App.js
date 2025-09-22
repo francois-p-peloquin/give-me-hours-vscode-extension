@@ -9,6 +9,7 @@ const vscode = window.acquireVsCodeApi();
 function App() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [dataType, setDataType] = useState('rounded');
   const [timeFormat, setTimeFormat] = useState('decimal');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -20,14 +21,17 @@ function App() {
         case 'showResults':
           setData(message.data);
           setError(null);
+          setLoading(false);
           break;
         case 'showError':
           setError(message.error);
           setData(null);
+          setLoading(false);
           break;
         case 'showGitUserError':
           setError(message.error);
           setData(null);
+          setLoading(false);
           break;
         default:
           break;
@@ -42,7 +46,12 @@ function App() {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [date]);
+  }, []);
+
+  const handleRefresh = () => {
+    setLoading(true);
+    vscode.postMessage({ command: 'refresh', date });
+  };
 
   const handleDataTypeChange = (e) => {
     const newDataType = e.target.value;
@@ -59,6 +68,7 @@ function App() {
   const handleDateChange = (e) => {
     const newDate = e.target.value;
     setDate(newDate);
+    setLoading(true);
     vscode.postMessage({ command: 'dateChanged', date: newDate });
   };
 
@@ -66,7 +76,7 @@ function App() {
     return <div className="error">{error}</div>;
   }
 
-  if (!data) {
+  if (loading) {
     return <div className="loading">Calculating working hours...</div>;
   }
 
@@ -93,7 +103,7 @@ function App() {
       <div className="header">
         <h1>Give Me Hours</h1>
         <div className="controls">
-            <VSCodeTextField type="text" value={date} onChange={handleDateChange} />
+            <VSCodeTextField type="date" value={date} onChange={handleDateChange} />
             <VSCodeDropdown value={dataType} onChange={handleDataTypeChange}>
                 <VSCodeOption value="rounded">Rounded</VSCodeOption>
                 <VSCodeOption value="clean">Clean</VSCodeOption>
@@ -102,7 +112,7 @@ function App() {
                 <VSCodeOption value="decimal">Decimal</VSCodeOption>
                 <VSCodeOption value="chrono">Chrono</VSCodeOption>
             </VSCodeDropdown>
-            <VSCodeButton onClick={() => vscode.postMessage({ command: 'refresh', date })}>Refresh</VSCodeButton>
+            <VSCodeButton onClick={handleRefresh}>Refresh</VSCodeButton>
             <VSCodeButton onClick={() => vscode.postMessage({ command: 'openSettings' })}>Settings</VSCodeButton>
         </div>
       </div>
