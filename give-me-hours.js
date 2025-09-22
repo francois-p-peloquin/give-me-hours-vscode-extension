@@ -185,10 +185,10 @@ class GiveMeHours {
             // Apply rounding and project startup time if time was worked
             if (totalSeconds > 0) {
                 if (this.hoursRounding > 0) {
-                    totalSecondsRounded = this.roundHours(totalSeconds, this.hoursRounding);
+                    totalSecondsRounded = this.roundHours(totalSecondsRounded, this.hoursRounding);
                 }
                 if (this.projectStartupTime > 0) {
-                    totalSecondsRounded = this.addProjectStartupTime(totalSeconds, this.projectStartupTime);
+                    totalSecondsRounded = this.addProjectStartupTime(totalSecondsRounded, this.projectStartupTime);
                 }
             }
 
@@ -268,6 +268,8 @@ class GiveMeHours {
                                 folder: entry.name,
                                 hours: hoursFormatted,
                                 seconds: seconds,
+                                secondsClean: result.secondsClean,
+                                secondsRounded: result.secondsRounded,
                                 summary: result.summary
                             });
                         }
@@ -278,6 +280,7 @@ class GiveMeHours {
             throw new Error(`Error reading directory ${directoryPath}: ${error.message}`);
         }
 
+        // TODO: Ad totals from clean / rounded by reducing results
         const totalFormatted = this.formatDuration(totalHoursSeconds);
 
         return {
@@ -317,6 +320,7 @@ if (require.main === module) {
 
 
             console.log(`
+                ${JSON.stringify(result, null, 2)}
 ---
 
 Results for ${result.dateRange.start} to ${result.dateRange.end} ---
@@ -326,7 +330,7 @@ Results for ${result.dateRange.start} to ${result.dateRange.end} ---
 
             if (result.results.length > 0) {
                 result.results.forEach(res => {
-                    console.log(`- ${res.folder}: ${res.hours}`);
+                    console.log(`- ${res.folder}: ${res.hours} (${res.hours})`);
                     if (res.summary) {
                         console.log(`  Summary: ${res.summary}`);
                     }
