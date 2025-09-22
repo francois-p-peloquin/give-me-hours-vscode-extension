@@ -633,7 +633,7 @@
         function showTemporaryMessage(message) {
             const messageEl = document.createElement('div');
             messageEl.textContent = message;
-            messageEl.style.cssText = '
+            messageEl.style.cssText = `
                 position: fixed;
                 top: 20px;
                 right: 20px;
@@ -646,7 +646,7 @@
                 font-size: 12px;
                 opacity: 0;
                 transition: opacity 0.3s;
-            ';
+            `;
 
             document.body.appendChild(messageEl);
 
