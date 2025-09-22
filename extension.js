@@ -141,36 +141,22 @@ function activate(context) {
 			}
 		);
 
-		const buildPath = vscode.Uri.joinPath(context.extensionUri, 'build');
-		const indexPath = vscode.Uri.joinPath(buildPath, 'index.html');
-
-		fs.readFile(indexPath.fsPath, 'utf8', (err, html) => {
-			if (err) {
-				console.error(err);
-				return;
-			}
-
-			const nonce = getNonce();
-
-			// Replace placeholders in the HTML with the correct resource URIs
-			const webviewHtml = html.replace(
-				/<link href="\/static\/css\/(main\..*?\.css)" rel="stylesheet">/g,
-				`<link href="${panel.webview.asWebviewUri(vscode.Uri.joinPath(buildPath, 'static', 'css', '$1'))}" rel="stylesheet">`
-			).replace(
-				/<script defer="defer" src="\/static\/js\/(main\..*?\.js)"><\/script>/g,
-				`<script defer="defer" nonce="${nonce}" src="${panel.webview.asWebviewUri(vscode.Uri.joinPath(buildPath, 'static', 'js', '$1'))}"></script>`
-			).replace(
-				new RegExp('src="/', 'g'),
-				`src="${panel.webview.asWebviewUri(buildPath)}/`
-			);
-
-			panel.webview.html = webviewHtml;
-		});
+		panel.webview.html = `<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>Give Me Hours</title>
+		</head>
+		<body>
+			<h1>Hello World</h1>
+		</body>
+		</html>`;
 
         panel.webview.cspSource = "https://vscode.dev";
 
 		// Handle messages from webview
-				panel.webview.onDidReceiveMessage(
+		panel.webview.onDidReceiveMessage(
 			async message => {
 				console.log('Received message from webview:', message);
 				switch (message.command) {
@@ -253,6 +239,8 @@ function activate(context) {
 		}
 		return text;
 	}
+
+	async function calculateAndSendHours(panel) {
 		const config = getConfiguration();
 		try {
 
@@ -272,8 +260,6 @@ function activate(context) {
 			const duration = tempGiveMeHours.parseDuration(config.duration);
 
 			// Create GiveMeHours instance with user settings
-			// Always fetch summaries since we now toggle visibility with JS
-			 			// Create GiveMeHours instance with user settings
 			// Always fetch summaries since we now toggle visibility with JS
 			const giveMeHours = new GiveMeHours({
 				duration: duration,
