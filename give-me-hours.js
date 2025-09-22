@@ -6,12 +6,10 @@ const process = require('process');
 class GiveMeHours {
     constructor(options = {}) {
         this.duration = options.duration || 3600; // 1 hour in seconds
-        this.hoursRounding = options.hoursRounding || 0.25;
-        this.projectStartupTime = options.projectStartupTime || 0.5;
+        this.minCommitTime = options.minCommitTime || 0.5;
         this.debug = options.debug || false;
         this.showSummary = options.showSummary !== undefined ? options.showSummary : true;
         this.maxWords = options.maxWords || 50;
-        this.dataType = options.dataType || 'rounded';
     }
 
     parseDuration(durationStr) {
@@ -31,30 +29,6 @@ class GiveMeHours {
                 return Math.floor(value);
             default:
                 return 3600;
-        }
-    }
-
-    roundHours(seconds, rounding) {
-        const hoursDecimal = seconds / 3600;
-        const roundedHours = Math.ceil(hoursDecimal / rounding) * rounding;
-        return Math.floor(roundedHours * 3600);
-    }
-
-    addProjectStartupTime(seconds, startupTimeHours) {
-        const startupSeconds = Math.floor(startupTimeHours * 3600);
-        return seconds + startupSeconds;
-    }
-
-    formatDuration(seconds) {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-
-        if (hours > 0) {
-            return `${hours}:${minutes.toString().padStart(2, '0')}`;
-        } else if (minutes > 0) {
-            return `0:${minutes.toString().padStart(2, '0')}`;
-        } else {
-            return '0:00';
         }
     }
 
@@ -123,7 +97,7 @@ class GiveMeHours {
         const lines = commitsOutput.split('\n').filter(line => line.trim());
 
         if (lines.length === 1) { // Only one commit
-            totalSeconds += 0; // No time for a single commit, will be handled in the frontend
+            totalSeconds += this.minCommitTime * 3600;
         }
         else { // Multiple commits
             for (const line of lines) {
@@ -137,7 +111,6 @@ class GiveMeHours {
 
                     if (this.debug) {
                         console.log(`${new Date(prevTimestamp * 1000).toISOString()} ${author} ${message}`);
-                        console.log(`${this.formatDuration(interval)} >`);
                     }
 
                     // If working time is less than our specified duration
@@ -146,7 +119,7 @@ class GiveMeHours {
                     }
                     // Otherwise, just add the minimum time worked per commit
                     else {
-                        totalSeconds += 0; // No time for a single commit after a long break, will be handled in the frontend
+                        totalSeconds += this.minCommitTime * 3600;
                     }
                 }
 
