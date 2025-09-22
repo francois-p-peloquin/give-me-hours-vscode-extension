@@ -93,7 +93,7 @@ function App() {
       <div className="header">
         <h1>Give Me Hours</h1>
         <div className="controls">
-            <VSCodeTextField type="date" value={date} onChange={handleDateChange} />
+            <VSCodeTextField type="text" value={date} onChange={handleDateChange} />
             <VSCodeDropdown value={dataType} onChange={handleDataTypeChange}>
                 <VSCodeOption value="rounded">Rounded</VSCodeOption>
                 <VSCodeOption value="clean">Clean</VSCodeOption>
