@@ -488,10 +488,11 @@
         }
 
         function onDataTypeChange() {
-            const dataType = document.getElementById('dataTypeSwitch').checked ? 'clean' : 'rounded';
+            const dataType = document.getElementById('dataTypeSwitch').checked ? 'rounded' : 'clean';
             console.log('Data type changed to:', dataType);
-            showLoading();
             vscode.postMessage({ command: 'dataTypeChanged', dataType: dataType });
+            // We don't need to reload the data, just re-render it
+            showResults(lastData);
         }
 
         function onTimeFormatChange() {
@@ -632,7 +633,7 @@
         function showTemporaryMessage(message) {
             const messageEl = document.createElement('div');
             messageEl.textContent = message;
-            messageEl.style.cssText = `
+            messageEl.style.cssText = '
                 position: fixed;
                 top: 20px;
                 right: 20px;
@@ -645,7 +646,7 @@
                 font-size: 12px;
                 opacity: 0;
                 transition: opacity 0.3s;
-            `;
+            ';
 
             document.body.appendChild(messageEl);
 
@@ -763,7 +764,26 @@
             enableButtons();
         }
 
+        let lastData;
+
+        function calculateRoundedSeconds(seconds, config) {
+            let roundedSeconds = seconds;
+            if (seconds > 0) {
+                if (config.hoursRounding > 0) {
+                    const hoursDecimal = roundedSeconds / 3600;
+                    const roundedHours = Math.ceil(hoursDecimal / config.hoursRounding) * config.hoursRounding;
+                    roundedSeconds = Math.floor(roundedHours * 3600);
+                }
+                if (config.projectStartupTime > 0) {
+                    const startupSeconds = Math.floor(config.projectStartupTime * 3600);
+                    roundedSeconds += startupSeconds;
+                }
+            }
+            return roundedSeconds;
+        }
+
         function showResults(data) {
+            lastData = data;
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'none';
 
@@ -786,12 +806,10 @@
             document.getElementById('directory').textContent = data.config.workingDirectory || 'Current workspace';
 
             // Set the radio buttons for data type
-            document.getElementById('dataTypeSwitch').checked = data.config.dataType === 'clean';
+            document.getElementById('dataTypeSwitch').checked = data.config.dataType === 'rounded';
 
             // Set the radio buttons for time format
             document.getElementById('timeFormatSwitch').checked = data.config.timeFormat === 'decimal';
-
-            // Update summary toggle button and column visibility
 
             // Update summary toggle button and column visibility
             const summaryToggle = document.getElementById('summaryToggle');
@@ -826,41 +844,48 @@
                 const tbody = document.getElementById('hoursTableBody');
                 tbody.innerHTML = '';
 
-                // Add repository rows
                 const useDecimal = data.config.timeFormat === 'decimal';
+                const useRounded = document.getElementById('dataTypeSwitch').checked;
+                let totalSeconds = 0;
+
                 data.results.forEach(result => {
-                    const row = document.createElement('tr');
-                    const formattedTime = formatTime(result.seconds, useDecimal);
-                    row.innerHTML = `
-                        <td>${result.folder}</td>
-                        <td class="cell-with-copy">
-                            <span data-seconds="${result.seconds}">${formattedTime}</span>
-                            <span class="cell-copy-icon" onclick="copyCellData(this, 'hours')" title="Copy hours">
-                                <svg viewBox="0 0 16 16">
-                                    <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
-                                </svg>
-                            </span>
-                        </td>
-                        <td class="summary-column cell-with-copy">
-                            ${result.summary || ''}
-                            <span class="cell-copy-icon" onclick="copyCellData(this, 'summary')" title="Copy summary">
-                                <svg viewBox="0 0 16 16">
-                                    <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
-                                </svg>
-                            </span>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
+                    result.data.forEach(dayData => {
+                        const seconds = useRounded ? calculateRoundedSeconds(dayData.seconds, data.config) : dayData.seconds;
+                        totalSeconds += seconds;
+
+                        const row = document.createElement('tr');
+                        const formattedTime = formatTime(seconds, useDecimal);
+                        row.innerHTML = `
+                            <td>${result.folder} (${dayData.date})</td>
+                            <td class="cell-with-copy">
+                                <span data-seconds="${seconds}">${formattedTime}</span>
+                                <span class="cell-copy-icon" onclick="copyCellData(this, 'hours')" title="Copy hours">
+                                    <svg viewBox="0 0 16 16">
+                                        <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
+                                    </svg>
+                                </span>
+                            </td>
+                            <td class="summary-column cell-with-copy">
+                                ${dayData.summary || ''}
+                                <span class="cell-copy-icon" onclick="copyCellData(this, 'summary')" title="Copy summary">
+                                    <svg viewBox="0 0 16 16">
+                                        <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
+                                    </svg>
+                                </span>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
                 });
 
                 // Add total row
-                if (data.total.seconds > 0) {
+                if (totalSeconds > 0) {
                     const totalRow = document.createElement('tr');
                     totalRow.className = 'total-row';
-                    const totalFormatted = formatTime(data.total.seconds, useDecimal);
+                    const totalFormatted = formatTime(totalSeconds, useDecimal);
                     totalRow.innerHTML = `
                         <td>TOTAL</td>
-                        <td><span data-seconds="${data.total.seconds}">${totalFormatted}</span></td>
+                        <td><span data-seconds="${totalSeconds}">${totalFormatted}</span></td>
                         <td class="summary-column"></td>
                     `;
                     tbody.appendChild(totalRow);

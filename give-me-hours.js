@@ -8,7 +8,6 @@ class GiveMeHours {
         this.duration = options.duration || 3600; // 1 hour in seconds
         this.hoursRounding = options.hoursRounding || 0.25;
         this.projectStartupTime = options.projectStartupTime || 0.5;
-        this.minCommitTime = options.minCommitTime || 0.5; // in hours
         this.debug = options.debug || false;
         this.showSummary = options.showSummary !== undefined ? options.showSummary : true;
         this.maxWords = options.maxWords || 50;
@@ -94,10 +93,10 @@ class GiveMeHours {
 
     buildGitCommand(since, before, author) {
         let cmd = "git log --pretty=format:'%at|%an|%s' --reverse";
-        cmd += ` --since=\"${since}\" --before=\"${before}\"`;
+        cmd += ` --since=\"${since}" --before=\"${before}"`;
 
         if (author) {
-            cmd += ` --author=\"${author}\"`;
+            cmd += ` --author=\"${author}"`;
         }
 
         return cmd;
@@ -122,10 +121,9 @@ class GiveMeHours {
         let totalSeconds = 0;
         let prevTimestamp = null;
         const lines = commitsOutput.split('\n').filter(line => line.trim());
-        const minSecondsWorked = this.minCommitTime * 3600;
 
         if (lines.length === 1) { // Only one commit
-            totalSeconds += minSecondsWorked;
+            totalSeconds += 0; // No time for a single commit, will be handled in the frontend
         }
         else { // Multiple commits
             for (const line of lines) {
@@ -148,7 +146,7 @@ class GiveMeHours {
                     }
                     // Otherwise, just add the minimum time worked per commit
                     else {
-                        totalSeconds += minSecondsWorked;
+                        totalSeconds += 0; // No time for a single commit after a long break, will be handled in the frontend
                     }
                 }
 
@@ -177,24 +175,11 @@ class GiveMeHours {
                 return { seconds: 0, summary: '' };
             }
 
-            let totalSeconds = this.calculateWorkingHours(commitsOutput);
+            const totalSeconds = this.calculateWorkingHours(commitsOutput);
             const summary = this.showSummary ? this.generateSummary(commitsOutput) : '';
 
-            let totalSecondsRounded = totalSeconds;
-
-            // Apply rounding and project startup time if time was worked
-            if (totalSeconds > 0) {
-                if (this.hoursRounding > 0) {
-                    totalSecondsRounded = this.roundHours(totalSecondsRounded, this.hoursRounding);
-                }
-                if (this.projectStartupTime > 0) {
-                    totalSecondsRounded = this.addProjectStartupTime(totalSecondsRounded, this.projectStartupTime);
-                }
-            }
-
             return {
-                secondsRounded: totalSecondsRounded,
-                secondsClean: totalSeconds,
+                seconds: totalSeconds,
                 summary
             };
         } finally {
@@ -205,44 +190,58 @@ class GiveMeHours {
     getDateRange(dateArg = 'today') {
         const now = new Date();
         let startDate, endDate;
+        const dates = [];
 
-        switch (dateArg) {
-            case 'today':
-                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-                break;
-            case 'yesterday':
-                const yesterday = new Date(now);
-                yesterday.setDate(yesterday.getDate() - 1);
-                startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-                endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
-                break;
-            default:
-                // Assume YYYY-MM-DD format
-                const dateMatch = dateArg.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-                if (dateMatch) {
-                    const year = parseInt(dateMatch[1]);
-                    const month = parseInt(dateMatch[2]) - 1; // Month is 0-indexed
-                    const day = parseInt(dateMatch[3]);
-                    startDate = new Date(year, month, day);
-                    endDate = new Date(year, month, day, 23, 59, 59);
-                } else {
-                    throw new Error('Invalid date format. Please use YYYY-MM-DD');
-                }
+        if (dateArg.includes(':')) {
+            const [startStr, endStr] = dateArg.split(':');
+            startDate = new Date(startStr);
+            endDate = new Date(endStr);
+        } else {
+            switch (dateArg) {
+                case 'today':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(now);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+                    endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+                    break;
+                default:
+                    // Assume YYYY-MM-DD format
+                    const dateMatch = dateArg.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    if (dateMatch) {
+                        const year = parseInt(dateMatch[1]);
+                        const month = parseInt(dateMatch[2]) - 1; // Month is 0-indexed
+                        const day = parseInt(dateMatch[3]);
+                        startDate = new Date(year, month, day);
+                        endDate = new Date(year, month, day, 23, 59, 59);
+                    } else {
+                        throw new Error('Invalid date format. Please use YYYY-MM-DD');
+                    }
+            }
+        }
+
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+            dates.push(new Date(currentDate));
+            currentDate.setDate(currentDate.getDate() + 1);
         }
 
         return {
             start: startDate.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ''),
-            end: endDate.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '')
+            end: endDate.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ''),
+            dates: dates
         };
     }
 
     async getHoursForDirectory(directoryPath, dateArg = 'today') {
         const gitUsername = this.getGitUsername();
-        const { start, end } = this.getDateRange(dateArg);
+        const { start, end, dates } = this.getDateRange(dateArg);
 
         const results = [];
-        let totalHoursSeconds = 0;
+        const folderData = {};
 
         try {
             const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
@@ -256,39 +255,42 @@ class GiveMeHours {
                         if (this.debug) {
                             console.log(`\nChecking git repository: ${subDir}`);
                         }
-                        const result = this.getHoursForRepo(start, end, gitUsername, subDir);
-                        const useSecondsClean = this.dataType === 'clean';
-                        const seconds = useSecondsClean ? result.secondsClean : result.secondsRounded;
 
-                        if (seconds > 0) {
-                            const hoursFormatted = this.formatDuration(seconds);
-                            totalHoursSeconds += seconds;
+                        if (!folderData[entry.name]) {
+                            folderData[entry.name] = { folder: entry.name, data: [] };
+                        }
 
-                            results.push({
-                                folder: entry.name,
-                                hours: hoursFormatted,
-                                seconds: seconds,
-                                secondsClean: result.secondsClean,
-                                secondsRounded: result.secondsRounded,
-                                summary: result.summary
-                            });
+                        for (const date of dates) {
+                            const dateFormatted = date.toISOString().slice(0, 10);
+                            const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+                            const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+
+                            const result = this.getHoursForRepo(dayStart, dayEnd, gitUsername, subDir);
+
+                            if (result.seconds > 0) {
+                                folderData[entry.name].data.push({
+                                    date: dateFormatted,
+                                    seconds: result.seconds,
+                                    summary: result.summary
+                                });
+                            }
                         }
                     }
                 }
             }
+
+            for (const folderName in folderData) {
+                if (folderData[folderName].data.length > 0) {
+                    results.push(folderData[folderName]);
+                }
+            }
+
         } catch (error) {
             throw new Error(`Error reading directory ${directoryPath}: ${error.message}`);
         }
 
-        // TODO: Ad totals from clean / rounded by reducing results
-        const totalFormatted = this.formatDuration(totalHoursSeconds);
-
         return {
             results,
-            total: {
-                formatted: totalFormatted,
-                seconds: totalHoursSeconds
-            },
             dateRange: { start, end },
             gitUsername
         };

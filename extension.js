@@ -43,20 +43,36 @@ function activate(context) {
 			
 			const giveMeHours = new GiveMeHours({
 				duration: duration,
-				hoursRounding: config.hoursRounding,
-				projectStartupTime: config.projectStartupTime,
 				minCommitTime: config.minCommitTime,
 				showSummary: false, // Don't need summaries for status bar
 				maxWords: config.words,
-				debug: false,
-				dataType: config.dataType
+				debug: false
 			});
 
 			const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
 			
-			if (result.total.seconds > 0) {
-				statusBarItem.text = `$(clock) Give Me Hours: ${result.total.formatted}`;
-				statusBarItem.tooltip = `Today's working hours: ${result.total.formatted} - Click to view details`;
+			let totalSeconds = 0;
+			result.results.forEach(res => {
+				const dayData = res.data[0]; // Assuming single day for now
+				let seconds = dayData.seconds;
+				if (seconds > 0) {
+					if (config.hoursRounding > 0) {
+						const hoursDecimal = seconds / 3600;
+						const roundedHours = Math.ceil(hoursDecimal / config.hoursRounding) * config.hoursRounding;
+						seconds = Math.floor(roundedHours * 3600);
+					}
+					if (config.projectStartupTime > 0) {
+						const startupSeconds = Math.floor(config.projectStartupTime * 3600);
+						seconds += startupSeconds;
+					}
+				}
+				totalSeconds += seconds;
+			});
+
+			if (totalSeconds > 0) {
+				const totalFormatted = tempGiveMeHours.formatDuration(totalSeconds);
+				statusBarItem.text = `$(clock) Give Me Hours: ${totalFormatted}`;
+				statusBarItem.tooltip = `Today's working hours: ${totalFormatted} - Click to view details`;
 			} else {
 				statusBarItem.text = `$(clock) Give Me Hours: 0:00`;
 				statusBarItem.tooltip = `No working hours logged today - Click to view details`;
@@ -98,7 +114,6 @@ function activate(context) {
 			minCommitTime: config.get('minCommitTime', 0.5),
 			words: config.get('words', 50),
 			showSummary: config.get('showSummary', true),
-			dataType: config.get('dataType', 'rounded'),
 			timeFormat: config.get('timeFormat', 'decimal')
 		};
 	}
@@ -196,18 +211,6 @@ function activate(context) {
 							vscode.window.showErrorMessage(`Error changing date: ${error.message}`);
 						}
 						break;
-					case 'dataTypeChanged':
-						console.log('dataTypeChanged command received:', message.dataType);
-						try {
-							const config = vscode.workspace.getConfiguration('giveMeHours');
-							await config.update('dataType', message.dataType, vscode.ConfigurationTarget.Global);
-							// Refresh the panel with the new data type
-							await calculateAndSendHours(panel);
-						} catch (error) {
-							console.error('Error in dataTypeChanged:', error);
-							vscode.window.showErrorMessage(`Error changing data type: ${error.message}`);
-						}
-						break;
 					case 'timeFormatChanged':
 						console.log('timeFormatChanged command received:', message.timeFormat);
 						try {
@@ -249,15 +252,14 @@ function activate(context) {
 			
 			// Create GiveMeHours instance with user settings
 			// Always fetch summaries since we now toggle visibility with JS
+			 			// Create GiveMeHours instance with user settings
+			// Always fetch summaries since we now toggle visibility with JS
 			const giveMeHours = new GiveMeHours({
 				duration: duration,
-				hoursRounding: config.hoursRounding,
-				projectStartupTime: config.projectStartupTime,
 				minCommitTime: config.minCommitTime,
 				showSummary: true, // Always fetch summaries
 				maxWords: config.words,
-				debug: false,
-				dataType: config.dataType
+				debug: false
 			});
 
 			// Get hours for the working directory
