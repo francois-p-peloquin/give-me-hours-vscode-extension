@@ -89,6 +89,16 @@
           ],
           "description": "Choose the data type for calculating hours. 'Rounded' includes rounding and startup time, while 'Clean' shows the raw calculated hours.",
           "markdownDescription": "Choose the data type for calculating hours:\n- `rounded`: Includes rounding and project startup time (default).\n- `clean`: Shows the raw, unadjusted calculated hours."
+        },
+        "giveMeHours.timeFormat": {
+          "type": "string",
+          "default": "decimal",
+          "enum": [
+            "decimal",
+            "chrono"
+          ],
+          "description": "Choose the time format for displaying hours. 'Decimal' shows hours as a decimal number (e.g., 1.5), while 'Chrono' shows hours and minutes (e.g., 1:30).",
+          "markdownDescription": "Choose the time format for displaying hours:\n- `decimal`: Shows hours as a decimal number (e.g., 1.5) (default).\n- `chrono`: Shows hours and minutes (e.g., 1:30)."
         }
       }
     }

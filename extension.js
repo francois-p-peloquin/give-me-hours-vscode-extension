@@ -98,7 +98,8 @@ function activate(context) {
 			minCommitTime: config.get('minCommitTime', 0.5),
 			words: config.get('words', 50),
 			showSummary: config.get('showSummary', true),
-			dataType: config.get('dataType', 'rounded')
+			dataType: config.get('dataType', 'rounded'),
+			timeFormat: config.get('timeFormat', 'decimal')
 		};
 	}
 
@@ -205,6 +206,16 @@ function activate(context) {
 						} catch (error) {
 							console.error('Error in dataTypeChanged:', error);
 							vscode.window.showErrorMessage(`Error changing data type: ${error.message}`);
+						}
+						break;
+					case 'timeFormatChanged':
+						console.log('timeFormatChanged command received:', message.timeFormat);
+						try {
+							const config = vscode.workspace.getConfiguration('giveMeHours');
+							await config.update('timeFormat', message.timeFormat, vscode.ConfigurationTarget.Global);
+						} catch (error) {
+							console.error('Error in timeFormatChanged:', error);
+							vscode.window.showErrorMessage(`Error changing time format: ${error.message}`);
 						}
 						break;
 				}

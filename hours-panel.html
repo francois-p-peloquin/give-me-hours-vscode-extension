@@ -495,14 +495,15 @@
         }
 
         function onTimeFormatChange() {
-            const useDecimal = document.getElementById('timeFormatSwitch').checked;
-            console.log('Time format changed to:', useDecimal ? 'decimal' : 'chrono');
+            const timeFormat = document.getElementById('timeFormatSwitch').checked ? 'decimal' : 'chrono';
+            console.log('Time format changed to:', timeFormat);
+            vscode.postMessage({ command: 'timeFormatChanged', timeFormat: timeFormat });
 
             // Convert all existing time displays
             const timeElements = document.querySelectorAll('[data-seconds]');
             timeElements.forEach(element => {
                 const seconds = parseInt(element.getAttribute('data-seconds'));
-                element.textContent = formatTime(seconds, useDecimal);
+                element.textContent = formatTime(seconds, timeFormat === 'decimal');
             });
         }
 
@@ -788,7 +789,9 @@
             document.getElementById('dataTypeSwitch').checked = data.config.dataType === 'clean';
 
             // Set the radio buttons for time format
-            const useDecimal = document.getElementById('timeFormatSwitch').checked;
+            document.getElementById('timeFormatSwitch').checked = data.config.timeFormat === 'decimal';
+
+            // Update summary toggle button and column visibility
 
             // Update summary toggle button and column visibility
             const summaryToggle = document.getElementById('summaryToggle');
@@ -824,7 +827,7 @@
                 tbody.innerHTML = '';
 
                 // Add repository rows
-                const useDecimal = document.getElementById('timeFormatDecimal').checked;
+                const useDecimal = data.config.timeFormat === 'decimal';
                 data.results.forEach(result => {
                     const row = document.createElement('tr');
                     const formattedTime = formatTime(result.seconds, useDecimal);
