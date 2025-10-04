@@ -12,26 +12,6 @@ class GiveMeHours {
         this.maxWords = options.maxWords || 50;
     }
 
-    parseDuration(durationStr) {
-        const match = durationStr.match(/^([0-9]*\.?[0-9]+)([hms]?)$/);
-        if (!match) return 3600; // default to 1 hour
-
-        const value = parseFloat(match[1]);
-        const unit = match[2];
-
-        switch (unit) {
-            case 'h':
-            case '':
-                return Math.floor(value * 3600);
-            case 'm':
-                return Math.floor(value * 60);
-            case 's':
-                return Math.floor(value);
-            default:
-                return 3600;
-        }
-    }
-
     generateSummary(commitsOutput) {
         const lines = commitsOutput.split('\n').filter(line => line.trim());
         const messages = [];
