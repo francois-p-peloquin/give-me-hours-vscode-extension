@@ -213,20 +213,23 @@ class GiveMeHours {
                             folderData[entry.name] = { folder: entry.name, data: [] };
                         }
 
-                        for (const date of dates) {
-                            const dateFormatted = date.toISOString().slice(0, 10);
-                            const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
-                            const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+                        console.log(dates);
 
-                            const result = this.getHoursForRepo(dayStart, dayEnd, gitUsername, subDir);
+                        const firstDate = dates[0];
+                        const lastDate = dates[dates.length - 1];
+                        const since = new Date(firstDate.getFullYear(), firstDate.getMonth(), firstDate.getDate()).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+                        const before = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate(), 23, 59, 59).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
 
-                            if (result.seconds > 0) {
-                                folderData[entry.name].data.push({
-                                    date: dateFormatted,
-                                    seconds: result.seconds,
-                                    summary: result.summary
-                                });
-                            }
+                        const result = this.getHoursForRepo(since, before, gitUsername, subDir);
+
+                        if (result.seconds > 0) {
+                            const dateFormatted = firstDate.toISOString().slice(0, 10);
+                            console.log(result);
+                            folderData[entry.name].data.push({
+                                date: dateFormatted, // TODO: incorrect
+                                seconds: result.seconds,
+                                summary: result.summary
+                            });
                         }
                     }
                 }

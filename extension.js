@@ -213,8 +213,9 @@ function activate(context) {
 						console.log('dateChanged command received:', message.date);
 						try {
 							currentDate = message.date || 'today';
+							// TODO: Check if week changed, only if so do we run this.
 							// Refresh the panel with the new date
-							await calculateAndSendHours(panel);
+							// await calculateAndSendHours(panel);
 						} catch (error) {
 							console.error('Error in dateChanged:', error);
 							vscode.window.showErrorMessage(`Error changing date: ${error.message}`);
