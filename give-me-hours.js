@@ -191,7 +191,18 @@ class GiveMeHours {
 
     async getHoursForDirectory(directoryPath, dateArg = 'today') {
         const gitUsername = this.getGitUsername();
-        const { start, end, dates } = this.getDateRange(dateArg);
+
+        const initialDate = new Date(dateArg);
+        const day = initialDate.getDay();
+        const diff = initialDate.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        const startOfWeek = new Date(initialDate.setDate(diff));
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        const since = startOfWeek.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+        const before = new Date(endOfWeek.getFullYear(), endOfWeek.getMonth(), endOfWeek.getDate(), 23, 59, 59).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+        // const dateArgRange = `${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}:${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`;
+
+        // const { start, end, dates } = this.getDateRange(dateArgRange);
 
         const results = [];
         const folderData = {};
@@ -213,17 +224,17 @@ class GiveMeHours {
                             folderData[entry.name] = { folder: entry.name, data: [] };
                         }
 
-                        console.log(dates);
+                        // console.log(dates);
 
-                        const firstDate = dates[0];
-                        const lastDate = dates[dates.length - 1];
-                        const since = new Date(firstDate.getFullYear(), firstDate.getMonth(), firstDate.getDate()).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
-                        const before = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate(), 23, 59, 59).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+                        // const firstDate = dates[0];
+                        // const lastDate = dates[dates.length - 1];
+                        // const since = new Date(firstDate.getFullYear(), firstDate.getMonth(), firstDate.getDate()).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+                        // const before = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate(), 23, 59, 59).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
 
                         const result = this.getHoursForRepo(since, before, gitUsername, subDir);
 
                         if (result.seconds > 0) {
-                            const dateFormatted = firstDate.toISOString().slice(0, 10);
+                            const dateFormatted = startOfWeek.toISOString().slice(0, 10);
                             console.log(result);
                             folderData[entry.name].data.push({
                                 date: dateFormatted, // TODO: incorrect

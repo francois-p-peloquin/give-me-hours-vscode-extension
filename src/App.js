@@ -15,12 +15,19 @@ function App() {
   const [dataType, setDataType] = useState('rounded');
   const [timeFormat, setTimeFormat] = useState('decimal');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [loadedDates, setLoadedDates] = useState([]);
 
   useEffect(() => {
     const handleMessage = (event) => {
       const message = event.data;
       switch (message.type) {
         case 'showResults':
+          if (message.data.dateRange) {
+            const { start, end } = message.data.dateRange;
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            setLoadedDates(prevDates => [...prevDates, { start: startDate, end: endDate }]);
+          }
           setData(message.data);
           setError(null);
           setLoading(false);
@@ -70,8 +77,14 @@ function App() {
   const handleDateChange = (e) => {
     const newDate = e.target.value;
     setDate(newDate);
-    setLoading(true);
-    vscode.postMessage({ command: 'dateChanged', date: newDate });
+
+    const newDateObj = new Date(newDate);
+    const isLoaded = loadedDates.some(range => newDateObj >= range.start && newDateObj <= range.end);
+
+    if (!isLoaded) {
+        setLoading(true);
+        vscode.postMessage({ command: 'dateChanged', date: newDate });
+    }
   };
 
   if (error) {

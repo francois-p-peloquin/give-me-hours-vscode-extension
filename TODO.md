@@ -1,11 +1,3 @@
 # TODO:
-* [x] We need an accordion for the configuration settings on the panel.
-* [x] Style busted table. Should be a nice orderly table, full width, with a clear header.
-* Loading state initially is just blank screen. Fix this. Say "Loading..." at the least.
-  * Still too slow
-* [x] Loading state on Refresh, on date change.
-* Footer bar should always match the settings in the widget page.
-* Week view vs date view.
-* Nice to haves:
-  * Day timeline with each commit/setup/rounding time in there, so user can see it. Different colors for each type of time usage.
-  * Sliders to tweak rounding. Adjusts visuals on front end.
+* On load, in the `getHoursForDirectory` function of `give-me-hours.js`, please always grab a full week's worth of data. No matter what the initial date passed is, please get a `startOfWeek` and `endOfWeek` variable (from start of Monday to end of Sunday) and use that to get the data that we will return to the App.js.
+* In the `App.js`, please only request further data from the `extension.js` file when the `App.js` does not have access to the the current date loaded.

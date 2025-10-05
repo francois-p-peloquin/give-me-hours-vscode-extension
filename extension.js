@@ -38,8 +38,7 @@ function activate(context) {
 			}
 
 			const workingDirectory = getWorkingDirectory();
-			const tempGiveMeHours = new GiveMeHours();
-			const duration = tempGiveMeHours.parseDuration(config.duration);
+			const duration = parseDuration(config.duration);
 
 			const giveMeHours = new GiveMeHours({
 				duration: duration,
