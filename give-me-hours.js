@@ -62,7 +62,6 @@ class GiveMeHours {
     getGitCommits(fromDate, toDate, author) {
         try {
             const cmd = this.buildGitCommand(fromDate, toDate, author);
-            console.log(cmd);
             if (this.debug) {
                 console.log(`Running: ${cmd}`);
             }
