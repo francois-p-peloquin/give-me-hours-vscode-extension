@@ -1,9 +1,44 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { VSCodeDataGrid, VSCodeDataGridRow, VSCodeDataGridCell } from '@vscode/webview-ui-toolkit/react';
 import { getWeekDates } from '../utils/date';
+import { calculateWorkingHours } from '../utils/hours';
+
+const processResults = (results) => {
+  if (!results) {
+    return [];
+  }
+
+  const processed = [];
+  for (const folderResult of results) {
+    const commitsByDate = {};
+    if (folderResult.data.length > 0 && folderResult.data[0].commits) {
+      for (const commit of folderResult.data[0].commits) {
+        const commitDate = commit.timestamp.slice(0, 10); // Extract YYYY-MM-DD
+        if (!commitsByDate[commitDate]) {
+          commitsByDate[commitDate] = [];
+        }
+        commitsByDate[commitDate].push(commit);
+      }
+    }
+
+    for (const date in commitsByDate) {
+      const dailyCommits = commitsByDate[date];
+      const totalSeconds = calculateWorkingHours(dailyCommits);
+      const hours = totalSeconds / 3600;
+      processed.push({
+        folder: folderResult.folder,
+        date: date,
+        hours: hours.toFixed(2)
+      });
+    }
+  }
+  return processed;
+};
 
 const ResultsTable = ({ results, date, display }) => {
-  if (!results || results.length === 0) {
+  const processedResults = useMemo(() => processResults(results), [results]);
+
+  if (!processedResults || processedResults.length === 0) {
     return <p>No results to display.</p>;
   }
 
@@ -11,7 +46,7 @@ const ResultsTable = ({ results, date, display }) => {
   let rows = [];
 
   if (display === 'Day') {
-    const dayResults = results.filter(result => result.date === date);
+    const dayResults = processedResults.filter(result => result.date === date);
 
     if (dayResults.length === 0) {
       return <p>No results for this day.</p>;
@@ -24,7 +59,7 @@ const ResultsTable = ({ results, date, display }) => {
     const weekDates = getWeekDates(date);
     headers = ['Folder', ...weekDates.map(d => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).replace(',', ',<br />'))];
 
-    const resultsByFolder = results.reduce((acc, result) => {
+    const resultsByFolder = processedResults.reduce((acc, result) => {
       const { folder } = result;
       if (!acc[folder]) {
         acc[folder] = {};
