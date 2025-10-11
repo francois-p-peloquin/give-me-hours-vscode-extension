@@ -36,6 +36,7 @@ const processResults = (results, roundHours, config) => {
 };
 
 const ResultsTable = ({ results, date, display, roundHours, config }) => {
+  const emptyCell = '-';
   const processedResults = useMemo(() => processResults(results, roundHours, config), [results, roundHours, config]);
 
   if (!processedResults || processedResults.length === 0) {
@@ -74,7 +75,7 @@ const ResultsTable = ({ results, date, display, roundHours, config }) => {
       const row = [folder];
       weekDates.forEach(d => {
         const dateString = d.toISOString().slice(0, 10);
-        row.push(resultsByFolder[folder][dateString] || '-');
+        row.push(resultsByFolder[folder][dateString] || emptyCell);
       });
       return row;
     });
@@ -95,7 +96,7 @@ const ResultsTable = ({ results, date, display, roundHours, config }) => {
             {row.map((cell, cellIndex) => (
               <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>
                 {cell}
-                <CopyToClipboardButton textToCopy={cell.commits} />
+                {cell != emptyCell && cellIndex > 0 && <CopyToClipboardButton textToCopy={cell.commits} />}
               </td>
             ))}
           </tr>
