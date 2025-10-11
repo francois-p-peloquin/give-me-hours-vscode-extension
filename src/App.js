@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { VSCodeButton, VSCodeTextField, VSCodeDropdown, VSCodeOption, VSCodeCheckbox } from '@vscode/webview-ui-toolkit/react';
 import './App.css';
 
 const vscode = window.acquireVsCodeApi();
@@ -8,6 +9,9 @@ function App() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [display, setDisplay] = useState('Day');
+  const [hoursFormat, setHoursFormat] = useState('Decimal');
+  const [roundHours, setRoundHours] = useState(true);
 
   useEffect(() => {
     const handleMessage = (event) => {
@@ -51,12 +55,36 @@ function App() {
     return <div className="loading">Calculating working hours...</div>;
   }
 
-  const { results, config } = data;
+  if (!data) {
+    return null;
+  }
+
+  const { results } = data;
+
+  const handleRefresh = () => {
+    setLoading(true);
+    vscode.postMessage({ command: 'refresh', date });
+  };
+
   return (
     <div>
       <div className="header">
         <h1>Give Me Hours</h1>
-        <pre>{JSON.stringify(results)}</pre>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+          <VSCodeDropdown value={display} onChange={e => setDisplay(e.target.value)}>
+            <VSCodeOption value="Day">Day</VSCodeOption>
+            <VSCodeOption value="Week">Week</VSCodeOption>
+          </VSCodeDropdown>
+          <VSCodeTextField type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <VSCodeDropdown value={hoursFormat} onChange={e => setHoursFormat(e.target.value)}>
+            <VSCodeOption value="Decimal">Decimal</VSCodeOption>
+            <VSCodeOption value="Chrono">Chrono</VSCodeOption>
+          </VSCodeDropdown>
+          <VSCodeButton onClick={handleRefresh}>Refresh</VSCodeButton>
+          <VSCodeButton onClick={() => vscode.postMessage({ command: 'openSettings' })}>Open settings</VSCodeButton>
+          <VSCodeCheckbox checked={roundHours} onChange={e => setRoundHours(e.target.checked)}>Round hours</VSCodeCheckbox>
+        </div>
+        <pre></pre>
       </div>
     </div>
   );
