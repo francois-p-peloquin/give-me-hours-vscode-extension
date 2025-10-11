@@ -28,7 +28,7 @@ const processResults = (results, roundHours, config) => {
       processed.push({
         folder: folderResult.folder,
         date: date,
-        hours: hours.toFixed(2)
+        hours: hours.toFixed(2),
       });
     }
   }
@@ -93,7 +93,10 @@ const ResultsTable = ({ results, date, display, roundHours, config }) => {
         {rows.map((row, rowIndex) => (
           <tr key={rowIndex}>
             {row.map((cell, cellIndex) => (
-              <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>{cell}<CopyToClipboardButton textToCopy={JSON.stringify({ results, date, display, roundHours, config })} /></td>
+              <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>
+                {cell}
+                <CopyToClipboardButton textToCopy={cell.commits} />
+              </td>
             ))}
           </tr>
         ))}
