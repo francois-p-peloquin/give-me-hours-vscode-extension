@@ -88,7 +88,7 @@ function App() {
         </div>
       </div>
       {config && <Configuration config={config} />}
-      <ResultsTable results={results} date={date} display={display} />
+      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} />
     </div>
   );
 }

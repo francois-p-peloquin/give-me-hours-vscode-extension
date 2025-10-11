@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { getWeekDates } from '../utils/date';
 import { calculateWorkingHours } from '../utils/hours';
+import CopyToClipboardButton from './CopyToClipboardButton';
 
-const processResults = (results) => {
+const processResults = (results, roundHours, config) => {
   if (!results) {
     return [];
   }
@@ -22,7 +23,7 @@ const processResults = (results) => {
 
     for (const date in commitsByDate) {
       const dailyCommits = commitsByDate[date];
-      const totalSeconds = calculateWorkingHours(dailyCommits);
+      const totalSeconds = calculateWorkingHours(dailyCommits, roundHours, config);
       const hours = totalSeconds / 3600;
       processed.push({
         folder: folderResult.folder,
@@ -34,8 +35,8 @@ const processResults = (results) => {
   return processed;
 };
 
-const ResultsTable = ({ results, date, display }) => {
-  const processedResults = useMemo(() => processResults(results), [results]);
+const ResultsTable = ({ results, date, display, roundHours, config }) => {
+  const processedResults = useMemo(() => processResults(results, roundHours, config), [results, roundHours, config]);
 
   if (!processedResults || processedResults.length === 0) {
     return <p>No results to display.</p>;
@@ -92,7 +93,7 @@ const ResultsTable = ({ results, date, display }) => {
         {rows.map((row, rowIndex) => (
           <tr key={rowIndex}>
             {row.map((cell, cellIndex) => (
-              <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>{cell}</td>
+              <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>{cell}<CopyToClipboardButton textToCopy={JSON.stringify({ results, date, display, roundHours, config })} /></td>
             ))}
           </tr>
         ))}

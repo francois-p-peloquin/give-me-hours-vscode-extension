@@ -1,4 +1,5 @@
-export const calculateWorkingHours = (commits, duration = 3600, minCommitTime = 0.5) => {
+export const calculateWorkingHours = (commits, roundHours, config) => {
+    const { duration, minCommitTime, hoursRounding, projectStartupTime } = config;
     let totalSeconds = 0;
     let prevTimestamp = null;
 
@@ -19,6 +20,18 @@ export const calculateWorkingHours = (commits, duration = 3600, minCommitTime = 
             }
 
             prevTimestamp = currentTimestamp;
+        }
+    }
+
+    if (roundHours && totalSeconds > 0) {
+        if (hoursRounding > 0) {
+            const hoursDecimal = totalSeconds / 3600;
+            const roundedHours = Math.ceil(hoursDecimal / hoursRounding) * hoursRounding;
+            totalSeconds = Math.floor(roundedHours * 3600);
+        }
+        if (projectStartupTime > 0) {
+            const startupSeconds = Math.floor(projectStartupTime * 3600);
+            totalSeconds += startupSeconds;
         }
     }
 
