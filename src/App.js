@@ -83,8 +83,8 @@ function App() {
             <VSCodeOption value="Chrono">Chrono</VSCodeOption>
           </VSCodeDropdown>
           <VSCodeButton onClick={handleRefresh}>Refresh</VSCodeButton>
-          <VSCodeButton onClick={() => vscode.postMessage({ command: 'openSettings' })}>Open settings</VSCodeButton>
           <VSCodeCheckbox checked={roundHours} onChange={e => setRoundHours(e.target.checked)}>Round hours</VSCodeCheckbox>
+          <VSCodeButton onClick={() => vscode.postMessage({ command: 'openSettings' })}>Open settings</VSCodeButton>
         </div>
       </div>
       {config && <Configuration config={config} />}

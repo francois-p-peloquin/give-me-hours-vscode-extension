@@ -44,6 +44,8 @@ const ResultsTable = ({ results, date, display }) => {
   let headers = [];
   let rows = [];
 
+  const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).replace(',', ',<br />')
+
   if (display === 'Day') {
     const dayResults = processedResults.filter(result => result.date === date);
 
@@ -51,12 +53,12 @@ const ResultsTable = ({ results, date, display }) => {
       return <p>No results for this day.</p>;
     }
 
-    headers = ['Folder', date];
+    headers = ['Folder', formatDate(new Date(date))];
     rows = dayResults.map(result => [result.folder, result.hours]);
 
   } else if (display === 'Week') {
     const weekDates = getWeekDates(date);
-    headers = ['Folder', ...weekDates.map(d => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).replace(',', ',<br />'))];
+    headers = ['Folder', ...weekDates.map(d => formatDate(d))];
 
     const resultsByFolder = processedResults.reduce((acc, result) => {
       const { folder } = result;
