@@ -1,7 +1,7 @@
 # TODO:
 * Context: This VSCode Extension gets Git commits from a folder and will display it in a table on the front end of the app in a VSCode Reacy interface.
 * Actionables:
-  * Step 1: Create the options above the table display.
+  * [x] Step 1: Create the options above the table display.
     * Context: Use AppOld.js as the example for components and parts, but ignore most of its functionality.
     * There should be a simple header bar at the top with flex wrap display, top aligned. I want it to have a number of options fields.
     * Options fields:
