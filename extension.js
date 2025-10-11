@@ -230,11 +230,51 @@ function activate(context) {
 							vscode.window.showErrorMessage(`Error changing time format: ${error.message}`);
 						}
 						break;
+					case 'getWorkSummary':
+						console.log('getWorkSummary command received:', message.folder, message.date);
+						try {
+							const summary = await getCommitSummaryForFolder(message.folder, message.date);
+							panel.webview.postMessage({
+								type: 'workSummaryResult',
+								summary: summary,
+							});
+						} catch (error) {
+							console.error('Error getting work summary:', error);
+							panel.webview.postMessage({
+								type: 'workSummaryError',
+								error: error.message,
+							});
+						}
+						break;
 				}
 			},
 			undefined,
 			context.subscriptions
 		);
+
+	async function getCommitSummaryForFolder(folderName, date) {
+		const config = getConfiguration();
+		const workingDirectory = getWorkingDirectory();
+		const duration = parseDuration(config.duration);
+
+		const giveMeHours = new GiveMeHours({
+			duration: duration,
+			minCommitTime: config.minCommitTime,
+			showSummary: true,
+			maxWords: config.words,
+			debug: false
+		});
+
+		const folderPath = path.join(workingDirectory, folderName);
+		console.log(`Getting work summary for folder: ${folderPath} on date: ${date}`);
+		const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
+
+		if (result.commits && result.commits.length > 0) {
+			const summary = giveMeHours.generateSummary(result.commits.map(c => `${c.timestamp}|${c.author}|${c.message}`).join('\n'));
+			return summary;
+		}
+		return 'No activity found for this day.';
+	}
 
 		// Calculate hours on panel creation
 		calculateAndSendHours(panel);

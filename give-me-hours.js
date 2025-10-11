@@ -47,7 +47,15 @@ class GiveMeHours {
 
     buildGitCommand(fromDate, toDate, author) {
         let cmd = "git log --pretty=format:'%at|%an|%s' --reverse";
-        const formatDate = (date) => date.toISOString().replace('T',' ').replace(/\.\d{3}Z$/, '')
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        };
         const since = formatDate(fromDate);
         const until = formatDate(toDate);
         cmd += ` --since=\"${since}" --until=\"${until}" `;
@@ -68,7 +76,8 @@ class GiveMeHours {
             return execSync(cmd, { encoding: 'utf8', stdio: 'pipe' });
         } catch (error) {
             if (this.debug) {
-                console.error(`Error executing git command: ${error}`);
+                console.error(`Error executing git command: ${error.message}`);
+                throw error; // Re-throw the error in debug mode
             }
             return '';
         }
@@ -236,14 +245,32 @@ class GiveMeHours {
         const folderData = {};
 
         try {
+            // First, check if the directoryPath itself is a git repository
+            const isGitRepo = (dir) => {
+                try {
+                    execSync('git rev-parse --is-inside-work-tree', { cwd: dir, stdio: 'ignore' });
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            };
+
+            if (isGitRepo(directoryPath)) {
+                if (this.debug) {
+                    console.log(`\nChecking git repository: ${directoryPath}`);
+                }
+                const result = this.getHoursForRepo(startOfWeek, endOfWeek, gitUsername, directoryPath);
+                if (result.commits.length) {
+                    folderData[path.basename(directoryPath)] = { folder: path.basename(directoryPath), data: [result] };
+                }
+            }
+
             const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
 
             for (const entry of entries) {
                 if (entry.isDirectory() && !entry.name.startsWith('.')) {
                     const subDir = path.join(directoryPath, entry.name);
-                    const gitDir = path.join(subDir, '.git');
-
-                    if (fs.existsSync(gitDir)) {
+                    if (isGitRepo(subDir)) {
                         if (this.debug) {
                             console.log(`\nChecking git repository: ${subDir}`);
                         }

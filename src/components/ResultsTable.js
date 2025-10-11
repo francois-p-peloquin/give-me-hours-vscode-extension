@@ -3,6 +3,7 @@ import { getWeekDates } from '../utils/date';
 import { calculateWorkingHours } from '../utils/hours';
 import { formatTime } from '../utils/rounding';
 import CopyToClipboardButton from './CopyToClipboardButton';
+import GetWorkSummaryButton from './GetWorkSummaryButton';
 
 const processResults = (results, roundHours, config, timeFormat) => {
   if (!results) {
@@ -30,6 +31,7 @@ const processResults = (results, roundHours, config, timeFormat) => {
         folder: folderResult.folder,
         date: date,
         hours: formatTime(totalSeconds, timeFormat),
+        dailyCommits: dailyCommits, // Add dailyCommits here
       });
     }
   }
@@ -68,7 +70,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
       if (!acc[folder]) {
         acc[folder] = {};
       }
-      acc[folder][result.date] = result.hours;
+      acc[folder][result.date] = result; // Store the entire result object
       return acc;
     }, {});
 
@@ -96,8 +98,13 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
           <tr key={rowIndex}>
             {row.map((cell, cellIndex) => (
               <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>
-                {cell}
-                {cell != emptyCell && cellIndex > 0 && <CopyToClipboardButton textToCopy={cell.commits} />}
+                {cell.hours || cell} {/* Display hours if available, otherwise the cell content */}
+                {cell != emptyCell && cellIndex > 0 && (
+                  <>
+                    <CopyToClipboardButton textToCopy={cell.dailyCommits} />
+                    <GetWorkSummaryButton folder={row[0]} date={cell.date} />
+                  </>
+                )}
               </td>
             ))}
           </tr>
