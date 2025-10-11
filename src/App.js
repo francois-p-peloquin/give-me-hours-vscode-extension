@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { VSCodeButton, VSCodeTextField, VSCodeDropdown, VSCodeOption, VSCodeCheckbox } from '@vscode/webview-ui-toolkit/react';
 import './App.css';
+import ResultsTable from './components/ResultsTable';
 
 const vscode = window.acquireVsCodeApi();
 
@@ -84,8 +85,8 @@ function App() {
           <VSCodeButton onClick={() => vscode.postMessage({ command: 'openSettings' })}>Open settings</VSCodeButton>
           <VSCodeCheckbox checked={roundHours} onChange={e => setRoundHours(e.target.checked)}>Round hours</VSCodeCheckbox>
         </div>
-        <pre></pre>
       </div>
+      <ResultsTable results={results} date={date} display={display} />
     </div>
   );
 }
