@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { VSCodeButton, VSCodeTextField, VSCodeDropdown, VSCodeOption, VSCodeCheckbox } from '@vscode/webview-ui-toolkit/react';
 import './App.css';
 import ResultsTable from './components/ResultsTable';
+import Configuration from './components/Configuration';
 
 const vscode = window.acquireVsCodeApi();
 
@@ -60,7 +61,7 @@ function App() {
     return null;
   }
 
-  const { results } = data;
+  const { results, config } = data;
 
   const handleRefresh = () => {
     setLoading(true);
@@ -86,6 +87,7 @@ function App() {
           <VSCodeCheckbox checked={roundHours} onChange={e => setRoundHours(e.target.checked)}>Round hours</VSCodeCheckbox>
         </div>
       </div>
+      {config && <Configuration config={config} />}
       <ResultsTable results={results} date={date} display={display} />
     </div>
   );
