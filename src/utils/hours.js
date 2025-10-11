@@ -15,13 +15,17 @@ export const calculateWorkingHours = (commits, roundHours, config) => {
                 if (interval <= duration) {
                     totalSeconds += interval;
                 } else {
-                    // if (roundHours) {
-                    //     totalSeconds += projectStartupTime * 3600;
-                    // } else {
-                    //     totalSeconds += minCommitTime * 3600;
-                    // }
                     totalSeconds += minCommitTime * 3600;
+                    if (roundHours) {
+                        totalSeconds += projectStartupTime * 3600;
+                    }
                 }
+            }
+            else {
+                totalSeconds += minCommitTime * 3600;
+                // if (roundHours) {
+                //     totalSeconds += projectStartupTime * 3600;
+                // }
             }
 
             prevTimestamp = currentTimestamp;
