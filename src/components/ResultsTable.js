@@ -44,7 +44,7 @@ const ResultsTable = ({ results, date, display }) => {
   let headers = [];
   let rows = [];
 
-  const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).replace(',', ',<br />')
+  const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).replace(',', ',<br />')
 
   if (display === 'Day') {
     const dayResults = processedResults.filter(result => result.date === date);
@@ -84,7 +84,7 @@ const ResultsTable = ({ results, date, display }) => {
       <thead>
         <tr>
           {headers.map((header, index) => (
-            <th key={index} dangerouslySetInnerHTML={{__html: header}}></th>
+            <th key={index} className={index > 0 ? 'date-header' : ''} dangerouslySetInnerHTML={{__html: header}}></th>
           ))}
         </tr>
       </thead>
@@ -92,7 +92,7 @@ const ResultsTable = ({ results, date, display }) => {
         {rows.map((row, rowIndex) => (
           <tr key={rowIndex}>
             {row.map((cell, cellIndex) => (
-              <td key={cellIndex}>{cell}</td>
+              <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>{cell}</td>
             ))}
           </tr>
         ))}
