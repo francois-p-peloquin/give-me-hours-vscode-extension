@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { VSCodeDataGrid, VSCodeDataGridRow, VSCodeDataGridCell } from '@vscode/webview-ui-toolkit/react';
 import { getWeekDates } from '../utils/date';
 import { calculateWorkingHours } from '../utils/hours';
 
@@ -79,20 +78,24 @@ const ResultsTable = ({ results, date, display }) => {
   }
 
   return (
-    <VSCodeDataGrid>
-      <VSCodeDataGridRow row-type="header">
-        {headers.map((header, index) => (
-          <VSCodeDataGridCell cell-type="columnheader" grid-column={index + 1} key={index} dangerouslySetInnerHTML={{__html: header}}></VSCodeDataGridCell>
-        ))}
-      </VSCodeDataGridRow>
-      {rows.map((row, rowIndex) => (
-        <VSCodeDataGridRow key={rowIndex}>
-          {row.map((cell, cellIndex) => (
-            <VSCodeDataGridCell grid-column={cellIndex + 1} key={cellIndex}>{cell}</VSCodeDataGridCell>
+    <table className="data-table">
+      <thead>
+        <tr>
+          {headers.map((header, index) => (
+            <th key={index} dangerouslySetInnerHTML={{__html: header}}></th>
           ))}
-        </VSCodeDataGridRow>
-      ))}
-    </VSCodeDataGrid>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, rowIndex) => (
+          <tr key={rowIndex}>
+            {row.map((cell, cellIndex) => (
+              <td key={cellIndex}>{cell}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 };
 

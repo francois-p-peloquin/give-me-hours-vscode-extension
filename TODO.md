@@ -15,6 +15,6 @@
       * A "Refresh" button
       * An "Open settings" button
     * A boolean toggle/checkmark field for "Round hours"
-  * Step 2: Create the table
+  * [x] Step 2: Create the table
     * This will be populated by the data that returns in the `results` constant.
     * If the "Display" field is set to "Day", populate the table with rows where the left column is folder and the next column shows the calendar date chosen in the Date field.
