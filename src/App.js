@@ -12,7 +12,7 @@ function App() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [display, setDisplay] = useState('Day');
-  const [hoursFormat, setHoursFormat] = useState('Decimal');
+  const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
 
   useEffect(() => {
@@ -78,7 +78,7 @@ function App() {
             <VSCodeOption value="Week">Week</VSCodeOption>
           </VSCodeDropdown>
           <VSCodeTextField type="date" value={date} onChange={e => setDate(e.target.value)} />
-          <VSCodeDropdown value={hoursFormat} onChange={e => setHoursFormat(e.target.value)}>
+          <VSCodeDropdown value={timeFormat} onChange={e => setTimeFormat(e.target.value)}>
             <VSCodeOption value="Decimal">Decimal</VSCodeOption>
             <VSCodeOption value="Chrono">Chrono</VSCodeOption>
           </VSCodeDropdown>
@@ -88,7 +88,7 @@ function App() {
         </div>
       </div>
       {config && <Configuration config={config} />}
-      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} />
+      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} />
     </div>
   );
 }

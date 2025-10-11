@@ -1,33 +1,23 @@
-export function calculateRoundedSeconds(seconds, config) {
-    let roundedSeconds = seconds;
-    if (seconds > 0) {
-        if (config.hoursRounding > 0) {
-            const hoursDecimal = roundedSeconds / 3600;
-            const roundedHours = Math.ceil(hoursDecimal / config.hoursRounding) * config.hoursRounding;
-            roundedSeconds = Math.floor(roundedHours * 3600);
-        }
-        if (config.projectStartupTime > 0) {
-            const startupSeconds = Math.floor(config.projectStartupTime * 3600);
-            roundedSeconds += startupSeconds;
-        }
+export const calculateRoundedSeconds = (seconds, config) => {
+    const { hoursRounding } = config;
+    if (hoursRounding > 0) {
+        const hoursDecimal = seconds / 3600;
+        const roundedHours = Math.ceil(hoursDecimal / hoursRounding) * hoursRounding;
+        return Math.floor(roundedHours * 3600);
     }
-    return roundedSeconds;
-}
+    return seconds;
+};
 
-export function formatTime(seconds, useDecimal = false) {
-    if (useDecimal) {
-        const hours = seconds / 3600;
-        return hours.toFixed(2);
-    } else {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-
-        if (hours > 0) {
-            return `${hours}:${minutes.toString().padStart(2, '0')}`;
-        } else if (minutes > 0) {
-            return `0:${minutes.toString().padStart(2, '0')}`;
-        } else {
-            return '0:00';
-        }
+export const formatTime = (totalSeconds, timeFormat) => {
+    if (timeFormat == 'Chrono') {
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const formattedTime = `${hours}:${minutes.toString().padStart(2, '0')}`;
+        console.log(`Formatted as Chrono: ${formattedTime}`);
+        return formattedTime;
+    } else { // Decimal
+        const formattedTime = (totalSeconds / 3600).toFixed(2);
+        console.log(`Formatted as Decimal: ${formattedTime}`);
+        return formattedTime;
     }
-}
+};
