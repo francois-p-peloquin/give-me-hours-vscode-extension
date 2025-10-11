@@ -96,51 +96,52 @@ function App() {
   }
 
   const { results, config } = data;
-  const useDecimal = timeFormat === 'decimal';
-  const useRounded = dataType === 'rounded';
+  // const useDecimal = timeFormat === 'decimal';
+  // const useRounded = dataType === 'rounded';
 
-  const uniqueDates = Array.from(new Set(results.flatMap(result => result.data.map(dayData => dayData.date)))).sort();
+  // const uniqueDates = Array.from(new Set(results.flatMap(result => result.data.map(dayData => dayData.date)))).sort();
 
-  const processedRows = results.map(result => {
-    const folderData = { folder: result.folder };
-    let folderTotalSeconds = 0;
+  // const processedRows = results.map(result => {
+  //   const folderData = { folder: result.folder };
+  //   let folderTotalSeconds = 0;
 
-    uniqueDates.forEach(date => {
-      const dayData = result.data.find(d => d.date === date);
-      if (dayData) {
-        const seconds = useRounded ? calculateRoundedSeconds(dayData.seconds, config) : dayData.seconds;
-        folderTotalSeconds += seconds;
-        folderData[date] = {
-          hours: formatTime(seconds, useDecimal),
-          summary: dayData.summary,
-          seconds: seconds
-        };
-      } else {
-        folderData[date] = { hours: '0.00', summary: 'No activity', seconds: 0 };
-      }
-    });
-    folderData.totalHours = formatTime(folderTotalSeconds, useDecimal);
-    folderData.totalSeconds = folderTotalSeconds;
-    return folderData;
-  });
+  //   uniqueDates.forEach(date => {
+  //     const dayData = result.data.find(d => d.date === date);
+  //     if (dayData) {
+  //       const seconds = useRounded ? calculateRoundedSeconds(dayData.seconds, config) : dayData.seconds;
+  //       folderTotalSeconds += seconds;
+  //       folderData[date] = {
+  //         hours: formatTime(seconds, useDecimal),
+  //         summary: dayData.summary,
+  //         seconds: seconds
+  //       };
+  //     } else {
+  //       folderData[date] = { hours: '0.00', summary: 'No activity', seconds: 0 };
+  //     }
+  //   });
+  //   folderData.totalHours = formatTime(folderTotalSeconds, useDecimal);
+  //   folderData.totalSeconds = folderTotalSeconds;
+  //   return folderData;
+  // });
 
-  const grandTotalSeconds = processedRows.reduce((acc, row) => acc + row.totalSeconds, 0);
+  // const grandTotalSeconds = processedRows.reduce((acc, row) => acc + row.totalSeconds, 0);
 
-  const dailyTotals = uniqueDates.map(date => {
-    let totalSecondsForDay = 0;
-    processedRows.forEach(row => {
-      if (row[date]) {
-        totalSecondsForDay += row[date].seconds;
-      }
-    });
-    return formatTime(totalSecondsForDay, useDecimal);
-  });
+  // const dailyTotals = uniqueDates.map(date => {
+  //   let totalSecondsForDay = 0;
+  //   processedRows.forEach(row => {
+  //     if (row[date]) {
+  //       totalSecondsForDay += row[date].seconds;
+  //     }
+  //   });
+  //   return formatTime(totalSecondsForDay, useDecimal);
+  // });
 
   return (
     <div>
       <div className="header">
         <h1>Give Me Hours</h1>
-        <div className="controls">
+        <pre>{JSON.stringify(results)}</pre>
+        {/* <div className="controls">
             <VSCodeTextField type="date" value={date} onChange={handleDateChange} />
             <VSCodeDropdown value={dataType} onChange={handleDataTypeChange}>
                 <VSCodeOption value="rounded">Rounded</VSCodeOption>
@@ -152,10 +153,10 @@ function App() {
             </VSCodeDropdown>
             <VSCodeButton onClick={handleRefresh}>Refresh</VSCodeButton>
             <VSCodeButton onClick={() => vscode.postMessage({ command: 'openSettings' })}>Settings</VSCodeButton>
-        </div>
+        </div> */}
       </div>
 
-      {config && <Configuration config={config} />}
+      {/* {config && <Configuration config={config} />}
 
       <table className="data-table">
         <thead>
@@ -190,7 +191,7 @@ function App() {
             ))}
           </tr>
         </tfoot>
-      </table>
+      </table> */}
     </div>
   );
 }

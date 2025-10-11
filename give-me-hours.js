@@ -45,9 +45,12 @@ class GiveMeHours {
         }
     }
 
-    buildGitCommand(since, before, author) {
+    buildGitCommand(fromDate, toDate, author) {
         let cmd = "git log --pretty=format:'%at|%an|%s' --reverse";
-        cmd += ` --since=\"${since}" --before=\"${before}"`;
+        const formatDate = (date) => date.toISOString().replace('T',' ').replace(/\.\d{3}Z$/, '')
+        const since = formatDate(fromDate);
+        const until = formatDate(toDate);
+        cmd += ` --since=\"${since}" --until=\"${until}" `;
 
         if (author) {
             cmd += ` --author=\"${author}"`;
@@ -56,9 +59,10 @@ class GiveMeHours {
         return cmd;
     }
 
-    getGitCommits(since, before, author) {
+    getGitCommits(fromDate, toDate, author) {
         try {
-            const cmd = this.buildGitCommand(since, before, author);
+            const cmd = this.buildGitCommand(fromDate, toDate, author);
+            console.log(cmd);
             if (this.debug) {
                 console.log(`Running: ${cmd}`);
             }
@@ -110,8 +114,10 @@ class GiveMeHours {
         return totalSeconds;
     }
 
-    getHoursForRepo(since, before, author, repoPath = '.') {
+    getHoursForRepo(fromDate, toDate, author, repoPath = '.') {
         const originalCwd = process.cwd();
+
+        const defaultReturn = { commits: [] };
 
         try {
             process.chdir(repoPath);
@@ -120,20 +126,25 @@ class GiveMeHours {
             try {
                 execSync('git rev-parse --git-dir', { stdio: 'ignore' });
             } catch (error) {
-                return { seconds: 0, summary: '' };
+                return defaultReturn;
             }
 
-            const commitsOutput = this.getGitCommits(since, before, author);
+            const commitsOutput = this.getGitCommits(fromDate, toDate, author);
             if (!commitsOutput) {
-                return { seconds: 0, summary: '' };
+                return defaultReturn;
             }
 
-            const totalSeconds = this.calculateWorkingHours(commitsOutput);
-            const summary = this.showSummary ? this.generateSummary(commitsOutput) : '';
+            const processedCommits = commitsOutput.split('\n')
+                .filter(line => line.trim())
+                .map(line => line.split('|'))
+                .map(line => ({
+                    timestamp: new Date(parseInt(line[0]) * 1000).toISOString(),
+                    author: line[1],
+                    message: line[2],
+                }))
 
             return {
-                seconds: totalSeconds,
-                summary
+                commits: processedCommits,
             };
         } finally {
             process.chdir(originalCwd);
@@ -189,21 +200,39 @@ class GiveMeHours {
         };
     }
 
+    processDate(arg = 'today') {
+        const now = new Date();
+        switch (arg) {
+            case 'today':
+                    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                case 'yesterday':
+                    const yesterday = new Date(now);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    return new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+                default:
+                    // Assume YYYY-MM-DD format
+                    const dateMatch = dateArg.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    if (dateMatch) {
+                        const year = parseInt(dateMatch[1]);
+                        const month = parseInt(dateMatch[2]) - 1; // Month is 0-indexed
+                        const day = parseInt(dateMatch[3]);
+                        return new Date(year, month, day);
+                    } else {
+                        console.warn('Invalid date format. Please use YYYY-MM-DD');
+                        return now;
+                    }
+        }
+    }
+
     async getHoursForDirectory(directoryPath, dateArg = 'today') {
         const gitUsername = this.getGitUsername();
 
-        const initialDate = new Date(dateArg);
+        const initialDate = this.processDate(dateArg);
         const day = initialDate.getDay();
         const diff = initialDate.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
         const startOfWeek = new Date(initialDate.setDate(diff));
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
-        const since = startOfWeek.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
-        const before = new Date(endOfWeek.getFullYear(), endOfWeek.getMonth(), endOfWeek.getDate(), 23, 59, 59).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
-        // const dateArgRange = `${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}:${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`;
-
-        // const { start, end, dates } = this.getDateRange(dateArgRange);
-
         const results = [];
         const folderData = {};
 
@@ -224,23 +253,10 @@ class GiveMeHours {
                             folderData[entry.name] = { folder: entry.name, data: [] };
                         }
 
-                        // console.log(dates);
+                        const result = this.getHoursForRepo(startOfWeek, endOfWeek, gitUsername, subDir);
 
-                        // const firstDate = dates[0];
-                        // const lastDate = dates[dates.length - 1];
-                        // const since = new Date(firstDate.getFullYear(), firstDate.getMonth(), firstDate.getDate()).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
-                        // const before = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate(), 23, 59, 59).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
-
-                        const result = this.getHoursForRepo(since, before, gitUsername, subDir);
-
-                        if (result.seconds > 0) {
-                            const dateFormatted = startOfWeek.toISOString().slice(0, 10);
-                            console.log(result);
-                            folderData[entry.name].data.push({
-                                date: dateFormatted, // TODO: incorrect
-                                seconds: result.seconds,
-                                summary: result.summary
-                            });
+                        if (result.commits.length) {
+                            folderData[entry.name].data.push(result);
                         }
                     }
                 }
@@ -252,13 +268,15 @@ class GiveMeHours {
                 }
             }
 
+            console.log(results);
+
         } catch (error) {
             throw new Error(`Error reading directory ${directoryPath}: ${error.message}`);
         }
 
         return {
             results,
-            dateRange: { start, end },
+            dateRange: { startOfWeek, endOfWeek },
             gitUsername
         };
     }
