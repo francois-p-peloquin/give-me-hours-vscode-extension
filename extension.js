@@ -38,8 +38,7 @@ function activate(context) {
 			}
 
 			const workingDirectory = getWorkingDirectory();
-			const tempGiveMeHours = new GiveMeHours();
-			const duration = tempGiveMeHours.parseDuration(config.duration);
+			const duration = parseDuration(config.duration);
 
 			const giveMeHours = new GiveMeHours({
 				duration: duration,
@@ -184,9 +183,9 @@ function activate(context) {
 								canSelectMany: false,
 								openLabel: 'Select Working Directory'
 							});
-							
+
 							console.log('Folder dialog result:', folderUri);
-							
+
 							if (folderUri && folderUri[0]) {
 								const config = vscode.workspace.getConfiguration('giveMeHours');
 								await config.update('workingDirectory', folderUri[0].fsPath, vscode.ConfigurationTarget.Global);
@@ -213,8 +212,9 @@ function activate(context) {
 						console.log('dateChanged command received:', message.date);
 						try {
 							currentDate = message.date || 'today';
+							// TODO: Check if week changed, only if so do we run this.
 							// Refresh the panel with the new date
-							await calculateAndSendHours(panel);
+							// await calculateAndSendHours(panel);
 						} catch (error) {
 							console.error('Error in dateChanged:', error);
 							vscode.window.showErrorMessage(`Error changing date: ${error.message}`);
@@ -249,6 +249,26 @@ function activate(context) {
 		return text;
 	}
 
+	function parseDuration(durationStr) {
+		const match = durationStr.match(/^([0-9]*\.?[0-9]+)([hms]?)$/);
+		if (!match) return 3600; // default to 1 hour
+
+		const value = parseFloat(match[1]);
+		const unit = match[2];
+
+		switch (unit) {
+				case 'h':
+				case '':
+						return Math.floor(value * 3600);
+				case 'm':
+						return Math.floor(value * 60);
+				case 's':
+						return Math.floor(value);
+				default:
+						return 3600;
+		}
+	}
+
 	async function calculateAndSendHours(panel) {
 		const config = getConfiguration();
 		try {
@@ -264,9 +284,7 @@ function activate(context) {
 
 			const workingDirectory = getWorkingDirectory();
 
-			// Create a temporary instance to access parseDuration
-			const tempGiveMeHours = new GiveMeHours();
-			const duration = tempGiveMeHours.parseDuration(config.duration);
+			const duration = parseDuration(config.duration);
 
 			// Create GiveMeHours instance with user settings
 			// Always fetch summaries since we now toggle visibility with JS
@@ -283,6 +301,8 @@ function activate(context) {
 
 			// Add config info to result
 			result.config = config;
+
+			console.log('Calculated hours result:', result, duration);
 
 			// Send results to webview
 			panel.webview.postMessage({

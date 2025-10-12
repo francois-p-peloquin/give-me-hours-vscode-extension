@@ -39,3 +39,92 @@ body {
     border-radius: 4px;
     margin: 20px 0;
 }
+
+.accordion {
+    margin-bottom: 1rem;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+}
+
+.accordion-header {
+    background-color: var(--vscode-sideBar-background);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.accordion-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+}
+
+.accordion-content {
+    padding: 1rem;
+    border-top: 1px solid var(--vscode-panel-border);
+}
+
+vscode-data-grid {
+    width: 100%;
+}
+
+vscode-data-grid-row[row-type="header"] {
+    background-color: var(--vscode-sideBar-background);
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.data-table th,
+.data-table td {
+    border: 1px solid var(--vscode-panel-border);
+    padding: 8px;
+    text-align: left;
+}
+
+.data-table th {
+    background-color: var(--vscode-sideBar-background);
+    font-weight: bold;
+}
+
+.data-table tr:nth-child(even) {
+    background-color: var(--vscode-editor-background);
+}
+
+.data-table tr:nth-child(odd) {
+    background-color: var(--vscode-editorGroup-background);
+}
+
+.data-table .total-row {
+    font-weight: bold;
+    background-color: var(--vscode-sideBar-background);
+}
+
+.copy-button {
+    background: none;
+    border: none;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    font-size: 1em;
+    margin-left: 5px;
+    padding: 0;
+}
+
+.copy-button:hover {
+    color: var(--vscode-textLink-activeForeground);
+}
+
+.summary-button {
+    margin-top: 8px;
+}

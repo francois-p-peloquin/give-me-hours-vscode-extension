@@ -1,10 +1,10 @@
 import React from 'react';
 import { VSCodeDivider } from '@vscode/webview-ui-toolkit/react';
+import Accordion from './Accordion';
 
 function Configuration({ config }) {
   return (
-    <div>
-      <h2>Configuration</h2>
+    <Accordion title="Configuration">
       <p>Git User: {config.gitUsername}</p>
       <p>Duration: {config.duration}</p>
       <p>Hours Rounding: {config.hoursRounding}h</p>
@@ -12,7 +12,7 @@ function Configuration({ config }) {
       <p>Min Commit Time: {config.minCommitTime}h</p>
       <p>Directory: {config.workingDirectory || 'Current workspace'}</p>
       <VSCodeDivider />
-    </div>
+    </Accordion>
   );
 }
 
