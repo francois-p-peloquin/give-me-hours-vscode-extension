@@ -40,21 +40,29 @@ function activate(context) {
 			const workingDirectory = getWorkingDirectory();
 			const tempGiveMeHours = new GiveMeHours();
 			const duration = tempGiveMeHours.parseDuration(config.duration);
-			
+
 			const giveMeHours = new GiveMeHours({
 				duration: duration,
-				hoursRounding: config.hoursRounding,
-				projectStartupTime: config.projectStartupTime,
+				minCommitTime: config.minCommitTime,
 				showSummary: false, // Don't need summaries for status bar
 				maxWords: config.words,
 				debug: false
 			});
 
 			const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
-			
-			if (result.total.seconds > 0) {
-				statusBarItem.text = `$(clock) Give Me Hours: ${result.total.formatted}`;
-				statusBarItem.tooltip = `Today's working hours: ${result.total.formatted} - Click to view details`;
+
+			let totalSeconds = 0;
+			result.results.forEach(res => {
+				const dayData = res.data[0]; // Assuming single day for now
+				totalSeconds += dayData.seconds;
+			});
+
+			if (totalSeconds > 0) {
+				const hours = Math.floor(totalSeconds / 3600);
+				const minutes = Math.floor((totalSeconds % 3600) / 60);
+				const totalFormatted = `${hours}:${minutes.toString().padStart(2, '0')}`;
+				statusBarItem.text = `$(clock) Give Me Hours: ${totalFormatted}`;
+				statusBarItem.tooltip = `Today's working hours: ${totalFormatted} - Click to view details`;
 			} else {
 				statusBarItem.text = `$(clock) Give Me Hours: 0:00`;
 				statusBarItem.tooltip = `No working hours logged today - Click to view details`;
@@ -71,7 +79,7 @@ function activate(context) {
 
 	// Update status bar on startup and periodically
 	updateStatusBar();
-	
+
 	// Update status bar every 10 minutes
 	const statusBarInterval = setInterval(updateStatusBar, 10 * 60 * 1000);
 
@@ -93,23 +101,25 @@ function activate(context) {
 			duration: config.get('duration', '1h'),
 			hoursRounding: config.get('hoursRounding', 0.25),
 			projectStartupTime: config.get('projectStartupTime', 0.5),
+			minCommitTime: config.get('minCommitTime', 0.5),
 			words: config.get('words', 50),
-			showSummary: config.get('showSummary', true)
+			showSummary: config.get('showSummary', true),
+			timeFormat: config.get('timeFormat', 'decimal')
 		};
 	}
 
 	function getWorkingDirectory() {
 		const config = getConfiguration();
-		
+
 		if (config.workingDirectory) {
 			return config.workingDirectory;
 		}
-		
+
 		// Use the first workspace folder if available
 		if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
 			return vscode.workspace.workspaceFolders[0].uri.fsPath;
 		}
-		
+
 		return null; // Return null instead of throwing error
 	}
 
@@ -126,14 +136,33 @@ function activate(context) {
 			vscode.ViewColumn.One,
 			{
 				enableScripts: true,
-				retainContextWhenHidden: true
+				retainContextWhenHidden: true,
+				localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'build')]
 			}
 		);
 
-		// Load HTML content
-		const htmlPath = path.join(context.extensionPath, 'hours-panel.html');
-		const htmlContent = fs.readFileSync(htmlPath, 'utf8');
-		panel.webview.html = htmlContent;
+		const buildPath = vscode.Uri.joinPath(context.extensionUri, 'build');
+		const indexPath = vscode.Uri.joinPath(buildPath, 'index.html');
+
+		fs.readFile(indexPath.fsPath, 'utf8', (err, html) => {
+			if (err) {
+				console.error(err);
+				return;
+			}
+
+			const nonce = getNonce();
+
+			// Replace placeholders in the HTML with the correct resource URIs
+			const webviewHtml = html.replace(
+				/<link href="\/static\/css\/(main\..*?\.css)" rel="stylesheet">/g,
+				(match, p1) => `<link href="${panel.webview.asWebviewUri(vscode.Uri.joinPath(buildPath, 'static', 'css', p1))}" rel="stylesheet">`
+			).replace(
+				/<script defer="defer" src="\/static\/js\/(main\..*?\.js)"><\/script>/g,
+				(match, p1) => `<script defer="defer" nonce="${nonce}" src="${panel.webview.asWebviewUri(vscode.Uri.joinPath(buildPath, 'static', 'js', p1))}"></script>`
+			);
+
+			panel.webview.html = webviewHtml;
+		});
 
 		// Handle messages from webview
 		panel.webview.onDidReceiveMessage(
@@ -191,6 +220,16 @@ function activate(context) {
 							vscode.window.showErrorMessage(`Error changing date: ${error.message}`);
 						}
 						break;
+					case 'timeFormatChanged':
+						console.log('timeFormatChanged command received:', message.timeFormat);
+						try {
+							const config = vscode.workspace.getConfiguration('giveMeHours');
+							await config.update('timeFormat', message.timeFormat, vscode.ConfigurationTarget.Global);
+						} catch (error) {
+							console.error('Error in timeFormatChanged:', error);
+							vscode.window.showErrorMessage(`Error changing time format: ${error.message}`);
+						}
+						break;
 				}
 			},
 			undefined,
@@ -201,10 +240,19 @@ function activate(context) {
 		calculateAndSendHours(panel);
 	}
 
+	function getNonce() {
+		let text = '';
+		const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		for (let i = 0; i < 32; i++) {
+			text += possible.charAt(Math.floor(Math.random() * possible.length));
+		}
+		return text;
+	}
+
 	async function calculateAndSendHours(panel) {
 		const config = getConfiguration();
 		try {
-			
+
 			// Check if working directory is configured
 			if (!isWorkingDirectoryConfigured()) {
 				panel.webview.postMessage({
@@ -219,13 +267,12 @@ function activate(context) {
 			// Create a temporary instance to access parseDuration
 			const tempGiveMeHours = new GiveMeHours();
 			const duration = tempGiveMeHours.parseDuration(config.duration);
-			
+
 			// Create GiveMeHours instance with user settings
 			// Always fetch summaries since we now toggle visibility with JS
 			const giveMeHours = new GiveMeHours({
 				duration: duration,
-				hoursRounding: config.hoursRounding,
-				projectStartupTime: config.projectStartupTime,
+				minCommitTime: config.minCommitTime,
 				showSummary: true, // Always fetch summaries
 				maxWords: config.words,
 				debug: false
@@ -233,7 +280,7 @@ function activate(context) {
 
 			// Get hours for the working directory
 			const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
-			
+
 			// Add config info to result
 			result.config = config;
 
@@ -248,7 +295,7 @@ function activate(context) {
 
 		} catch (error) {
 			console.error('Error calculating hours:', error);
-			
+
 			// Check if it's a Git user error
 			if (error.message.includes('Git global username is not set')) {
 				panel.webview.postMessage({
@@ -267,8 +314,8 @@ function activate(context) {
 
 	// Add cleanup for the status bar interval
 	context.subscriptions.push(
-		openWelcomeDisposable, 
-		openSettingsDisposable, 
+		openWelcomeDisposable,
+		openSettingsDisposable,
 		statusBarItem,
 		{ dispose: () => clearInterval(statusBarInterval) }
 	);

@@ -1,8 +1,9 @@
 {
 	"compilerOptions": {
+    "jsx": "react",
 		"module": "Node16",
 		"target": "ES2022",
-		"checkJs": true,  /* Typecheck .js files. */
+		"checkJs": true,
 		"lib": [
 			"ES2022"
 		]

@@ -61,17 +61,44 @@
           "description": "Add time before each work session in hours for project startup/setup. 0.5 = 30 minutes of setup/thinking time. Set to 0 to disable.",
           "markdownDescription": "Add time before each work session in hours for project startup/setup:\n- `0.5` = 30 minutes (default)\n- `1` = 1 hour\n- `0` = no startup time"
         },
+        "giveMeHours.minCommitTime": {
+          "type": "number",
+          "default": 0.5,
+          "minimum": 0,
+          "description": "Minimum time credited for a single commit or a commit after a long break, in hours. 0.5 = 30 minutes.",
+          "markdownDescription": "Minimum time credited for a single commit or a commit after a long break, in hours. `0.5` = 30 minutes."
+        },
         "giveMeHours.words": {
           "type": "number",
           "default": 50,
           "minimum": 10,
           "maximum": 200,
-          "description": "Maximum number of words to show in commit summaries. Longer summaries will be truncated with '...'."
+          "description": "Maximum number of words to show in commit summaries. Longer summaries will be truncated with '...'"
         },
         "giveMeHours.showSummary": {
           "type": "boolean",
           "default": true,
           "description": "Show commit summary column in the results table. You can also toggle this using the button in the extension."
+        },
+        "giveMeHours.dataType": {
+          "type": "string",
+          "default": "rounded",
+          "enum": [
+            "rounded",
+            "clean"
+          ],
+          "description": "Choose the data type for calculating hours. 'Rounded' includes rounding and startup time, while 'Clean' shows the raw calculated hours.",
+          "markdownDescription": "Choose the data type for calculating hours:\n- `rounded`: Includes rounding and project startup time (default).\n- `clean`: Shows the raw, unadjusted calculated hours."
+        },
+        "giveMeHours.timeFormat": {
+          "type": "string",
+          "default": "decimal",
+          "enum": [
+            "decimal",
+            "chrono"
+          ],
+          "description": "Choose the time format for displaying hours. 'Decimal' shows hours as a decimal number (e.g., 1.5), while 'Chrono' shows hours and minutes (e.g., 1:30).",
+          "markdownDescription": "Choose the time format for displaying hours:\n- `decimal`: Shows hours as a decimal number (e.g., 1.5) (default).\n- `chrono`: Shows hours and minutes (e.g., 1:30)."
         }
       }
     }
@@ -79,14 +106,33 @@
   "scripts": {
     "lint": "eslint .",
     "pretest": "yarn run lint",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "build": "react-scripts build"
   },
   "devDependencies": {
-    "@types/vscode": "^1.103.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "eslint": "^9.32.0",
+    "@types/vscode": "^1.103.0",
     "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.32.0",
+    "react-scripts": "^5.0.1"
+  },
+  "dependencies": {
+    "@vscode/webview-ui-toolkit": "^1.4.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
