@@ -47,7 +47,7 @@ const GetWorkSummaryButton = ({ folder, date }) => {
     return (
         <VSCodeLink onClick={handleClick} disabled={isLoading} className="summmary-button" title={isCopied ? 'Copied!' : 'Get work summary'}>
             {isLoading ? 'Loading...' : (isCopied ? 'Copied!' : 'Summary')}
-            {isCopied ? '✅' : '📋'}
+            {isCopied ? ' ✅' : ' 📋'}
         </VSCodeLink>
     );
 };

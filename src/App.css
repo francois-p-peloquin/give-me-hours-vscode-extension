@@ -141,6 +141,7 @@ vscode-data-grid-row[row-type="header"] {
     align-items: flex-start;
     justify-content: center;
     text-align: center;
+    width: 100%;
 }
 .data-table .folder-header {
     white-space: nowrap;

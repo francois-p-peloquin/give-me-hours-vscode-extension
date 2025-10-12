@@ -4,11 +4,13 @@ import { calculateWorkingHours } from '../utils/hours';
 import { formatTime } from '../utils/rounding';
 import CopyToClipboardButton from './CopyToClipboardButton';
 import GetWorkSummaryButton from './GetWorkSummaryButton';
+// Removed VSCodeLink import as it's no longer needed for copying
 
 const processResults = (results, roundHours, config, timeFormat) => {
   if (!results) {
     return [];
   }
+
 
   const processed = [];
   for (const folderResult of results) {
@@ -39,6 +41,7 @@ const processResults = (results, roundHours, config, timeFormat) => {
 };
 
 const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }) => {
+  // Removed hoursCopied state
   const emptyCell = '-';
   const processedResults = useMemo(() => processResults(results, roundHours, config, timeFormat), [results, roundHours, config, timeFormat]);
 
@@ -49,7 +52,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
   let headers = [];
   let rows = [];
 
-  const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).replace(',', ',<br />')
+  const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).replace(',', '<br />')
 
   if (display === 'Day') {
     const dayResults = processedResults.filter(result => result.date === date);
@@ -101,10 +104,12 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
                 {cell == emptyCell ? emptyCell : (
                   <div className={cellIndex > 0 ? 'data-cell' : ''}>
                     <span className='data-cell-hours'>
-                      {cell.hours || cell} {/* Display hours if available, otherwise the cell content */}
-                      {cellIndex > 0 && (
-                        <CopyToClipboardButton textToCopy={cell.dailyCommits} />
-                      )}
+                      {cell.hours ? (
+                        <>
+                          {cell.hours}
+                          <CopyToClipboardButton textToCopy={cell.hours} />
+                        </>
+                      ) : (cell)}
                     </span>
                     {cellIndex > 0 && (
                       <>
