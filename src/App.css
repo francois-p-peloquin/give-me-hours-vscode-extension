@@ -138,7 +138,7 @@ vscode-data-grid-row[row-type="header"] {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    align-items: flex-start;
+    align-items: center; /* Changed from flex-start to center */
     justify-content: center;
     text-align: center;
     width: 100%;
