@@ -128,3 +128,15 @@ vscode-data-grid-row[row-type="header"] {
 .summary-button {
     margin-top: 8px;
 }
+
+.data-table .date-header {
+    width: 150px;
+    text-align: center;
+    white-space: nowrap;
+}
+.data-table .folder-header {
+    white-space: nowrap;
+    width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
