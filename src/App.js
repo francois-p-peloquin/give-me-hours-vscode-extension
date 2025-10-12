@@ -4,7 +4,7 @@ import './App.css';
 import ResultsTable from './components/ResultsTable';
 import Configuration from './components/Configuration';
 
-const vscode = window.acquireVsCodeApi();
+
 
 function App() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -41,8 +41,7 @@ function App() {
 
     window.addEventListener('message', handleMessage);
 
-    // Request initial data
-    vscode.postMessage({ command: 'refresh', date });
+    window.vscode.postMessage({ command: 'refresh', date });
 
     return () => {
       window.removeEventListener('message', handleMessage);
@@ -65,7 +64,7 @@ function App() {
 
   const handleRefresh = () => {
     setLoading(true);
-    vscode.postMessage({ command: 'refresh', date });
+    window.vscode.postMessage({ command: 'refresh', date });
   };
 
   return (
@@ -84,7 +83,7 @@ function App() {
           </VSCodeDropdown>
           <VSCodeButton onClick={handleRefresh}>Refresh</VSCodeButton>
           <VSCodeCheckbox checked={roundHours} onChange={e => setRoundHours(e.target.checked)}>Round hours</VSCodeCheckbox>
-          <VSCodeButton onClick={() => vscode.postMessage({ command: 'openSettings' })}>Open settings</VSCodeButton>
+          <VSCodeButton onClick={() => window.vscode.postMessage({ command: 'openSettings' })}>Open settings</VSCodeButton>
         </div>
       </div>
       {config && <Configuration config={config} />}

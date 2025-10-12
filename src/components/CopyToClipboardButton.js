@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const CopyToClipboardButton = ({ textToCopy, children = '📋' }) => {
+const CopyToClipboardButton = ({ textToCopy }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -17,8 +17,8 @@ const CopyToClipboardButton = ({ textToCopy, children = '📋' }) => {
   };
 
   return (
-    <button onClick={handleCopy} title="Copy to clipboard" className="copy-button">
-      {copied ? 'Copied!' : children}
+    <button onClick={handleCopy} title={copied ? 'Coppied!' : 'Copy to clipboard'} className="copy-button">
+      {copied ? '✅' : '📋'}
     </button>
   );
 };

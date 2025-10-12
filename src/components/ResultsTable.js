@@ -3,11 +3,14 @@ import { getWeekDates } from '../utils/date';
 import { calculateWorkingHours } from '../utils/hours';
 import { formatTime } from '../utils/rounding';
 import CopyToClipboardButton from './CopyToClipboardButton';
+import GetWorkSummaryButton from './GetWorkSummaryButton';
+// Removed VSCodeLink import as it's no longer needed for copying
 
 const processResults = (results, roundHours, config, timeFormat) => {
   if (!results) {
     return [];
   }
+
 
   const processed = [];
   for (const folderResult of results) {
@@ -30,6 +33,7 @@ const processResults = (results, roundHours, config, timeFormat) => {
         folder: folderResult.folder,
         date: date,
         hours: formatTime(totalSeconds, timeFormat),
+        dailyCommits: dailyCommits, // Add dailyCommits here
       });
     }
   }
@@ -37,6 +41,7 @@ const processResults = (results, roundHours, config, timeFormat) => {
 };
 
 const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }) => {
+  // Removed hoursCopied state
   const emptyCell = '-';
   const processedResults = useMemo(() => processResults(results, roundHours, config, timeFormat), [results, roundHours, config, timeFormat]);
 
@@ -47,7 +52,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
   let headers = [];
   let rows = [];
 
-  const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).replace(',', ',<br />')
+  const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).replace(',', '<br />')
 
   if (display === 'Day') {
     const dayResults = processedResults.filter(result => result.date === date);
@@ -68,7 +73,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
       if (!acc[folder]) {
         acc[folder] = {};
       }
-      acc[folder][result.date] = result.hours;
+      acc[folder][result.date] = result; // Store the entire result object
       return acc;
     }, {});
 
@@ -96,12 +101,69 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
           <tr key={rowIndex}>
             {row.map((cell, cellIndex) => (
               <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>
-                {cell}
-                {cell != emptyCell && cellIndex > 0 && <CopyToClipboardButton textToCopy={cell.commits} />}
+                <div className={cellIndex > 0 ? 'data-cell' : ''}>
+                  {cell == emptyCell ? emptyCell : (
+                    <>
+                      <span className='data-cell-hours'>
+                        {cell.hours ? (
+                          <>
+                            {cell.hours}
+                            <CopyToClipboardButton textToCopy={cell.hours} />
+                          </>
+                        ) : (cell)}
+                      </span>
+                      {cellIndex > 0 && (
+                        <>
+                          <GetWorkSummaryButton folder={row[0]} date={cell.date} />
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
               </td>
             ))}
           </tr>
         ))}
+        <tr className="total-row">
+          <th>Total</th>
+          {headers.slice(1).map((header, colIndex) => {
+            let totalSecondsForColumn = 0;
+            rows.forEach(row => {
+              const cell = row[colIndex + 1]; // +1 because row[0] is folder name
+              let hoursValue = 0;
+
+              if (cell && cell.hours) {
+                if (timeFormat === 'Chrono') {
+                  const [hours, minutes] = cell.hours.split(':').map(Number);
+                  hoursValue = hours + (minutes / 60);
+                } else { // Decimal
+                  hoursValue = parseFloat(cell.hours);
+                }
+              } else if (typeof cell === 'string' && cell !== emptyCell) {
+                if (timeFormat === 'Chrono') {
+                  const [hours, minutes] = cell.split(':').map(Number);
+                  hoursValue = hours + (minutes / 60);
+                } else { // Decimal
+                  hoursValue = parseFloat(cell);
+                }
+              }
+              totalSecondsForColumn += hoursValue * 3600;
+            });
+
+            const formattedTotal = formatTime(totalSecondsForColumn, timeFormat);
+
+            return (
+              <th key={colIndex + 1}>
+                <div className='data-cell'>
+                  <span className='data-cell-hours'>
+                    {formattedTotal}
+                    <CopyToClipboardButton textToCopy={formattedTotal} />
+                  </span>
+                </div>
+              </th>
+            );
+          })}
+        </tr>
       </tbody>
     </table>
   );
