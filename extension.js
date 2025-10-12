@@ -231,18 +231,20 @@ function activate(context) {
 						}
 						break;
 					case 'getWorkSummary':
-						console.log('getWorkSummary command received:', message.folder, message.date);
+						console.log('getWorkSummary command received:', message.folder, message.date, message.requestId);
 						try {
 							const summary = await getCommitSummaryForFolder(message.folder, message.date);
 							panel.webview.postMessage({
 								type: 'workSummaryResult',
 								summary: summary,
+								requestId: message.requestId, // Include requestId in the response
 							});
 						} catch (error) {
 							console.error('Error getting work summary:', error);
 							panel.webview.postMessage({
 								type: 'workSummaryError',
 								error: error.message,
+								requestId: message.requestId, // Include requestId in the response
 							});
 						}
 						break;
