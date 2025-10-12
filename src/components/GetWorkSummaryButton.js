@@ -1,3 +1,4 @@
+import { VSCodeButton, VSCodeLink } from '@vscode/webview-ui-toolkit/react';
 import React, { useState } from 'react';
 
 const GetWorkSummaryButton = ({ folder, date }) => {
@@ -44,13 +45,10 @@ const GetWorkSummaryButton = ({ folder, date }) => {
     };
 
     return (
-        <button
-            className="copy-button summary-button" // Reusing copy-button style, adding summary-button for potential specific styles
-            onClick={handleClick}
-            disabled={isLoading}
-        >
-            {isLoading ? 'Loading...' : (isCopied ? 'Copied!' : 'Get Work Summary')}
-        </button>
+        <VSCodeLink onClick={handleClick} disabled={isLoading} className="summmary-button" title={isCopied ? 'Copied!' : 'Get work summary'}>
+            {isLoading ? 'Loading...' : (isCopied ? 'Copied!' : 'Summary')}
+            {isCopied ? '✅' : '📋'}
+        </VSCodeLink>
     );
 };
 

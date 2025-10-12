@@ -98,12 +98,20 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
           <tr key={rowIndex}>
             {row.map((cell, cellIndex) => (
               <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>
-                {cell.hours || cell} {/* Display hours if available, otherwise the cell content */}
-                {cell != emptyCell && cellIndex > 0 && (
-                  <>
-                    <CopyToClipboardButton textToCopy={cell.dailyCommits} />
-                    <GetWorkSummaryButton folder={row[0]} date={cell.date} />
-                  </>
+                {cell == emptyCell ? emptyCell : (
+                  <div className={cellIndex > 0 ? 'data-cell' : ''}>
+                    <span className='data-cell-hours'>
+                      {cell.hours || cell} {/* Display hours if available, otherwise the cell content */}
+                      {cellIndex > 0 && (
+                        <CopyToClipboardButton textToCopy={cell.dailyCommits} />
+                      )}
+                    </span>
+                    {cellIndex > 0 && (
+                      <>
+                        <GetWorkSummaryButton folder={row[0]} date={cell.date} />
+                      </>
+                    )}
+                  </div>
                 )}
               </td>
             ))}
