@@ -122,6 +122,46 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
             ))}
           </tr>
         ))}
+        <tr className="total-row">
+          <th>Total</th>
+          {headers.slice(1).map((header, colIndex) => {
+            let totalSecondsForColumn = 0;
+            rows.forEach(row => {
+              const cell = row[colIndex + 1]; // +1 because row[0] is folder name
+              let hoursValue = 0;
+
+              if (cell && cell.hours) {
+                if (timeFormat === 'Chrono') {
+                  const [hours, minutes] = cell.hours.split(':').map(Number);
+                  hoursValue = hours + (minutes / 60);
+                } else { // Decimal
+                  hoursValue = parseFloat(cell.hours);
+                }
+              } else if (typeof cell === 'string' && cell !== emptyCell) {
+                if (timeFormat === 'Chrono') {
+                  const [hours, minutes] = cell.split(':').map(Number);
+                  hoursValue = hours + (minutes / 60);
+                } else { // Decimal
+                  hoursValue = parseFloat(cell);
+                }
+              }
+              totalSecondsForColumn += hoursValue * 3600;
+            });
+
+            const formattedTotal = formatTime(totalSecondsForColumn, timeFormat);
+
+            return (
+              <th key={colIndex + 1}>
+                <div className='data-cell'>
+                  <span className='data-cell-hours'>
+                    {formattedTotal}
+                    <CopyToClipboardButton textToCopy={formattedTotal} />
+                  </span>
+                </div>
+              </th>
+            );
+          })}
+        </tr>
       </tbody>
     </table>
   );
