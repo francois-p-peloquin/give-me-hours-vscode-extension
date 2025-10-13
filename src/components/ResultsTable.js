@@ -40,7 +40,7 @@ const processResults = (results, roundHours, config, timeFormat) => {
   return processed;
 };
 
-const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }) => {
+const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, folders }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
   const processedResults = useMemo(() => processResults(results, roundHours, config, timeFormat), [results, roundHours, config, timeFormat]);
@@ -77,11 +77,11 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
       return acc;
     }, {});
 
-    rows = Object.keys(resultsByFolder).map(folder => {
+    rows = folders.map(folder => {
       const row = [folder];
       weekDates.forEach(d => {
         const dateString = d.toISOString().slice(0, 10);
-        row.push(resultsByFolder[folder][dateString] || emptyCell);
+        row.push(resultsByFolder[folder]?.[dateString] || emptyCell);
       });
       return row;
     });
