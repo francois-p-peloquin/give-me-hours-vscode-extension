@@ -268,7 +268,12 @@ function activate(context) {
 	}
 
 		// Calculate hours on panel creation
-		calculateAndSendHours(panel, new Date().toISOString().slice(0, 10));
+		const today = new Date();
+		const year = today.getFullYear();
+		const month = String(today.getMonth() + 1).padStart(2, '0');
+		const day = String(today.getDate()).padStart(2, '0');
+		const localDate = `${year}-${month}-${day}`;
+		calculateAndSendHours(panel, localDate);
 	}
 
 	function getNonce() {

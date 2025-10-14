@@ -61,7 +61,10 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
 
   const isDateSelected = (displayType, selectedDate, cellDate) => {
     if (!cellDate) return false;
-    const formattedCellDate = cellDate.toISOString().slice(0, 10);
+    const year = cellDate.getFullYear();
+    const month = String(cellDate.getMonth() + 1).padStart(2, '0');
+    const day = String(cellDate.getDate()).padStart(2, '0');
+    const formattedCellDate = `${year}-${month}-${day}`;
     if (displayType === 'Day') {
       return formattedCellDate === selectedDate;
     } else if (displayType === 'Week') {
