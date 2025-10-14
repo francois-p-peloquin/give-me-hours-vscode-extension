@@ -15,6 +15,7 @@ function App() {
   const [display, setDisplay] = useState('Week');
   const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
+  const [dataCache, setDataCache] = useState({});
   const [folders, setFolders] = useState([]);
 
   useEffect(() => {
@@ -22,6 +23,12 @@ function App() {
       const message = event.data;
       switch (message.type) {
         case 'showResults':
+          const actualStartOfWeek = new Date(message.data.dateRange.startOfWeek);
+          const weekStart = actualStartOfWeek.toISOString().slice(0, 10);
+          setDataCache(prevCache => ({
+            ...prevCache,
+            [weekStart]: message.data
+          }));
           setData(message.data);
           setFolders(message.data.results.map(result => result.folder));
           setError(null);
@@ -53,8 +60,12 @@ function App() {
     const weekDates = getWeekDates(date);
     const weekStart = weekDates[0].toISOString().slice(0, 10);
 
-    setLoading(true);
-    window.vscode.postMessage({ command: 'refresh', weekStart });
+    if (dataCache[weekStart]) {
+      setData(dataCache[weekStart]);
+    } else {
+      setLoading(true);
+      window.vscode.postMessage({ command: 'refresh', weekStart });
+    }
   }, [date]);
 
   if (error) {
