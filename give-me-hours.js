@@ -106,9 +106,10 @@ class GiveMeHours {
                     const year = commitDate.getFullYear();
                     const month = String(commitDate.getMonth() + 1).padStart(2, '0');
                     const day = String(commitDate.getDate()).padStart(2, '0');
+                    const formattedCommitDate = `${year}-${month}-${day}`;
                     return {
                         timestamp: commitTimestamp,
-                        commitDate: `${year}-${month}-${day}`,
+                        commitDate: formattedCommitDate,
                         author: line[1],
                         message: line[2],
                     };
