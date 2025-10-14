@@ -17,7 +17,7 @@ const processResults = (results, roundHours, config, timeFormat) => {
     const commitsByDate = {};
     if (folderResult.data.length > 0 && folderResult.data[0].commits) {
       for (const commit of folderResult.data[0].commits) {
-        const commitDate = commit.timestamp.slice(0, 10); // Extract YYYY-MM-DD
+        const commitDate = commit.commitDate; // Use the new commitDate property
         if (!commitsByDate[commitDate]) {
           commitsByDate[commitDate] = [];
         }
