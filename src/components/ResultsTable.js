@@ -43,7 +43,12 @@ const processResults = (results, roundHours, config, timeFormat) => {
 const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, folders }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
-  const processedResults = useMemo(() => processResults(results, roundHours, config, timeFormat), [results, roundHours, config, timeFormat]);
+  const processedResults = useMemo(() => {
+    const allProcessed = processResults(results, roundHours, config, timeFormat);
+    const weekDates = getWeekDates(date);
+    const weekDateStrings = new Set(weekDates.map(d => d.toISOString().slice(0, 10)));
+    return allProcessed.filter(result => weekDateStrings.has(result.date));
+  }, [results, roundHours, config, timeFormat, date]);
 
   if (!processedResults || processedResults.length === 0) {
     return <p>No results to display.</p>;

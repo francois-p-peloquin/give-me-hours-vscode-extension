@@ -17,8 +17,6 @@ function activate(context) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "give-me-hours" is now active!');
 
-	let currentDate = 'today'; // Track the current date selection
-
 	// Create status bar item
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 	statusBarItem.text = "$(clock) Give Me Hours";
@@ -48,7 +46,7 @@ function activate(context) {
 				debug: false
 			});
 
-			const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
+			const result = await giveMeHours.getHoursForDirectory(workingDirectory, 'today');
 
 			let totalSeconds = 0;
 			result.results.forEach(res => {
@@ -169,7 +167,7 @@ function activate(context) {
 				console.log('Received message from webview:', message);
 				switch (message.command) {
 					case 'refresh':
-						await calculateAndSendHours(panel);
+						await calculateAndSendHours(panel, message.weekStart);
 						break;
 					case 'openSettings':
 						await vscode.commands.executeCommand('workbench.action.openSettings', 'giveMeHours');
@@ -206,18 +204,6 @@ function activate(context) {
 						} catch (error) {
 							console.error('Error in updateSummaryVisibility:', error);
 							vscode.window.showErrorMessage(`Error updating summary visibility: ${error.message}`);
-						}
-						break;
-					case 'dateChanged':
-						console.log('dateChanged command received:', message.date);
-						try {
-							currentDate = message.date || 'today';
-							// TODO: Check if week changed, only if so do we run this.
-							// Refresh the panel with the new date
-							// await calculateAndSendHours(panel);
-						} catch (error) {
-							console.error('Error in dateChanged:', error);
-							vscode.window.showErrorMessage(`Error changing date: ${error.message}`);
 						}
 						break;
 					case 'timeFormatChanged':
@@ -279,7 +265,7 @@ function activate(context) {
 	}
 
 		// Calculate hours on panel creation
-		calculateAndSendHours(panel);
+		calculateAndSendHours(panel, new Date().toISOString().slice(0, 10));
 	}
 
 	function getNonce() {
@@ -311,7 +297,7 @@ function activate(context) {
 		}
 	}
 
-	async function calculateAndSendHours(panel) {
+	async function calculateAndSendHours(panel, date = 'today') {
 		const config = getConfiguration();
 		try {
 
@@ -340,7 +326,7 @@ function activate(context) {
 			});
 
 			// Get hours for the working directory
-			const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
+			const result = await giveMeHours.getHoursForDirectory(workingDirectory, date);
 
 			// Add config info to result
 			result.config = config;

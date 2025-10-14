@@ -15,7 +15,6 @@ function App() {
   const [display, setDisplay] = useState('Week');
   const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
-  const [dataCache, setDataCache] = useState({});
   const [folders, setFolders] = useState([]);
 
   useEffect(() => {
@@ -23,17 +22,8 @@ function App() {
       const message = event.data;
       switch (message.type) {
         case 'showResults':
-          if (folders.length === 0) {
-            setFolders(message.data.results.map(r => r.folder));
-          }
-          const requestDate = message.date || date;
-          const weekDates = getWeekDates(requestDate);
-          const weekStart = weekDates[0].toISOString().slice(0, 10);
-          setDataCache(prevCache => ({
-            ...prevCache,
-            [weekStart]: message.data
-          }));
           setData(message.data);
+          setFolders(message.data.results.map(result => result.folder));
           setError(null);
           setLoading(false);
           break;
@@ -57,18 +47,14 @@ function App() {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [date]);
+  }, []);
 
   useEffect(() => {
     const weekDates = getWeekDates(date);
     const weekStart = weekDates[0].toISOString().slice(0, 10);
 
-    if (dataCache[weekStart]) {
-      setData(dataCache[weekStart]);
-    } else {
-      setLoading(true);
-      window.vscode.postMessage({ command: 'refresh', date });
-    }
+    setLoading(true);
+    window.vscode.postMessage({ command: 'refresh', weekStart });
   }, [date]);
 
   if (error) {
@@ -87,7 +73,9 @@ function App() {
 
   const handleRefresh = () => {
     setLoading(true);
-    window.vscode.postMessage({ command: 'refresh', date });
+    const weekDates = getWeekDates(date);
+    const weekStart = weekDates[0].toISOString().slice(0, 10);
+    window.vscode.postMessage({ command: 'refresh', weekStart });
   };
 
   return (
@@ -110,7 +98,7 @@ function App() {
         </div>
       </div>
       {config && <Configuration config={config} />}
-      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} folders={folders} />
+      <ResultsTable results={results} date={getWeekDates(date)[0].toISOString().slice(0, 10)} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} folders={folders} />
     </div>
   );
 }
