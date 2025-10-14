@@ -59,6 +59,17 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
 
   const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).replace(',', '<br />')
 
+  const isDateSelected = (displayType, selectedDate, cellDate) => {
+    if (!cellDate) return false;
+    const formattedCellDate = cellDate.toISOString().slice(0, 10);
+    if (displayType === 'Day') {
+      return formattedCellDate === selectedDate;
+    } else if (displayType === 'Week') {
+      return formattedCellDate === selectedDate;
+    }
+    return false;
+  };
+
   if (display === 'Day') {
     const dayResults = processedResults.filter(result => result.date === date);
 
@@ -98,9 +109,15 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
         <tr>
           {headers.map((header, index) => {
             const isDateHeader = index > 0;
-            const weekDates = getWeekDates(date);
-            const currentDate = weekDates[index - 1];
-            const isSelected = isDateHeader && currentDate && currentDate.toISOString().slice(0, 10) == date;
+            let cellDate = null;
+            if (display === 'Day' && isDateHeader) {
+              cellDate = new Date(date);
+            } else if (display === 'Week' && isDateHeader) {
+              const weekDates = getWeekDates(date);
+              cellDate = weekDates[index - 1];
+            }
+
+            const isSelected = isDateSelected(display, date, cellDate);
             let className = isDateHeader ? 'date-header' : '';
             if (isSelected) {
               className += ' selected-date';
@@ -116,10 +133,15 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
         {rows.map((row, rowIndex) => (
           <tr key={rowIndex}>
             {row.map((cell, cellIndex) => {
-              const isDateCell = cellIndex > 0;
-              const weekDates = getWeekDates(date);
-              const currentDate = weekDates[cellIndex - 1];
-              const isSelected = isDateCell && currentDate && currentDate.toISOString().slice(0, 10) == date;
+              let cellDate = null;
+              if (display === 'Day' && cellIndex > 0) {
+                cellDate = new Date(date);
+              } else if (display === 'Week' && cellIndex > 0) {
+                const weekDates = getWeekDates(date);
+                cellDate = weekDates[cellIndex - 1];
+              }
+
+              const isSelected = isDateSelected(display, date, cellDate);
               let tdClassName = cellIndex === 0 ? 'folder-header' : '';
               if (isSelected) {
                 tdClassName += ' selected-date';
