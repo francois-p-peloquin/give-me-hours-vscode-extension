@@ -96,37 +96,59 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
     <table className="data-table">
       <thead>
         <tr>
-          {headers.map((header, index) => (
-            <th key={index} className={index > 0 ? 'date-header' : ''} dangerouslySetInnerHTML={{__html: header}}></th>
-          ))}
+          {headers.map((header, index) => {
+            const isDateHeader = index > 0;
+            const weekDates = getWeekDates(date);
+            const currentDate = weekDates[index - 1];
+            const isSelected = isDateHeader && currentDate && currentDate.toISOString().slice(0, 10) == date;
+            let className = isDateHeader ? 'date-header' : '';
+            if (isSelected) {
+              className += ' selected-date';
+            }
+
+            return (
+              <th key={index} className={className} dangerouslySetInnerHTML={{ __html: header }}></th>
+            );
+          })}
         </tr>
       </thead>
       <tbody>
         {rows.map((row, rowIndex) => (
           <tr key={rowIndex}>
-            {row.map((cell, cellIndex) => (
-              <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>
-                <div className={cellIndex > 0 ? 'data-cell' : ''}>
-                  {cell == emptyCell ? emptyCell : (
-                    <>
-                      <span className='data-cell-hours'>
-                        {cell.hours ? (
+            {row.map((cell, cellIndex) => {
+              const isDateCell = cellIndex > 0;
+              const weekDates = getWeekDates(date);
+              const currentDate = weekDates[cellIndex - 1];
+              const isSelected = isDateCell && currentDate && currentDate.toISOString().slice(0, 10) == date;
+              let tdClassName = cellIndex === 0 ? 'folder-header' : '';
+              if (isSelected) {
+                tdClassName += ' selected-date';
+              }
+
+              return (
+                <td className={tdClassName} key={cellIndex}>
+                  <div className={cellIndex > 0 ? 'data-cell' : ''}>
+                    {cell == emptyCell ? emptyCell : (
+                      <>
+                        <span className='data-cell-hours'>
+                          {cell.hours ? (
+                            <>
+                              {cell.hours}
+                              <CopyToClipboardButton textToCopy={cell.hours} />
+                            </>
+                          ) : (cell)}
+                        </span>
+                        {cellIndex > 0 && (
                           <>
-                            {cell.hours}
-                            <CopyToClipboardButton textToCopy={cell.hours} />
+                            <GetWorkSummaryButton folder={row[0]} date={cell.date} />
                           </>
-                        ) : (cell)}
-                      </span>
-                      {cellIndex > 0 && (
-                        <>
-                          <GetWorkSummaryButton folder={row[0]} date={cell.date} />
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
-              </td>
-            ))}
+                        )}
+                      </>
+                    )}
+                  </div>
+                </td>
+              );
+            })}
           </tr>
         ))}
         <tr className="total-row">

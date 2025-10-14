@@ -166,6 +166,9 @@ function activate(context) {
 			async message => {
 				console.log('Received message from webview:', message);
 				switch (message.command) {
+					case 'debug':
+						console.log('Debug message from webview:', message);
+						break;
 					case 'refresh':
 						await calculateAndSendHours(panel, message.weekStart);
 						break;

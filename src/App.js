@@ -109,7 +109,7 @@ function App() {
         </div>
       </div>
       {config && <Configuration config={config} />}
-      <ResultsTable results={results} date={getWeekDates(date)[0].toISOString().slice(0, 10)} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} folders={folders} />
+      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} folders={folders} />
     </div>
   );
 }
