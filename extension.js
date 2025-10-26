@@ -321,7 +321,7 @@ function activate(context) {
 			const workingDirectory = getWorkingDirectory();
 
 			const duration = parseDuration(config.duration);
-			config.duration = duration;
+			config.duration = String(duration);
 
 			// Create GiveMeHours instance with user settings
 			// Always fetch summaries since we now toggle visibility with JS

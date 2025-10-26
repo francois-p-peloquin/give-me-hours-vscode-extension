@@ -5,8 +5,6 @@ import { getWeekDates } from './utils/date';
 import ResultsTable from './components/ResultsTable';
 import Configuration from './components/Configuration';
 
-
-
 function App() {
   const getLocalDate = () => {
     const today = new Date();

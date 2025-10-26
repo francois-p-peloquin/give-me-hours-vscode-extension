@@ -11,7 +11,6 @@ const processResults = (results, roundHours, config, timeFormat) => {
     return [];
   }
 
-
   const processed = [];
   for (const folderResult of results) {
     const commitsByDate = {};
