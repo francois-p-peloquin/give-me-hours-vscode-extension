@@ -1,6 +1,7 @@
 # TODO
 
 * Actionable:
+  * Duration variable formatting. Right now, 3600 format confusing, should be hours like the rest.
   * [x] For the commits summaries function `getCommitSummaryForFolder`, I would like the PR/Merge names sanitized and moved to top priority in the messages.
   * [x] Correct day highlighting.
   * Footer bar hours update every X based on saved settings.
