@@ -183,7 +183,7 @@ class GiveMeHours {
                     return new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
                 default:
                     // Assume YYYY-MM-DD format
-                    const dateMatch = arg.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    const dateMatch = dateArg.match(/^(\d{4})-(\d{2})-(\d{2})$/);
                     if (dateMatch) {
                         const year = parseInt(dateMatch[1]);
                         const month = parseInt(dateMatch[2]) - 1; // Month is 0-indexed
