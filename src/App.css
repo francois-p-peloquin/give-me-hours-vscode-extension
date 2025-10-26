@@ -149,8 +149,3 @@ vscode-data-grid-row[row-type="header"] {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-
-.selected-date {
-    background-color: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
-}

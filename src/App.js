@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { VSCodeButton, VSCodeTextField, VSCodeDropdown, VSCodeOption, VSCodeCheckbox } from '@vscode/webview-ui-toolkit/react';
 import './App.css';
-import { getWeekDates } from './utils/date';
 import ResultsTable from './components/ResultsTable';
 import Configuration from './components/Configuration';
 
@@ -15,22 +14,13 @@ function App() {
   const [display, setDisplay] = useState('Week');
   const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
-  const [dataCache, setDataCache] = useState({});
-  const [folders, setFolders] = useState([]);
 
   useEffect(() => {
     const handleMessage = (event) => {
       const message = event.data;
       switch (message.type) {
         case 'showResults':
-          const actualStartOfWeek = new Date(message.data.dateRange.startOfWeek);
-          const weekStart = actualStartOfWeek.toISOString().slice(0, 10);
-          setDataCache(prevCache => ({
-            ...prevCache,
-            [weekStart]: message.data
-          }));
           setData(message.data);
-          setFolders(message.data.results.map(result => result.folder));
           setError(null);
           setLoading(false);
           break;
@@ -51,22 +41,12 @@ function App() {
 
     window.addEventListener('message', handleMessage);
 
+    window.vscode.postMessage({ command: 'refresh', date });
+
     return () => {
       window.removeEventListener('message', handleMessage);
     };
   }, []);
-
-  useEffect(() => {
-    const weekDates = getWeekDates(date);
-    const weekStart = weekDates[0].toISOString().slice(0, 10);
-
-    if (dataCache[weekStart]) {
-      setData(dataCache[weekStart]);
-    } else {
-      setLoading(true);
-      window.vscode.postMessage({ command: 'refresh', weekStart });
-    }
-  }, [date]);
 
   if (error) {
     return <div className="error">{error}</div>;
@@ -84,9 +64,7 @@ function App() {
 
   const handleRefresh = () => {
     setLoading(true);
-    const weekDates = getWeekDates(date);
-    const weekStart = weekDates[0].toISOString().slice(0, 10);
-    window.vscode.postMessage({ command: 'refresh', weekStart });
+    window.vscode.postMessage({ command: 'refresh', date });
   };
 
   return (
@@ -109,7 +87,7 @@ function App() {
         </div>
       </div>
       {config && <Configuration config={config} />}
-      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} folders={folders} />
+      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} />
     </div>
   );
 }
