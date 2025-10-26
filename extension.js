@@ -255,37 +255,37 @@ function activate(context) {
 			context.subscriptions
 		);
 
-	async function getCommitSummaryForFolder(folderName, date) {
-		const config = getConfiguration();
-		const workingDirectory = getWorkingDirectory();
-		const duration = parseDuration(config.duration);
+		async function getCommitSummaryForFolder(folderName, date) {
+			const config = getConfiguration();
+			const workingDirectory = getWorkingDirectory();
+			const duration = parseDuration(config.duration);
 
-		const giveMeHours = new GiveMeHours({
-			duration: duration,
-			minCommitTime: config.minCommitTime,
-			showSummary: true,
-			maxWords: config.words,
-			debug: false
-		});
+			const giveMeHours = new GiveMeHours({
+				duration: duration,
+				minCommitTime: config.minCommitTime,
+				showSummary: true,
+				maxWords: config.words,
+				debug: false
+			});
 
-		const folderPath = path.join(workingDirectory, folderName);
-		console.log(`Getting work summary for folder: ${folderPath} on date: ${date}`);
-		const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
+			const folderPath = path.join(workingDirectory, folderName);
+			console.log(`Getting work summary for folder: ${folderPath} on date: ${date}`);
+			const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
 
-		if (result.commits && result.commits.length > 0) {
-			const summary = giveMeHours.summary.generateSummary(result.commits.map(c => `${c.timestamp}|${c.author}|${c.message}`).join('\n'));
-			return summary;
+			if (result.commits && result.commits.length > 0) {
+				const summary = giveMeHours.summary.generateSummary(result.commits.map(c => `${c.timestamp}|${c.author}|${c.message}`).join('\n'));
+				return summary;
+			}
+			return 'No activity found for this day.';
 		}
-		return 'No activity found for this day.';
-	}
 
 		// Calculate hours on panel creation
-		const today = new Date();
-		const year = today.getFullYear();
-		const month = String(today.getMonth() + 1).padStart(2, '0');
-		const day = String(today.getDate()).padStart(2, '0');
-		const localDate = `${year}-${month}-${day}`;
-		calculateAndSendHours(panel, localDate);
+		// const today = new Date();
+		// const year = today.getFullYear();
+		// const month = String(today.getMonth() + 1).padStart(2, '0');
+		// const day = String(today.getDate()).padStart(2, '0');
+		// const localDate = `${year}-${month}-${day}`;
+		calculateAndSendHours(panel);
 	}
 
 	function getNonce() {
