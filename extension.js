@@ -37,36 +37,9 @@ function activate(context) {
 				return;
 			}
 
-			const workingDirectory = getWorkingDirectory();
-			const duration = parseDuration(config.duration);
-
-			const giveMeHours = new GiveMeHours({
-				duration: duration,
-				minCommitTime: config.minCommitTime,
-				showSummary: false, // Don't need summaries for status bar
-				maxWords: config.words,
-				debug: false
-			});
-
-			const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
-
-			let totalSeconds = 0;
-			// result.results.forEach(res => {
-			// 	const dayData = res.data[0]; // Assuming single day for now
-			// 	totalSeconds += dayData.seconds;
-			// });
-
-			// TODO: Fix totalSeconds calculation for status bar
-			if (totalSeconds > 0) {
-				const hours = Math.floor(totalSeconds / 3600);
-				const minutes = Math.floor((totalSeconds % 3600) / 60);
-				const totalFormatted = `${hours}:${minutes.toString().padStart(2, '0')}`;
-				statusBarItem.text = `$(clock) Give Me Hours: ${totalFormatted}`;
-				statusBarItem.tooltip = `Today's working hours: ${totalFormatted} - Click to view details`;
-			} else {
-				statusBarItem.text = `$(clock) Give Me Hours`;
-				statusBarItem.tooltip = `No working hours logged today - Click to view details`;
-			}
+			statusBarItem.text = `$(clock) Give Me Hours`;
+			statusBarItem.tooltip = `Take a look at the magical book.`;
+			return;
 		} catch (error) {
 			statusBarItem.text = "$(clock) Give Me Hours";
 			if (error.message.includes('Git global username is not set')) {
@@ -82,7 +55,6 @@ function activate(context) {
 
 	// Update status bar every 10 minutes
 	const statusBarInterval = setInterval(updateStatusBar, 10 * 60 * 1000);
-
 
 	// Register the new command to open welcome page
 	const openWelcomeDisposable = vscode.commands.registerCommand('give-me-hours.openWelcome', function () {
