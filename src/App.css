@@ -135,7 +135,8 @@ vscode-data-grid-row[row-type="header"] {
 }
 
 .data-table .date-header {
-    width: 150px;
+    min-width: 100px;
+    width: 180px;
     text-align: center;
     white-space: nowrap;
 }
