@@ -88,6 +88,7 @@ vscode-data-grid-row[row-type="header"] {
 
 .data-table th,
 .data-table td {
+    white-space: nowrap;
     border: 1px solid var(--vscode-panel-border);
     padding: 8px;
     text-align: left;
@@ -111,6 +112,10 @@ vscode-data-grid-row[row-type="header"] {
     background-color: var(--vscode-sideBar-background);
 }
 
+.copy-button,
+.summary-button {
+    white-space: nowrap;
+}
 .copy-button {
     background: none;
     border: none;
@@ -148,4 +153,17 @@ vscode-data-grid-row[row-type="header"] {
     width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.selected-date {
+    background-color: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+}
+
+.text-right {
+    text-align: right;
+}
+
+.table-container {
+    overflow: auto;
 }

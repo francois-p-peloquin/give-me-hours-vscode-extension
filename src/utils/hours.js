@@ -7,7 +7,7 @@ export const calculateWorkingHours = (commits, roundHours, config) => {
         totalSeconds += minCommitTime * 3600;
     } else {
         for (const commit of commits) {
-            const currentTimestamp = new Date(commit.timestamp).getTime() / 1000;
+            const currentTimestamp = commit.timestamp;
 
             if (prevTimestamp !== null) {
                 const interval = currentTimestamp - prevTimestamp;

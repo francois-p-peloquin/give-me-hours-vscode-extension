@@ -51,11 +51,12 @@ function activate(context) {
 			const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
 
 			let totalSeconds = 0;
-			result.results.forEach(res => {
-				const dayData = res.data[0]; // Assuming single day for now
-				totalSeconds += dayData.seconds;
-			});
+			// result.results.forEach(res => {
+			// 	const dayData = res.data[0]; // Assuming single day for now
+			// 	totalSeconds += dayData.seconds;
+			// });
 
+			// TODO: Fix totalSeconds calculation for status bar
 			if (totalSeconds > 0) {
 				const hours = Math.floor(totalSeconds / 3600);
 				const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -63,7 +64,7 @@ function activate(context) {
 				statusBarItem.text = `$(clock) Give Me Hours: ${totalFormatted}`;
 				statusBarItem.tooltip = `Today's working hours: ${totalFormatted} - Click to view details`;
 			} else {
-				statusBarItem.text = `$(clock) Give Me Hours: 0:00`;
+				statusBarItem.text = `$(clock) Give Me Hours`;
 				statusBarItem.tooltip = `No working hours logged today - Click to view details`;
 			}
 		} catch (error) {
@@ -272,14 +273,19 @@ function activate(context) {
 		const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
 
 		if (result.commits && result.commits.length > 0) {
-			const summary = giveMeHours.generateSummary(result.commits.map(c => `${c.timestamp}|${c.author}|${c.message}`).join('\n'));
+			const summary = giveMeHours.summary.generateSummary(result.commits.map(c => `${c.timestamp}|${c.author}|${c.message}`).join('\n'));
 			return summary;
 		}
 		return 'No activity found for this day.';
 	}
 
 		// Calculate hours on panel creation
-		calculateAndSendHours(panel);
+		const today = new Date();
+		const year = today.getFullYear();
+		const month = String(today.getMonth() + 1).padStart(2, '0');
+		const day = String(today.getDate()).padStart(2, '0');
+		const localDate = `${year}-${month}-${day}`;
+		calculateAndSendHours(panel, localDate);
 	}
 
 	function getNonce() {
@@ -327,7 +333,7 @@ function activate(context) {
 			const workingDirectory = getWorkingDirectory();
 
 			const duration = parseDuration(config.duration);
-			config.duration = duration;
+			config.duration = String(duration);
 
 			// Create GiveMeHours instance with user settings
 			// Always fetch summaries since we now toggle visibility with JS

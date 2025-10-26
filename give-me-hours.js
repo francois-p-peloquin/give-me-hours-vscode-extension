@@ -2,6 +2,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const process = require('process');
+const Summary = require('./src/utils/summary');
 
 class GiveMeHours {
     constructor(options = {}) {
@@ -9,32 +10,7 @@ class GiveMeHours {
         this.minCommitTime = options.minCommitTime || 0.5;
         this.debug = options.debug || false;
         this.showSummary = options.showSummary !== undefined ? options.showSummary : true;
-        this.maxWords = options.maxWords || 50;
-    }
-
-    generateSummary(commitsOutput) {
-        const lines = commitsOutput.split('\n').filter(line => line.trim());
-        const messages = [];
-
-        for (const line of lines) {
-            const parts = line.split('|');
-            if (parts.length >= 3) {
-                const message = parts[2].trim();
-                if (message && !messages.includes(message)) {
-                    messages.push(message);
-                }
-            }
-        }
-
-        // Join messages with semicolons and limit by word count
-        const summary = messages.join('; ');
-        const words = summary.split(' ');
-
-        if (words.length > this.maxWords) {
-            return words.slice(0, this.maxWords).join(' ') + '...';
-        }
-
-        return summary;
+        this.summary = new Summary(options);
     }
 
     getGitUsername() {
@@ -46,19 +22,13 @@ class GiveMeHours {
     }
 
     buildGitCommand(fromDate, toDate, author) {
-        let cmd = "git log --pretty=format:'%at|%an|%s' --reverse";
-        const formatDate = (date) => {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        let cmd = "git log --pretty=format:'%at|%an|%s' --reverse --date=local";
+        const formatTimestamp = (date) => {
+            return Math.floor(date.getTime() / 1000);
         };
-        const since = formatDate(fromDate);
-        const until = formatDate(toDate);
-        cmd += ` --since=\"${since}" --until=\"${until}" `;
+        const since = formatTimestamp(fromDate);
+        const until = formatTimestamp(toDate);
+        cmd += ` --since=${since} --until=${until} `;
 
         if (author) {
             cmd += ` --author=\"${author}"`;
@@ -81,45 +51,6 @@ class GiveMeHours {
             }
             return '';
         }
-    }
-
-    calculateWorkingHours(commitsOutput) {
-        let totalSeconds = 0;
-        let prevTimestamp = null;
-        const lines = commitsOutput.split('\n').filter(line => line.trim());
-
-        if (lines.length === 1) { // Only one commit
-            totalSeconds += this.minCommitTime * 3600;
-        }
-        else { // Multiple commits
-            for (const line of lines) {
-                const [timestamp, author, message] = line.split('|');
-                if (!timestamp) continue;
-
-                const currentTimestamp = parseInt(timestamp);
-
-                if (prevTimestamp !== null) {
-                    const interval = currentTimestamp - prevTimestamp;
-
-                    if (this.debug) {
-                        console.log(`${new Date(prevTimestamp * 1000).toISOString()} ${author} ${message}`);
-                    }
-
-                    // If working time is less than our specified duration
-                    if (interval <= this.duration) {
-                        totalSeconds += interval;
-                    }
-                    // Otherwise, just add the minimum time worked per commit
-                    else {
-                        totalSeconds += this.minCommitTime * 3600;
-                    }
-                }
-
-                prevTimestamp = currentTimestamp;
-            }
-        }
-
-        return totalSeconds;
     }
 
     getHoursForRepo(fromDate, toDate, author, repoPath = '.') {
@@ -145,11 +76,20 @@ class GiveMeHours {
             const processedCommits = commitsOutput.split('\n')
                 .filter(line => line.trim())
                 .map(line => line.split('|'))
-                .map(line => ({
-                    timestamp: new Date(parseInt(line[0]) * 1000).toISOString(),
-                    author: line[1],
-                    message: line[2],
-                }))
+                .map(line => {
+                    const commitTimestamp = parseInt(line[0]);
+                    const commitDate = new Date(commitTimestamp * 1000);
+                    const year = commitDate.getFullYear();
+                    const month = String(commitDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(commitDate.getDate()).padStart(2, '0');
+                    const formattedCommitDate = `${year}-${month}-${day}`;
+                    return {
+                        timestamp: commitTimestamp,
+                        commitDate: formattedCommitDate,
+                        author: line[1],
+                        message: line[2],
+                    };
+                });
 
             return {
                 commits: processedCommits,
@@ -238,9 +178,14 @@ class GiveMeHours {
         const initialDate = this.processDate(dateArg);
         const day = initialDate.getDay();
         const diff = initialDate.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-        const startOfWeek = new Date(initialDate.setDate(diff));
+
+        const startOfWeek = new Date(initialDate);
+        startOfWeek.setDate(diff);
+        startOfWeek.setHours(0, 0, 0, 0);
+
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
         const results = [];
         const folderData = {};
 
