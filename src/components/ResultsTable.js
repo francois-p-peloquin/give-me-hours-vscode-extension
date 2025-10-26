@@ -40,10 +40,15 @@ const processResults = (results, roundHours, config, timeFormat) => {
   return processed;
 };
 
-const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }) => {
+const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, folders }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
-  const processedResults = useMemo(() => processResults(results, roundHours, config, timeFormat), [results, roundHours, config, timeFormat]);
+  const processedResults = useMemo(() => {
+    const allProcessed = processResults(results, roundHours, config, timeFormat);
+    const weekDates = getWeekDates(date);
+    const weekDateStrings = new Set(weekDates.map(d => d.toISOString().slice(0, 10)));
+    return allProcessed.filter(result => weekDateStrings.has(result.date));
+  }, [results, roundHours, config, timeFormat, date]);
 
   if (!processedResults || processedResults.length === 0) {
     return <p>No results to display.</p>;
@@ -53,6 +58,17 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
   let rows = [];
 
   const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).replace(',', '<br />')
+
+  const isDateSelected = (displayType, selectedDate, cellDate) => {
+    if (!cellDate) return false;
+    const formattedCellDate = cellDate.toISOString().slice(0, 10);
+    if (displayType === 'Day') {
+      return formattedCellDate === selectedDate;
+    } else if (displayType === 'Week') {
+      return formattedCellDate === selectedDate;
+    }
+    return false;
+  };
 
   if (display === 'Day') {
     const dayResults = processedResults.filter(result => result.date === date);
@@ -77,11 +93,11 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
       return acc;
     }, {});
 
-    rows = Object.keys(resultsByFolder).map(folder => {
+    rows = folders.map(folder => {
       const row = [folder];
       weekDates.forEach(d => {
         const dateString = d.toISOString().slice(0, 10);
-        row.push(resultsByFolder[folder][dateString] || emptyCell);
+        row.push(resultsByFolder[folder]?.[dateString] || emptyCell);
       });
       return row;
     });
@@ -91,37 +107,70 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
     <table className="data-table">
       <thead>
         <tr>
-          {headers.map((header, index) => (
-            <th key={index} className={index > 0 ? 'date-header' : ''} dangerouslySetInnerHTML={{__html: header}}></th>
-          ))}
+          {headers.map((header, index) => {
+            const isDateHeader = index > 0;
+            let cellDate = null;
+            if (display === 'Day' && isDateHeader) {
+              cellDate = new Date(date);
+            } else if (display === 'Week' && isDateHeader) {
+              const weekDates = getWeekDates(date);
+              cellDate = weekDates[index - 1];
+            }
+
+            const isSelected = isDateSelected(display, date, cellDate);
+            let className = isDateHeader ? 'date-header' : '';
+            if (isSelected) {
+              className += ' selected-date';
+            }
+
+            return (
+              <th key={index} className={className} dangerouslySetInnerHTML={{ __html: header }}></th>
+            );
+          })}
         </tr>
       </thead>
       <tbody>
         {rows.map((row, rowIndex) => (
           <tr key={rowIndex}>
-            {row.map((cell, cellIndex) => (
-              <td className={cellIndex == 0 ? 'folder-header' : ''} key={cellIndex}>
-                <div className={cellIndex > 0 ? 'data-cell' : ''}>
-                  {cell == emptyCell ? emptyCell : (
-                    <>
-                      <span className='data-cell-hours'>
-                        {cell.hours ? (
+            {row.map((cell, cellIndex) => {
+              let cellDate = null;
+              if (display === 'Day' && cellIndex > 0) {
+                cellDate = new Date(date);
+              } else if (display === 'Week' && cellIndex > 0) {
+                const weekDates = getWeekDates(date);
+                cellDate = weekDates[cellIndex - 1];
+              }
+
+              const isSelected = isDateSelected(display, date, cellDate);
+              let tdClassName = cellIndex === 0 ? 'folder-header' : '';
+              if (isSelected) {
+                tdClassName += ' selected-date';
+              }
+
+              return (
+                <td className={tdClassName} key={cellIndex}>
+                  <div className={cellIndex > 0 ? 'data-cell' : ''}>
+                    {cell == emptyCell ? emptyCell : (
+                      <>
+                        <span className='data-cell-hours'>
+                          {cell.hours ? (
+                            <>
+                              {cell.hours}
+                              <CopyToClipboardButton textToCopy={cell.hours} />
+                            </>
+                          ) : (cell)}
+                        </span>
+                        {cellIndex > 0 && (
                           <>
-                            {cell.hours}
-                            <CopyToClipboardButton textToCopy={cell.hours} />
+                            <GetWorkSummaryButton folder={row[0]} date={cell.date} />
                           </>
-                        ) : (cell)}
-                      </span>
-                      {cellIndex > 0 && (
-                        <>
-                          <GetWorkSummaryButton folder={row[0]} date={cell.date} />
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
-              </td>
-            ))}
+                        )}
+                      </>
+                    )}
+                  </div>
+                </td>
+              );
+            })}
           </tr>
         ))}
         <tr className="total-row">
