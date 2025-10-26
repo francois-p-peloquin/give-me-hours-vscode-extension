@@ -155,39 +155,77 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
                 cellDate = weekDates[cellIndex - 1];
               }
 
-              const isSelected = isDateSelected(display, date, cellDate);
-              const isTotalCell = cell.isTotal;
-              let tdClassName = cellIndex === 0 ? 'folder-header' : '';
-              if (isSelected) {
-                tdClassName += ' selected-date';
-              }
-              if (isTotalCell) {
-                tdClassName += ' text-right';
-              }
+                            const isSelected = isDateSelected(display, date, cellDate);
 
-              return (
-                <td className={tdClassName} key={cellIndex}>
-                  <div className={cellIndex > 0 ? 'data-cell' : ''}>
-                    {cell == emptyCell ? emptyCell : (
-                      <>
-                        <span className='data-cell-hours'>
-                          {cell.hours ? (
-                            <>
-                              {cell.hours}
-                              <CopyToClipboardButton textToCopy={cell.hours} />
-                            </>
-                          ) : (cell)}
-                        </span>
-                        {cellIndex > 0 && !cell.isTotal && (
-                          <>
-                            <GetWorkSummaryButton folder={row[0]} date={cell.date} />
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </td>
-              );
+                            const isTotalCell = cell.isTotal;
+
+                            const isRowHeader = cellIndex === 0;
+
+                            const CellComponent = isTotalCell || isRowHeader ? 'th' : 'td';
+
+                            let cellClassName = isRowHeader ? 'folder-header' : '';
+
+              
+
+                            if (isSelected) {
+
+                              cellClassName += ' selected-date';
+
+                            }
+
+                            if (isTotalCell) {
+
+                              cellClassName += ' text-right';
+
+                            }
+
+              
+
+                            return (
+
+                              <CellComponent className={cellClassName} key={cellIndex}>
+
+                                <div className={cellIndex > 0 ? 'data-cell' : ''}>
+
+                                  {cell == emptyCell ? emptyCell : (
+
+                                    <>
+
+                                      <span className='data-cell-hours'>
+
+                                        {cell.hours ? (
+
+                                          <>
+
+                                            {cell.hours}
+
+                                            <CopyToClipboardButton textToCopy={cell.hours} />
+
+                                          </>
+
+                                        ) : (cell)}
+
+                                      </span>
+
+                                      {cellIndex > 0 && !cell.isTotal && (
+
+                                        <>
+
+                                          <GetWorkSummaryButton folder={row[0]} date={cell.date} />
+
+                                        </>
+
+                                      )}
+
+                                    </>
+
+                                  )}
+
+                                </div>
+
+                              </CellComponent>
+
+                            );
             })}
           </tr>
         ))}
