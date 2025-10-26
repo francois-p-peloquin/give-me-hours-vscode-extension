@@ -24,41 +24,49 @@ class Summary {
         const filteredWords = words.filter(word => !stopWords.includes(word.toLowerCase()));
         message = filteredWords.join(' ');
 
-        return message.trim();
+        // Remove ending punctuation
+        return message.trim().replace(/[.,;:?!]$/, '');
     }
 
     generateSummary(commitsOutput) {
         const lines = commitsOutput.split('\n').filter(line => line.trim());
-        const messages = [];
-        const mergeCommits = [];
+        const allCommits = [];
 
         for (const line of lines) {
             const parts = line.split('|');
             if (parts.length >= 3) {
                 let message = parts[2].trim();
+                const isMergeCommit = message.startsWith('Merge pull request') || message.startsWith('Merge branch');
                 message = this.sanitizeMessage(message);
-                if (message && !messages.includes(message)) {
-                    if (message.startsWith('Merge pull request') || message.startsWith('Merge branch')) {
-                        mergeCommits.push(message);
-                    } else {
-                        messages.push(message);
-                    }
+                if (message && message.length > 0) {
+                    allCommits.push({ message, isMergeCommit });
                 }
             }
         }
 
-        // Prioritize merge commits
-        const prioritizedMessages = [...mergeCommits, ...messages];
+        const mergeCommitMessages = allCommits
+            .filter(commit => commit.isMergeCommit)
+            .map(commit => commit.message);
 
-        // Join messages with semicolons and limit by word count
-        const summary = prioritizedMessages.join('; ');
-        const words = summary.split(' ');
+        const subCommits = allCommits.filter(commit => !commit.isMergeCommit);
 
-        if (words.length > this.maxWords) {
-            return words.slice(0, this.maxWords).join(' ') + '...';
+        let summaryMessages = [...mergeCommitMessages];
+
+        let wordCount = summaryMessages.join(' ').split(' ').length;
+
+        for (const commit of subCommits) {
+            const message = commit.message;
+            const messageWordCount = message.split(' ').length;
+
+            if (wordCount + messageWordCount > this.maxWords) {
+                summaryMessages.push('...');
+                break;
+            }
+            summaryMessages.push(message);
+            wordCount += messageWordCount;
         }
 
-        return summary;
+        return summaryMessages.join('; ');
     }
 }
 
