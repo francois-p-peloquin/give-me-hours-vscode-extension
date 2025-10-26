@@ -84,7 +84,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
 
   } else if (display === 'Week') {
     const weekDates = getWeekDates(date);
-    headers = ['Folder', ...weekDates.map(d => formatDate(d))];
+    headers = ['Folder', ...weekDates.map(d => formatDate(d)), 'Totals'];
 
     const resultsByFolder = processedResults.reduce((acc, result) => {
       const { folder } = result;
@@ -97,16 +97,28 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
 
     rows = folders.map(folder => {
       const row = [folder];
+      let totalSeconds = 0;
       weekDates.forEach(d => {
         const dateString = d.toISOString().slice(0, 10);
-        row.push(resultsByFolder[folder]?.[dateString] || emptyCell);
+        const cell = resultsByFolder[folder]?.[dateString];
+        if (cell && cell.hours) {
+          if (timeFormat === 'Chrono') {
+            const [hours, minutes] = cell.hours.split(':').map(Number);
+            totalSeconds += (hours * 3600) + (minutes * 60);
+          } else { // Decimal
+            totalSeconds += parseFloat(cell.hours) * 3600;
+          }
+        }
+        row.push(cell || emptyCell);
       });
+      row.push({ hours: formatTime(totalSeconds, timeFormat), isTotal: true });
       return row;
     });
   }
 
   return (
-    <table className="data-table">
+    <div className="table-container">
+      <table className="data-table">
       <thead>
         <tr>
           {headers.map((header, index) => {
@@ -126,7 +138,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
             }
 
             return (
-              <th key={index} className={className} dangerouslySetInnerHTML={{ __html: header }}></th>
+              <th key={index} className={`${className} ${header === 'Totals' ? 'text-right' : ''}`} dangerouslySetInnerHTML={{ __html: header }}></th>
             );
           })}
         </tr>
@@ -144,9 +156,13 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
               }
 
               const isSelected = isDateSelected(display, date, cellDate);
+              const isTotalCell = cell.isTotal;
               let tdClassName = cellIndex === 0 ? 'folder-header' : '';
               if (isSelected) {
                 tdClassName += ' selected-date';
+              }
+              if (isTotalCell) {
+                tdClassName += ' text-right';
               }
 
               return (
@@ -162,7 +178,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
                             </>
                           ) : (cell)}
                         </span>
-                        {cellIndex > 0 && (
+                        {cellIndex > 0 && !cell.isTotal && (
                           <>
                             <GetWorkSummaryButton folder={row[0]} date={cell.date} />
                           </>
@@ -204,7 +220,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
             const formattedTotal = formatTime(totalSecondsForColumn, timeFormat);
 
             return (
-              <th key={colIndex + 1}>
+              <th key={colIndex + 1} className={header === 'Totals' ? 'text-right' : ''}>
                 <div className='data-cell'>
                   <span className='data-cell-hours'>
                     {formattedTotal}
@@ -217,6 +233,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
         </tr>
       </tbody>
     </table>
+  </div>
   );
 };
 

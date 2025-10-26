@@ -154,3 +154,11 @@ vscode-data-grid-row[row-type="header"] {
     background-color: var(--vscode-list-activeSelectionBackground);
     color: var(--vscode-list-activeSelectionForeground);
 }
+
+.text-right {
+    text-align: right;
+}
+
+.table-container {
+    overflow: auto;
+}
