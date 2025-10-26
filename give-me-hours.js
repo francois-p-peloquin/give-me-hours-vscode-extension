@@ -2,6 +2,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const process = require('process');
+const Summary = require('./src/utils/summary');
 
 class GiveMeHours {
     constructor(options = {}) {
@@ -9,32 +10,7 @@ class GiveMeHours {
         this.minCommitTime = options.minCommitTime || 0.5;
         this.debug = options.debug || false;
         this.showSummary = options.showSummary !== undefined ? options.showSummary : true;
-        this.maxWords = options.maxWords || 50;
-    }
-
-    generateSummary(commitsOutput) {
-        const lines = commitsOutput.split('\n').filter(line => line.trim());
-        const messages = [];
-
-        for (const line of lines) {
-            const parts = line.split('|');
-            if (parts.length >= 3) {
-                const message = parts[2].trim();
-                if (message && !messages.includes(message)) {
-                    messages.push(message);
-                }
-            }
-        }
-
-        // Join messages with semicolons and limit by word count
-        const summary = messages.join('; ');
-        const words = summary.split(' ');
-
-        if (words.length > this.maxWords) {
-            return words.slice(0, this.maxWords).join(' ') + '...';
-        }
-
-        return summary;
+        this.summary = new Summary(options);
     }
 
     getGitUsername() {

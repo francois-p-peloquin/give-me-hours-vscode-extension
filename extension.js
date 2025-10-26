@@ -261,7 +261,7 @@ function activate(context) {
 		const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
 
 		if (result.commits && result.commits.length > 0) {
-			const summary = giveMeHours.generateSummary(result.commits.map(c => `${c.timestamp}|${c.author}|${c.message}`).join('\n'));
+			const summary = giveMeHours.summary.generateSummary(result.commits.map(c => `${c.timestamp}|${c.author}|${c.message}`).join('\n'));
 			return summary;
 		}
 		return 'No activity found for this day.';
