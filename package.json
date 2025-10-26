@@ -2,7 +2,7 @@
   "name": "give-me-hours",
   "displayName": "Give Me Hours",
   "description": "A command-line tool to list out hours worked based on git log hours in a working directory.",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "publisher": "FrancoisPPeloquin",
   "repository": {
     "type": "git",
