@@ -49,11 +49,12 @@ function activate(context) {
 			const result = await giveMeHours.getHoursForDirectory(workingDirectory, 'today');
 
 			let totalSeconds = 0;
-			result.results.forEach(res => {
-				const dayData = res.data[0]; // Assuming single day for now
-				totalSeconds += dayData.seconds;
-			});
+			// result.results.forEach(res => {
+			// 	const dayData = res.data[0]; // Assuming single day for now
+			// 	totalSeconds += dayData.seconds;
+			// });
 
+			// TODO: Fix totalSeconds calculation for status bar
 			if (totalSeconds > 0) {
 				const hours = Math.floor(totalSeconds / 3600);
 				const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -61,7 +62,7 @@ function activate(context) {
 				statusBarItem.text = `$(clock) Give Me Hours: ${totalFormatted}`;
 				statusBarItem.tooltip = `Today's working hours: ${totalFormatted} - Click to view details`;
 			} else {
-				statusBarItem.text = `$(clock) Give Me Hours: 0:00`;
+				statusBarItem.text = `$(clock) Give Me Hours`;
 				statusBarItem.tooltip = `No working hours logged today - Click to view details`;
 			}
 		} catch (error) {
