@@ -5,11 +5,10 @@ import ResultsTable from './components/ResultsTable';
 import Configuration from './components/Configuration';
 
 function App() {
-  const getLocalDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
+  const getLocalDate = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
 
@@ -54,6 +53,11 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    setLoading(true);
+    window.vscode.postMessage({ command: 'refresh', date });
+  }, [date]);
+
   if (error) {
     return <div className="error">{error}</div>;
   }
@@ -82,7 +86,7 @@ function App() {
             <VSCodeOption value="Day">Day</VSCodeOption>
             <VSCodeOption value="Week">Week</VSCodeOption>
           </VSCodeDropdown>
-          <VSCodeTextField type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <VSCodeTextField type="date" value={date} onChange={e => setDate(getLocalDate(new Date(e.target.value)))} />
           <VSCodeDropdown value={timeFormat} onChange={e => setTimeFormat(e.target.value)}>
             <VSCodeOption value="Decimal">Decimal</VSCodeOption>
             <VSCodeOption value="Chrono">Chrono</VSCodeOption>

@@ -142,6 +142,9 @@ function activate(context) {
 				console.log('Received message from webview:', message);
 				switch (message.command) {
 					case 'refresh':
+						console.log('refresh command received with date:', message.date);
+						currentDate = message.date || 'today';
+						// Refresh the panel with the new date
 						await calculateAndSendHours(panel);
 						break;
 					case 'openSettings':
@@ -184,6 +187,7 @@ function activate(context) {
 					case 'dateChanged':
 						console.log('dateChanged command received:', message.date);
 						try {
+
 							currentDate = message.date || 'today';
 							// TODO: Check if week changed, only if so do we run this.
 							// Refresh the panel with the new date
