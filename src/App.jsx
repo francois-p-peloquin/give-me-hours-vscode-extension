@@ -4,6 +4,8 @@ import './App.css';
 import ResultsTable from './components/ResultsTable';
 import Configuration from './components/Configuration';
 
+
+
 function App() {
   const getLocalDate = () => {
     const today = new Date();

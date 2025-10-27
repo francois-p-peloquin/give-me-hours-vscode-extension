@@ -22,13 +22,19 @@ class GiveMeHours {
     }
 
     buildGitCommand(fromDate, toDate, author) {
-        let cmd = "git log --pretty=format:'%at|%an|%s' --reverse --date=local";
-        const formatTimestamp = (date) => {
-            return Math.floor(date.getTime() / 1000);
+        let cmd = "git log --pretty=format:'%at|%an|%s' --reverse";
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         };
-        const since = formatTimestamp(fromDate);
-        const until = formatTimestamp(toDate);
-        cmd += ` --since=${since} --until=${until} `;
+        const since = formatDate(fromDate);
+        const until = formatDate(toDate);
+        cmd += ` --since=\"${since}" --until=\"${until}" `;
 
         if (author) {
             cmd += ` --author=\"${author}"`;
@@ -51,6 +57,45 @@ class GiveMeHours {
             }
             return '';
         }
+    }
+
+    calculateWorkingHours(commitsOutput) {
+        let totalSeconds = 0;
+        let prevTimestamp = null;
+        const lines = commitsOutput.split('\n').filter(line => line.trim());
+
+        if (lines.length === 1) { // Only one commit
+            totalSeconds += this.minCommitTime * 3600;
+        }
+        else { // Multiple commits
+            for (const line of lines) {
+                const [timestamp, author, message] = line.split('|');
+                if (!timestamp) continue;
+
+                const currentTimestamp = parseInt(timestamp);
+
+                if (prevTimestamp !== null) {
+                    const interval = currentTimestamp - prevTimestamp;
+
+                    if (this.debug) {
+                        console.log(`${new Date(prevTimestamp * 1000).toISOString()} ${author} ${message}`);
+                    }
+
+                    // If working time is less than our specified duration
+                    if (interval <= this.duration) {
+                        totalSeconds += interval;
+                    }
+                    // Otherwise, just add the minimum time worked per commit
+                    else {
+                        totalSeconds += this.minCommitTime * 3600;
+                    }
+                }
+
+                prevTimestamp = currentTimestamp;
+            }
+        }
+
+        return totalSeconds;
     }
 
     getHoursForRepo(fromDate, toDate, author, repoPath = '.') {
@@ -159,7 +204,7 @@ class GiveMeHours {
                     return new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
                 default:
                     // Assume YYYY-MM-DD format
-                    const dateMatch = dateArg.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    const dateMatch = arg.match(/^(\d{4})-(\d{2})-(\d{2})$/);
                     if (dateMatch) {
                         const year = parseInt(dateMatch[1]);
                         const month = parseInt(dateMatch[2]) - 1; // Month is 0-indexed
