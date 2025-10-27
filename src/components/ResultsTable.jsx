@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { getWeekDates } from '../utils/date';
+import { getWeekDates } from '../utils/dateUtils';
 import { calculateWorkingHours } from '../utils/hours';
 import { formatTime } from '../utils/rounding';
 import CopyToClipboardButton from './CopyToClipboardButton';
