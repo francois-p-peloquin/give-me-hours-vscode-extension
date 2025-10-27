@@ -173,3 +173,10 @@ vscode-data-grid-row[row-type="header"] {
     background-color: var(--vscode-list-activeSelectionBackground);
     color: var(--vscode-list-activeSelectionForeground);
 }
+
+.loading-row {
+    padding: 20px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}

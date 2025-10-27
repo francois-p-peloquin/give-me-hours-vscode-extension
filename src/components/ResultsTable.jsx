@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { getWeekDates } from '../utils/date';
+import { getWeekDates } from '../utils/dateUtils';
 import { calculateWorkingHours } from '../utils/hours';
 import { formatTime } from '../utils/rounding';
 import CopyToClipboardButton from './CopyToClipboardButton';
@@ -39,7 +39,7 @@ const processResults = (results, roundHours, config, timeFormat) => {
   return processed;
 };
 
-const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }) => {
+const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, isRefreshing }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
   const processedResults = useMemo(() => processResults(results, roundHours, config, timeFormat), [results, roundHours, config, timeFormat]);
@@ -139,7 +139,14 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
         </tr>
       </thead>
       <tbody>
-        {rows.map((row, rowIndex) => (
+        {isRefreshing && (
+          <tr>
+            <td colSpan={headers.length} className="loading-row">
+              Refreshing data...
+            </td>
+          </tr>
+        )}
+        {!isRefreshing && rows.map((row, rowIndex) => (
           <tr key={rowIndex}>
             {row.map((cell, cellIndex) => {
               let cellDate = null;
@@ -150,77 +157,44 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat }
                 cellDate = weekDates[cellIndex - 1];
               }
 
-                            const isSelected = isDateSelected(display, date, cellDate);
+              const isSelected = isDateSelected(display, date, cellDate);
+              const isTotalCell = cell.isTotal;
+              const isRowHeader = cellIndex === 0;
+              const CellComponent = isTotalCell || isRowHeader ? 'th' : 'td';
+              let cellClassName = isRowHeader ? 'folder-header' : '';
 
-                            const isTotalCell = cell.isTotal;
+              if (isSelected) {
+                cellClassName += ' selected-date';
+              }
 
-                            const isRowHeader = cellIndex === 0;
+              if (isTotalCell) {
+                cellClassName += ' text-right';
 
-                            const CellComponent = isTotalCell || isRowHeader ? 'th' : 'td';
+              }
 
-                            let cellClassName = isRowHeader ? 'folder-header' : '';
-
-
-
-                            if (isSelected) {
-
-                              cellClassName += ' selected-date';
-
-                            }
-
-                            if (isTotalCell) {
-
-                              cellClassName += ' text-right';
-
-                            }
-
-
-
-                            return (
-
-                              <CellComponent className={cellClassName} key={cellIndex}>
-
-                                <div className={cellIndex > 0 ? 'data-cell' : ''}>
-
-                                  {cell == emptyCell ? emptyCell : (
-
-                                    <>
-
-                                      <span className='data-cell-hours'>
-
-                                        {cell.hours ? (
-
-                                          <>
-
-                                            {cell.hours}
-
-                                            <CopyToClipboardButton textToCopy={cell.hours} />
-
-                                          </>
-
-                                        ) : (cell)}
-
-                                      </span>
-
-                                      {cellIndex > 0 && !cell.isTotal && (
-
-                                        <>
-
-                                          <GetWorkSummaryButton folder={row[0]} date={cell.date} />
-
-                                        </>
-
-                                      )}
-
-                                    </>
-
-                                  )}
-
-                                </div>
-
-                              </CellComponent>
-
-                            );
+              return (
+                <CellComponent className={cellClassName} key={cellIndex}>
+                  <div className={cellIndex > 0 ? 'data-cell' : ''}>
+                    {cell == emptyCell ? emptyCell : (
+                      <>
+                        <span className='data-cell-hours'>
+                          {cell.hours ? (
+                            <>
+                              {cell.hours}
+                              <CopyToClipboardButton textToCopy={cell.hours} />
+                            </>
+                          ) : (cell)}
+                        </span>
+                        {cellIndex > 0 && !cell.isTotal && (
+                          <>
+                            <GetWorkSummaryButton folder={row[0]} date={cell.date} />
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </CellComponent>
+              );
             })}
           </tr>
         ))}
