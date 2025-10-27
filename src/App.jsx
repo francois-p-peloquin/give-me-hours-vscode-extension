@@ -3,7 +3,7 @@ import { VSCodeButton, VSCodeTextField, VSCodeDropdown, VSCodeOption, VSCodeChec
 import './App.css';
 import ResultsTable from './components/ResultsTable';
 import Configuration from './components/Configuration';
-import { getFormattedLocalDate, createDate } from './utils/dateUtils';
+import { getFormattedLocalDate, createDate, formatToYYYYMMDD } from './utils/dateUtils';
 
 function App() {
   const [date, setDate] = useState(getFormattedLocalDate());
@@ -19,16 +19,9 @@ function App() {
       return false;
     }
 
-    const formatToYYYYMMDD = (dateObj) => {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
     const selectedDateStr = formatToYYYYMMDD(createDate(selectedDate));
-    const startOfWeekStr = formatToYYYYMMDD(data.startOfWeek);
-    const endOfWeekStr = formatToYYYYMMDD(data.endOfWeek);
+    const startOfWeekStr = formatToYYYYMMDD(createDate(data.startOfWeek));
+    const endOfWeekStr = formatToYYYYMMDD(createDate(data.endOfWeek));
 
     return selectedDateStr >= startOfWeekStr && selectedDateStr <= endOfWeekStr;
   };
