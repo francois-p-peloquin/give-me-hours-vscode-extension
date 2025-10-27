@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const process = require('process');
 const Summary = require('./src/utils/summary');
+const { createDate } = require('./src/utils/dateUtils');
 
 class GiveMeHours {
     constructor(options = {}) {
@@ -78,7 +79,7 @@ class GiveMeHours {
                     const interval = currentTimestamp - prevTimestamp;
 
                     if (this.debug) {
-                        console.log(`${new Date(prevTimestamp * 1000).toISOString()} ${author} ${message}`);
+                        console.log(`${createDate(prevTimestamp * 1000).toISOString()} ${author} ${message}`);
                     }
 
                     // If working time is less than our specified duration
@@ -123,7 +124,7 @@ class GiveMeHours {
                 .map(line => line.split('|'))
                 .map(line => {
                     const commitTimestamp = parseInt(line[0]);
-                    const commitDate = new Date(commitTimestamp * 1000);
+                    const commitDate = createDate(commitTimestamp * 1000);
                     const year = commitDate.getFullYear();
                     const month = String(commitDate.getMonth() + 1).padStart(2, '0');
                     const day = String(commitDate.getDate()).padStart(2, '0');
@@ -145,25 +146,25 @@ class GiveMeHours {
     }
 
     getDateRange(dateArg = 'today') {
-        const now = new Date();
+        const now = createDate();
         let startDate, endDate;
         const dates = [];
 
         if (dateArg.includes(':')) {
             const [startStr, endStr] = dateArg.split(':');
-            startDate = new Date(startStr);
-            endDate = new Date(endStr);
+            startDate = createDate(startStr);
+            endDate = createDate(endStr);
         } else {
             switch (dateArg) {
                 case 'today':
-                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+                    startDate = createDate(now.getFullYear(), now.getMonth(), now.getDate());
+                    endDate = createDate(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                     break;
                 case 'yesterday':
-                    const yesterday = new Date(now);
+                    const yesterday = createDate(now);
                     yesterday.setDate(yesterday.getDate() - 1);
-                    startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-                    endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+                    startDate = createDate(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+                    endDate = createDate(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
                     break;
                 default:
                     // Assume YYYY-MM-DD format
@@ -172,17 +173,17 @@ class GiveMeHours {
                         const year = parseInt(dateMatch[1]);
                         const month = parseInt(dateMatch[2]) - 1; // Month is 0-indexed
                         const day = parseInt(dateMatch[3]);
-                        startDate = new Date(year, month, day);
-                        endDate = new Date(year, month, day, 23, 59, 59);
+                        startDate = createDate(year, month, day);
+                        endDate = createDate(year, month, day, 23, 59, 59);
                     } else {
                         throw new Error('Invalid date format. Please use YYYY-MM-DD');
                     }
             }
         }
 
-        let currentDate = new Date(startDate);
+        let currentDate = createDate(startDate);
         while (currentDate <= endDate) {
-            dates.push(new Date(currentDate));
+            dates.push(createDate(currentDate));
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
@@ -194,14 +195,14 @@ class GiveMeHours {
     }
 
     processDate(arg = 'today') {
-        const now = new Date();
+        const now = createDate();
         switch (arg) {
             case 'today':
-                    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    return createDate(now.getFullYear(), now.getMonth(), now.getDate());
                 case 'yesterday':
-                    const yesterday = new Date(now);
+                    const yesterday = createDate(now);
                     yesterday.setDate(yesterday.getDate() - 1);
-                    return new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+                    return createDate(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
                 default:
                     // Assume YYYY-MM-DD format
                     const dateMatch = arg.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -209,7 +210,7 @@ class GiveMeHours {
                         const year = parseInt(dateMatch[1]);
                         const month = parseInt(dateMatch[2]) - 1; // Month is 0-indexed
                         const day = parseInt(dateMatch[3]);
-                        return new Date(year, month, day);
+                        return createDate(year, month, day);
                     } else {
                         console.warn('Invalid date format. Please use YYYY-MM-DD');
                         return now;
@@ -224,11 +225,11 @@ class GiveMeHours {
         const day = initialDate.getDay();
         const diff = initialDate.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
 
-        const startOfWeek = new Date(initialDate);
+        const startOfWeek = createDate(initialDate);
         startOfWeek.setDate(diff);
         startOfWeek.setHours(0, 0, 0, 0);
 
-        const endOfWeek = new Date(startOfWeek);
+        const endOfWeek = createDate(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         endOfWeek.setHours(23, 59, 59, 999);
         const results = [];

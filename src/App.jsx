@@ -3,19 +3,10 @@ import { VSCodeButton, VSCodeTextField, VSCodeDropdown, VSCodeOption, VSCodeChec
 import './App.css';
 import ResultsTable from './components/ResultsTable';
 import Configuration from './components/Configuration';
-
-
+import { getFormattedLocalDate, createDate } from './utils/dateUtils';
 
 function App() {
-  const getLocalDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const [date, setDate] = useState(getLocalDate());
+  const [date, setDate] = useState(getFormattedLocalDate());
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,8 +18,19 @@ function App() {
     if (!data || !data.startOfWeek || !data.endOfWeek) {
       return false;
     }
-    const selected = new Date(selectedDate);
-    return selected >= data.startOfWeek && selected <= data.endOfWeek;
+
+    const formatToYYYYMMDD = (dateObj) => {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const selectedDateStr = formatToYYYYMMDD(createDate(selectedDate));
+    const startOfWeekStr = formatToYYYYMMDD(data.startOfWeek);
+    const endOfWeekStr = formatToYYYYMMDD(data.endOfWeek);
+
+    return selectedDateStr >= startOfWeekStr && selectedDateStr <= endOfWeekStr;
   };
 
   const handleDateChange = (e) => {
@@ -46,8 +48,8 @@ function App() {
         case 'showResults':
           setData({
             ...message.data,
-            startOfWeek: new Date(message.data.dateRange.startOfWeek),
-            endOfWeek: new Date(message.data.dateRange.endOfWeek)
+            startOfWeek: createDate(message.data.dateRange.startOfWeek),
+            endOfWeek: createDate(message.data.dateRange.endOfWeek)
           });
           setError(null);
           setLoading(false);
