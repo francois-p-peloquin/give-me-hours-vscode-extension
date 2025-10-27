@@ -1,7 +1,8 @@
 # TODO
 
 * Actionable:
-  * IMPORTANT: Date, when switched out of current calendar week, doesn't refresh data. Needs to.
+  * Summary grabbing data from the wrong days. See Monday, October 27. It's grabbing messages from Sunday's commits.
+  * [x] IMPORTANT: Date, when switched out of current calendar week, doesn't refresh data. Needs to.
     * Send refresh call if startOfWeek/endOfWeek change.
     * Pass startOfWeek/endOfWeek to front end on load.
   * Duration variable formatting. Right now, 3600 format confusing, should be hours like the rest.
