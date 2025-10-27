@@ -150,7 +150,7 @@ function activate(context) {
 		// Handle messages from webview
 		panel.webview.onDidReceiveMessage(
 			async message => {
-				// console.log('Debug:', message.command, message);
+				console.log('Debug:', message.command, message);
 				switch (message.command) {
 					case 'ready':
 						// Send prefetched data if available
@@ -160,8 +160,8 @@ function activate(context) {
 								data: prefetchedData
 							});
 						}
+						break;
 					case 'refresh':
-						console.log('refresh command received with date:', message.date);
 						currentDate = message.date || 'today';
 						// Refresh the panel with the new date
 						await calculateAndSendHours(panel);
@@ -170,7 +170,6 @@ function activate(context) {
 						await vscode.commands.executeCommand('workbench.action.openSettings', 'giveMeHours');
 						break;
 					case 'selectFolder':
-						console.log('selectFolder command received');
 						try {
 							const folderUri = await vscode.window.showOpenDialog({
 								canSelectFiles: false,

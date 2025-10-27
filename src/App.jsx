@@ -9,6 +9,7 @@ function App() {
   const [date, setDate] = useState(getFormattedLocalDate());
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [onload, setOnload] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [display, setDisplay] = useState('Week');
@@ -29,6 +30,7 @@ function App() {
 
   const handleDateChange = (e) => {
     const newDate = e.target.value;
+    window.vscode.postMessage({ command: 'debug', text: `Date changed to ${newDate}` });
     setDate(newDate);
     if (!isDateInCurrentWeek(newDate)) {
       handleRefresh(newDate);
@@ -37,8 +39,11 @@ function App() {
 
   // Onload send ready command.
   useEffect(() => {
-    window.vscode.postMessage({ command: 'ready' });
-  });
+    if (!onload) {
+      setOnload(true);
+      window.vscode.postMessage({ command: 'ready' });
+    }
+  }, [onload]);
 
   useEffect(() => {
     const handleMessage = (event) => {
@@ -73,7 +78,7 @@ function App() {
 
     window.addEventListener('message', handleMessage);
 
-    if (!data) {
+    if (!data || !isDateInCurrentWeek(date)) {
       setLoading(true);
       window.vscode.postMessage({ command: 'refresh', date });
     }
