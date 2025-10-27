@@ -23,12 +23,32 @@ function App() {
   const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
 
+  const isDateInCurrentWeek = (selectedDate) => {
+    if (!data || !data.startOfWeek || !data.endOfWeek) {
+      return false;
+    }
+    const selected = new Date(selectedDate);
+    return selected >= data.startOfWeek && selected <= data.endOfWeek;
+  };
+
+  const handleDateChange = (e) => {
+    const newDate = e.target.value;
+    setDate(newDate);
+    if (!isDateInCurrentWeek(newDate)) {
+      handleRefresh(newDate);
+    }
+  };
+
   useEffect(() => {
     const handleMessage = (event) => {
       const message = event.data;
       switch (message.type) {
         case 'showResults':
-          setData(message.data);
+          setData({
+            ...message.data,
+            startOfWeek: new Date(message.data.dateRange.startOfWeek),
+            endOfWeek: new Date(message.data.dateRange.endOfWeek)
+          });
           setError(null);
           setLoading(false);
           break;
@@ -70,9 +90,9 @@ function App() {
 
   const { results, config } = data;
 
-  const handleRefresh = () => {
+  const handleRefresh = (refreshDate = date) => {
     setLoading(true);
-    window.vscode.postMessage({ command: 'refresh', date });
+    window.vscode.postMessage({ command: 'refresh', date: refreshDate });
   };
 
   return (
@@ -84,12 +104,12 @@ function App() {
             <VSCodeOption value="Day">Day</VSCodeOption>
             <VSCodeOption value="Week">Week</VSCodeOption>
           </VSCodeDropdown>
-          <VSCodeTextField type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <VSCodeTextField type="date" value={date} onChange={handleDateChange} />
           <VSCodeDropdown value={timeFormat} onChange={e => setTimeFormat(e.target.value)}>
             <VSCodeOption value="Decimal">Decimal</VSCodeOption>
             <VSCodeOption value="Chrono">Chrono</VSCodeOption>
           </VSCodeDropdown>
-          <VSCodeButton onClick={handleRefresh}>Refresh</VSCodeButton>
+          <VSCodeButton onClick={() => handleRefresh(date)}>Refresh</VSCodeButton>
           <VSCodeCheckbox checked={roundHours} onChange={e => setRoundHours(e.target.checked)}>Round hours</VSCodeCheckbox>
           <VSCodeButton onClick={() => window.vscode.postMessage({ command: 'openSettings' })}>Open settings</VSCodeButton>
         </div>
