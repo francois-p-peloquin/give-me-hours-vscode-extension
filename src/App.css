@@ -168,3 +168,8 @@ vscode-data-grid-row[row-type="header"] {
 .table-container {
     overflow: auto;
 }
+
+.selected-date {
+    background-color: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+}
