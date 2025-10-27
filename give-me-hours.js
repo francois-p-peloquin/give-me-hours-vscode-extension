@@ -293,7 +293,10 @@ class GiveMeHours {
 
         return {
             results,
-            dateRange: { startOfWeek, endOfWeek },
+            dateRange: {
+                startOfWeek: `${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}`,
+                endOfWeek: `${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`
+            },
             gitUsername
         };
     }

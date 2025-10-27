@@ -174,26 +174,6 @@ function activate(context) {
 							vscode.window.showErrorMessage(`Error selecting folder: ${error.message}`);
 						}
 						break;
-					case 'updateSummaryVisibility':
-						console.log('updateSummaryVisibility command received:', message.visible);
-						try {
-							const config = vscode.workspace.getConfiguration('giveMeHours');
-							await config.update('showSummary', message.visible, vscode.ConfigurationTarget.Global);
-						} catch (error) {
-							console.error('Error in updateSummaryVisibility:', error);
-							vscode.window.showErrorMessage(`Error updating summary visibility: ${error.message}`);
-						}
-						break;
-					case 'timeFormatChanged':
-						console.log('timeFormatChanged command received:', message.timeFormat);
-						try {
-							const config = vscode.workspace.getConfiguration('giveMeHours');
-							await config.update('timeFormat', message.timeFormat, vscode.ConfigurationTarget.Global);
-						} catch (error) {
-							console.error('Error in timeFormatChanged:', error);
-							vscode.window.showErrorMessage(`Error changing time format: ${error.message}`);
-						}
-						break;
 					case 'getWorkSummary':
 						console.log('getWorkSummary command received:', message.folder, message.date, message.requestId);
 						try {
