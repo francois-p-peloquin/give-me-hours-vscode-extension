@@ -10,6 +10,7 @@ function App() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [display, setDisplay] = useState('Week');
   const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
@@ -34,6 +35,11 @@ function App() {
     }
   };
 
+  // Onload send ready command.
+  useEffect(() => {
+    window.vscode.postMessage({ command: 'ready' });
+  });
+
   useEffect(() => {
     const handleMessage = (event) => {
       const message = event.data;
@@ -46,16 +52,19 @@ function App() {
           });
           setError(null);
           setLoading(false);
+          setIsRefreshing(false);
           break;
         case 'showError':
           setError(message.error);
           setData(null);
           setLoading(false);
+          setIsRefreshing(false);
           break;
         case 'showGitUserError':
           setError(message.error);
           setData(null);
           setLoading(false);
+          setIsRefreshing(false);
           break;
         default:
           break;
@@ -64,18 +73,21 @@ function App() {
 
     window.addEventListener('message', handleMessage);
 
-    window.vscode.postMessage({ command: 'refresh', date });
+    if (!data) {
+      setLoading(true);
+      window.vscode.postMessage({ command: 'refresh', date });
+    }
 
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [date]);
 
   if (error) {
     return <div className="error">{error}</div>;
   }
 
-  if (loading) {
+  if (loading && !data) {
     return <div className="loading">Calculating working hours...</div>;
   }
 
@@ -86,7 +98,10 @@ function App() {
   const { results, config } = data;
 
   const handleRefresh = (refreshDate = date) => {
-    setLoading(true);
+    if (!data) {
+      setLoading(true);
+    }
+    setIsRefreshing(true);
     window.vscode.postMessage({ command: 'refresh', date: refreshDate });
   };
 
@@ -104,7 +119,9 @@ function App() {
             <VSCodeOption value="Decimal">Decimal</VSCodeOption>
             <VSCodeOption value="Chrono">Chrono</VSCodeOption>
           </VSCodeDropdown>
-          <VSCodeButton onClick={() => handleRefresh(date)}>Refresh</VSCodeButton>
+          <VSCodeButton onClick={() => handleRefresh(date)} disabled={isRefreshing}>
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </VSCodeButton>
           <VSCodeCheckbox checked={roundHours} onChange={e => setRoundHours(e.target.checked)}>Round hours</VSCodeCheckbox>
           <VSCodeButton onClick={() => window.vscode.postMessage({ command: 'openSettings' })}>Open settings</VSCodeButton>
         </div>

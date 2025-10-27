@@ -12,11 +12,7 @@ const path = require('path');
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "give-me-hours" is now active!');
-
+	let prefetchedData = null;
 	let currentDate = 'today'; // Track the current date selection
 
 	// Create status bar item
@@ -30,7 +26,6 @@ function activate(context) {
 	// Function to update status bar with current hours
 	async function updateStatusBar() {
 		try {
-			const config = getConfiguration();
 			if (!isWorkingDirectoryConfigured()) {
 				statusBarItem.text = "$(clock) Give Me Hours";
 				statusBarItem.tooltip = "Click to configure working directory";
@@ -53,8 +48,12 @@ function activate(context) {
 	// Update status bar on startup and periodically
 	updateStatusBar();
 
+
 	// Update status bar every 10 minutes
 	const statusBarInterval = setInterval(updateStatusBar, 10 * 60 * 1000);
+
+	// Prefetch data every 15 minutes
+	const prefetchInterval = setInterval(prefetchData, 15 * 60 * 1000);
 
 	// Register the new command to open welcome page
 	const openWelcomeDisposable = vscode.commands.registerCommand('give-me-hours.openWelcome', function () {
@@ -65,6 +64,18 @@ function activate(context) {
 	const openSettingsDisposable = vscode.commands.registerCommand('give-me-hours.openSettings', function () {
 		vscode.commands.executeCommand('workbench.action.openSettings', 'giveMeHours');
 	});
+
+	async function prefetchData() {
+		try {
+			prefetchedData = await calculateAndSendHours(null);
+		} catch (error) {
+			console.error('Error prefetching data:', error);
+		}
+	}
+
+	// Prefetch data on activation
+	prefetchData();
+
 
 	function getConfiguration() {
 		const config = vscode.workspace.getConfiguration('giveMeHours');
@@ -109,7 +120,7 @@ function activate(context) {
 			{
 				enableScripts: true,
 				retainContextWhenHidden: true,
-				localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'build')]
+				localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'build')],
 			}
 		);
 
@@ -139,8 +150,16 @@ function activate(context) {
 		// Handle messages from webview
 		panel.webview.onDidReceiveMessage(
 			async message => {
-				console.log('Received message from webview:', message);
+				// console.log('Debug:', message.command, message);
 				switch (message.command) {
+					case 'ready':
+						// Send prefetched data if available
+						if (prefetchedData) {
+							panel.webview.postMessage({
+								type: 'showResults',
+								data: prefetchedData
+							});
+						}
 					case 'refresh':
 						console.log('refresh command received with date:', message.date);
 						currentDate = message.date || 'today';
@@ -198,30 +217,6 @@ function activate(context) {
 			context.subscriptions
 		);
 
-		async function getCommitSummaryForFolder(folderName, date) {
-			const config = getConfiguration();
-			const workingDirectory = getWorkingDirectory();
-			const duration = parseDuration(config.duration);
-
-			const giveMeHours = new GiveMeHours({
-				duration: duration,
-				minCommitTime: config.minCommitTime,
-				showSummary: true,
-				maxWords: config.words,
-				debug: false
-			});
-
-			const folderPath = path.join(workingDirectory, folderName);
-			console.log(`Getting work summary for folder: ${folderPath} on date: ${date}`);
-			const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
-
-			if (result.commits && result.commits.length > 0) {
-				const summary = giveMeHours.summary.generateSummary(result.commits.map(c => `${c.timestamp}|${c.author}|${c.message}`).join('\n'));
-				return summary;
-			}
-			return 'No activity found for this day.';
-		}
-
 		// Calculate hours on panel creation
 		// const today = new Date();
 		// const year = today.getFullYear();
@@ -229,6 +224,30 @@ function activate(context) {
 		// const day = String(today.getDate()).padStart(2, '0');
 		// const localDate = `${year}-${month}-${day}`;
 		calculateAndSendHours(panel);
+	}
+
+	async function getCommitSummaryForFolder(folderName, date) {
+		const config = getConfiguration();
+		const workingDirectory = getWorkingDirectory();
+		const duration = parseDuration(config.duration);
+
+		const giveMeHours = new GiveMeHours({
+			duration: duration,
+			minCommitTime: config.minCommitTime,
+			showSummary: true,
+			maxWords: config.words,
+			debug: false
+		});
+
+		const folderPath = path.join(workingDirectory, folderName);
+		console.log(`Getting work summary for folder: ${folderPath} on date: ${date}`);
+		const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
+
+		if (result.commits && result.commits.length > 0) {
+			const summary = giveMeHours.summary.generateSummary(result.commits.map(c => `${c.timestamp}|${c.author}|${c.message}`).join('\n'));
+			return summary;
+		}
+		return 'No activity found for this day.';
 	}
 
 	function getNonce() {
@@ -266,10 +285,12 @@ function activate(context) {
 
 			// Check if working directory is configured
 			if (!isWorkingDirectoryConfigured()) {
-				panel.webview.postMessage({
-					type: 'showError',
-					error: 'Please configure a working directory. Click the "Select Folder" button above to choose the folder containing your git repositories, or go to Settings to configure it manually.'
-				});
+				if (panel) {
+					panel.webview.postMessage({
+						type: 'showError',
+						error: 'Please configure a working directory. Click the "Select Folder" button above to choose the folder containing your git repositories, or go to Settings to configure it manually.'
+					});
+				}
 				return;
 			}
 
@@ -296,30 +317,40 @@ function activate(context) {
 
 			console.log('Calculated hours result:', result, duration);
 
+			prefetchedData = result;
+
 			// Send results to webview
-			panel.webview.postMessage({
-				type: 'showResults',
-				data: result
-			});
+			if (panel) {
+				panel.webview.postMessage({
+					type: 'showResults',
+					data: result
+				});
+			}
 
 			// Update status bar with new results
 			updateStatusBar();
+
+			return result;
 
 		} catch (error) {
 			console.error('Error calculating hours:', error);
 
 			// Check if it's a Git user error
 			if (error.message.includes('Git global username is not set')) {
-				panel.webview.postMessage({
-					type: 'showGitUserError',
-					error: 'Git global username is not set. Please set it with: git config --global user.name "Your Name"',
-					config: config
-				});
+				if (panel) {
+					panel.webview.postMessage({
+						type: 'showGitUserError',
+						error: 'Git global username is not set. Please set it with: git config --global user.name "Your Name"',
+						config: config
+					});
+				}
 			} else {
-				panel.webview.postMessage({
-					type: 'showError',
-					error: error.message
-				});
+				if (panel) {
+					panel.webview.postMessage({
+						type: 'showError',
+						error: error.message
+					});
+				}
 			}
 		}
 	}
@@ -329,7 +360,8 @@ function activate(context) {
 		openWelcomeDisposable,
 		openSettingsDisposable,
 		statusBarItem,
-		{ dispose: () => clearInterval(statusBarInterval) }
+		{ dispose: () => clearInterval(statusBarInterval) },
+		{ dispose: () => clearInterval(prefetchInterval) }
 	);
 }
 
