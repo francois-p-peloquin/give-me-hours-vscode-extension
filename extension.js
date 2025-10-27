@@ -314,7 +314,7 @@ function activate(context) {
 			// Add config info to result
 			result.config = config;
 
-			console.log('Calculated hours result:', result, duration);
+			// console.log('Calculated hours result:', result, duration);
 
 			prefetchedData = result;
 
