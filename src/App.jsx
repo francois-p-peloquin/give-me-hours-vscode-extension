@@ -53,6 +53,7 @@ function App() {
     };
   }, []);
 
+  // TODO: This is loading too much. Only refresh when the date changes to date outside of data that we currently have.
   useEffect(() => {
     setLoading(true);
     window.vscode.postMessage({ command: 'refresh', date });
