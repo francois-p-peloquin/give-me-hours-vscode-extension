@@ -132,7 +132,7 @@ function App() {
         </div>
       </div>
       {config && <Configuration config={config} />}
-      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} />
+      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} isRefreshing={isRefreshing} />
     </div>
   );
 }
