@@ -37,9 +37,6 @@
 2. Open in VSCode
 3. Press `F5` to run the extension in a new Extension Development Host window
 
-### Future: VSCode Marketplace
-*(Coming soon - package and publish to marketplace)*
-
 ## 🚀 Quick Start
 
 1. **Install the extension** and reload VSCode
@@ -213,4 +210,26 @@ node give-me-hours.js /Users/francoispeloquin/Web
 To review what Git is logging in each folder, use:
 ```bash
 git log --pretty=format:'%at|%s' --reverse --since="2025-09-01"  --before="2025-09-02" --author="Francois Peloquin"
+```
+
+# Developemt
+
+## VSCode Marketplace
+Publish a new patch + publish:
+```bash
+# Update the version
+npm version patch  # for bug fixes (1.0.0 -> 1.0.1)
+npm version minor  # for new features (1.0.0 -> 1.1.0)
+npm version major  # for breaking changes (1.0.0 -> 2.0.0)
+
+# Package the extension
+vsce package
+vsce package
+
+# Publish it
+vsce publish
+vsce publish -p YOUR_PERSONAL_ACCESS_TOKEN
+
+# OR increment a patch and publish it
+vsce publish patch -p YOUR_PERSONAL_ACCESS_TOKEN
 ```
