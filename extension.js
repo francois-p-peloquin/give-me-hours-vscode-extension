@@ -86,7 +86,6 @@ function activate(context) {
 			projectStartupTime: config.get('projectStartupTime', 0.5),
 			minCommitTime: config.get('minCommitTime', 0.5),
 			words: config.get('words', 50),
-			showSummary: config.get('showSummary', true),
 			timeFormat: config.get('timeFormat', 'decimal')
 		};
 	}
@@ -233,17 +232,16 @@ function activate(context) {
 		const giveMeHours = new GiveMeHours({
 			duration: duration,
 			minCommitTime: config.minCommitTime,
-			showSummary: true,
 			maxWords: config.words,
 			debug: false
 		});
 
 		const folderPath = path.join(workingDirectory, folderName);
-		console.log(`Getting work summary for folder: ${folderPath} on date: ${date}`);
+		// TODO: Run this through out global dateUtils to ensure consistency.
 		const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
 
 		if (result.commits && result.commits.length > 0) {
-			const summary = giveMeHours.summary.generateSummary(result.commits.map(c => `${c.timestamp}|${c.author}|${c.message}`).join('\n'));
+			const summary = giveMeHours.summary.generateSummary(result.commits.map(c => c.message));
 			return summary;
 		}
 		return 'No activity found for this day.';

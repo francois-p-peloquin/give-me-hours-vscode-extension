@@ -10,7 +10,7 @@ class GiveMeHours {
         this.duration = options.duration || 3600; // 1 hour in seconds
         this.minCommitTime = options.minCommitTime || 0.5;
         this.debug = options.debug || false;
-        this.showSummary = options.showSummary !== undefined ? options.showSummary : true;
+
         this.summary = new Summary(options);
     }
 

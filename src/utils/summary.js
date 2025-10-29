@@ -12,8 +12,8 @@ class Summary {
 
     sanitizeMessage(message) {
         // Sanitize Merge/PR names
-        message = message.replace(/Merge pull request #\d+ from \w+\//, '');
-        message = message.replace(/Merge branch '\w+' of .*/, '');
+        message = message.indexOf('Merge pull request') == 0 ? message.split('/').pop().trim() : message;
+        // message = message.replace(/Merge branch '\w+' of .*/, '');
 
         // Replace hyphens and underscores with spaces
         message = message.replace(/[-_]/g, ' ');
@@ -29,18 +29,15 @@ class Summary {
     }
 
     generateSummary(commitsOutput) {
-        const lines = commitsOutput.split('\n').filter(line => line.trim());
+        const lines = [...commitsOutput];
         const allCommits = [];
 
-        for (const line of lines) {
-            const parts = line.split('|');
-            if (parts.length >= 3) {
-                let message = parts[2].trim();
-                const isMergeCommit = message.startsWith('Merge pull request') || message.startsWith('Merge branch');
-                message = this.sanitizeMessage(message);
-                if (message && message.length > 0) {
-                    allCommits.push({ message, isMergeCommit });
-                }
+        for (const line in lines) {
+            let message = lines[line];
+            const isMergeCommit = message.indexOf('Merge') == 0;
+            const sanitizedMessage = this.sanitizeMessage(message);
+            if (sanitizedMessage && sanitizedMessage.length > 0) {
+                allCommits.push({ message: sanitizedMessage, isMergeCommit });
             }
         }
 
@@ -54,6 +51,7 @@ class Summary {
 
         let wordCount = summaryMessages.join(' ').split(' ').length;
 
+        // TODO: Actual summary service. For now, just concatenates messages until maxWords is reached.
         for (const commit of subCommits) {
             const message = commit.message;
             const messageWordCount = message.split(' ').length;
