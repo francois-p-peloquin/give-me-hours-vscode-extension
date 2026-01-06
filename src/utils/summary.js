@@ -53,8 +53,10 @@ class Summary {
             return acc;
         }, {});
 
-        let summaryMessages = [...mergeCommitMessages];
-        let wordCount = summaryMessages.join(' ').split(' ').length;
+        const summaryGroups = [];
+        if (mergeCommitMessages.length > 0) {
+            summaryGroups.push(mergeCommitMessages.join('; '));
+        }
 
         const formatBranchName = (branchName) => {
             if (!branchName || branchName === 'other') return '';
@@ -65,31 +67,24 @@ class Summary {
         };
 
         for (const branch in commitsByBranch) {
+            const branchGroup = [];
             if (branch !== 'master' && branch !== 'dev' && branch !== 'staging' && branch !== 'other') {
-                const formattedBranchName = formatBranchName(branch);
-                if (wordCount + formattedBranchName.split(' ').length > this.maxWords) {
-                    summaryMessages.push('...');
-                    break;
-                }
-                summaryMessages.push(formattedBranchName);
-                wordCount += formattedBranchName.split(' ').length;
+                branchGroup.push(formatBranchName(branch));
             }
 
-            for (const commit of commitsByBranch[branch]) {
-                const message = commit.message;
-                const messageWordCount = message.split(' ').length;
+            const commitMessages = commitsByBranch[branch].map(c => c.message);
+            branchGroup.push(commitMessages.join('; '));
 
-                if (wordCount + messageWordCount > this.maxWords) {
-                    summaryMessages.push('...');
-                    break;
-                }
-                summaryMessages.push(message);
-                wordCount += messageWordCount;
-            }
-            if (wordCount > this.maxWords) break;
+            summaryGroups.push(branchGroup.join(' '));
+        }
+        
+        let summary = summaryGroups.join('\n\n');
+        const words = summary.split(/\s+/);
+        if (words.length > this.maxWords) {
+            summary = words.slice(0, this.maxWords).join(' ') + '...';
         }
 
-        return summaryMessages.join('; ');
+        return summary;
     }
 }
 
