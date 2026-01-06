@@ -53,10 +53,7 @@ class Summary {
             return acc;
         }, {});
 
-        const summaryGroups = [];
-        if (mergeCommitMessages.length > 0) {
-            summaryGroups.push(mergeCommitMessages.join('; '));
-        }
+        const rawSummaryGroups = []; // Stores groups as strings, without truncation yet
 
         const formatBranchName = (branchName) => {
             if (!branchName || branchName === 'other') return '';
@@ -66,25 +63,57 @@ class Summary {
                 .join(' - ') + ':';
         };
 
+        // Prepare merge commits group
+        if (mergeCommitMessages.length > 0) {
+            rawSummaryGroups.push(mergeCommitMessages.join('; '));
+        }
+
+        // Prepare other branch groups
         for (const branch in commitsByBranch) {
-            const branchGroup = [];
+            const branchGroupParts = [];
             if (branch !== 'master' && branch !== 'dev' && branch !== 'staging' && branch !== 'other') {
-                branchGroup.push(formatBranchName(branch));
+                branchGroupParts.push(formatBranchName(branch));
             }
 
             const commitMessages = commitsByBranch[branch].map(c => c.message);
-            branchGroup.push(commitMessages.join('; '));
+            branchGroupParts.push(commitMessages.join('; '));
+            
+            rawSummaryGroups.push(branchGroupParts.join(' '));
+        }
 
-            summaryGroups.push(branchGroup.join(' '));
+        const finalSummaryGroups = [];
+        let cumulativeWordCount = 0;
+
+        for (let i = 0; i < rawSummaryGroups.length; i++) {
+            const group = rawSummaryGroups[i];
+            const groupWords = group.split(/\s+/).filter(Boolean);
+            
+            // Add words for the separator if it's not the first group
+            const separatorWords = finalSummaryGroups.length > 0 ? 1 : 0; // Represents the "\n\n" as one "word" for counting purposes
+
+            if (cumulativeWordCount + separatorWords + groupWords.length > this.maxWords) {
+                const remainingWords = this.maxWords - (cumulativeWordCount + separatorWords);
+                
+                if (remainingWords > 0) {
+                    finalSummaryGroups.push(groupWords.slice(0, remainingWords).join(' ') + '...');
+                } else if (finalSummaryGroups.length > 0) {
+                    // If no space for current group, and previous groups filled space, just add '...' to the last group
+                    if (!finalSummaryGroups[finalSummaryGroups.length - 1].endsWith('...')) {
+                        finalSummaryGroups[finalSummaryGroups.length - 1] += '...';
+                    }
+                } else {
+                    // If even the first group doesn't fit, just an ellipsis
+                    finalSummaryGroups.push('...');
+                }
+                cumulativeWordCount = this.maxWords; // Mark as full
+                break; 
+            } else {
+                finalSummaryGroups.push(group);
+                cumulativeWordCount += groupWords.length + separatorWords;
+            }
         }
         
-        let summary = summaryGroups.join('\n\n');
-        const words = summary.split(/\s+/);
-        if (words.length > this.maxWords) {
-            summary = words.slice(0, this.maxWords).join(' ') + '...';
-        }
-
-        return summary;
+        return finalSummaryGroups.join('\n\n');
     }
 }
 
