@@ -65,7 +65,7 @@ class Summary {
         };
 
         for (const branch in commitsByBranch) {
-            if (branch !== 'master' && branch !== 'dev' && branch !== 'other') {
+            if (branch !== 'master' && branch !== 'dev' && branch !== 'staging' && branch !== 'other') {
                 const formattedBranchName = formatBranchName(branch);
                 if (wordCount + formattedBranchName.split(' ').length > this.maxWords) {
                     summaryMessages.push('...');
