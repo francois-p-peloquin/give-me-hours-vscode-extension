@@ -23,7 +23,7 @@ class GiveMeHours {
     }
 
     buildGitCommand(fromDate, toDate, author) {
-        let cmd = "git log --pretty=format:'%at|%an|%s' --reverse";
+        let cmd = "git log --pretty=format:'%at|%an|%s|%d' --reverse";
         const formatDate = (date) => {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -99,6 +99,19 @@ class GiveMeHours {
         return totalSeconds;
     }
 
+    parseBranchName(refs) {
+        if (!refs) {
+            return null;
+        }
+        // Example refs: " (HEAD -> feature/new-summary, origin/feature/new-summary)"
+        const branchMatch = refs.match(/HEAD -> ([^,)]+)/);
+        if (branchMatch && branchMatch[1]) {
+            return branchMatch[1];
+        }
+
+        return null;
+    }
+
     getHoursForRepo(fromDate, toDate, author, repoPath = '.') {
         const originalCwd = process.cwd();
 
@@ -121,19 +134,22 @@ class GiveMeHours {
 
             const processedCommits = commitsOutput.split('\n')
                 .filter(line => line.trim())
-                .map(line => line.split('|'))
                 .map(line => {
-                    const commitTimestamp = parseInt(line[0]);
+                    const parts = line.split('|');
+                    const commitTimestamp = parseInt(parts[0]);
                     const commitDate = createDate(commitTimestamp * 1000);
                     const year = commitDate.getFullYear();
                     const month = String(commitDate.getMonth() + 1).padStart(2, '0');
                     const day = String(commitDate.getDate()).padStart(2, '0');
                     const formattedCommitDate = `${year}-${month}-${day}`;
+                    const refs = parts[3] || '';
+
                     return {
                         timestamp: commitTimestamp,
                         commitDate: formattedCommitDate,
-                        author: line[1],
-                        message: line[2],
+                        author: parts[1],
+                        message: parts[2],
+                        branch: this.parseBranchName(refs.trim())
                     };
                 });
 

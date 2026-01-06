@@ -28,18 +28,14 @@ class Summary {
         return message.trim().replace(/[.,;:?!]$/, '');
     }
 
-    generateSummary(commitsOutput) {
-        const lines = [...commitsOutput];
-        const allCommits = [];
-
-        for (const line in lines) {
-            let message = lines[line];
-            const isMergeCommit = message.indexOf('Merge') == 0;
-            const sanitizedMessage = this.sanitizeMessage(message);
-            if (sanitizedMessage && sanitizedMessage.length > 0) {
-                allCommits.push({ message: sanitizedMessage, isMergeCommit });
-            }
-        }
+    generateSummary(commits) {
+        const allCommits = commits.map(commit => {
+            return {
+                ...commit,
+                message: this.sanitizeMessage(commit.message),
+                isMergeCommit: commit.message.indexOf('Merge') === 0
+            };
+        }).filter(commit => commit.message.length > 0);
 
         const mergeCommitMessages = allCommits
             .filter(commit => commit.isMergeCommit)
@@ -47,21 +43,50 @@ class Summary {
 
         const subCommits = allCommits.filter(commit => !commit.isMergeCommit);
 
-        let summaryMessages = [...mergeCommitMessages];
+        // Group commits by branch
+        const commitsByBranch = subCommits.reduce((acc, commit) => {
+            const branch = commit.branch || 'other';
+            if (!acc[branch]) {
+                acc[branch] = [];
+            }
+            acc[branch].push(commit);
+            return acc;
+        }, {});
 
+        let summaryMessages = [...mergeCommitMessages];
         let wordCount = summaryMessages.join(' ').split(' ').length;
 
-        // TODO: Actual summary service. For now, just concatenates messages until maxWords is reached.
-        for (const commit of subCommits) {
-            const message = commit.message;
-            const messageWordCount = message.split(' ').length;
+        const formatBranchName = (branchName) => {
+            if (!branchName || branchName === 'other') return '';
+            // hotfix/my-feature -> Hotfix - my feature
+            return branchName.split(/[-/]/)
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' - ') + ':';
+        };
 
-            if (wordCount + messageWordCount > this.maxWords) {
-                summaryMessages.push('...');
-                break;
+        for (const branch in commitsByBranch) {
+            if (branch !== 'master' && branch !== 'dev' && branch !== 'other') {
+                const formattedBranchName = formatBranchName(branch);
+                if (wordCount + formattedBranchName.split(' ').length > this.maxWords) {
+                    summaryMessages.push('...');
+                    break;
+                }
+                summaryMessages.push(formattedBranchName);
+                wordCount += formattedBranchName.split(' ').length;
             }
-            summaryMessages.push(message);
-            wordCount += messageWordCount;
+
+            for (const commit of commitsByBranch[branch]) {
+                const message = commit.message;
+                const messageWordCount = message.split(' ').length;
+
+                if (wordCount + messageWordCount > this.maxWords) {
+                    summaryMessages.push('...');
+                    break;
+                }
+                summaryMessages.push(message);
+                wordCount += messageWordCount;
+            }
+            if (wordCount > this.maxWords) break;
         }
 
         return summaryMessages.join('; ');
