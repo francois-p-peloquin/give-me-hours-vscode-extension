@@ -23,7 +23,6 @@ class GiveMeHours {
     }
 
     buildGitCommand(fromDate, toDate, author) {
-        let cmd = "git log --pretty=format:'%at|%an|%s|%d' --reverse";
         const formatDate = (date) => {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -35,11 +34,13 @@ class GiveMeHours {
         };
         const since = formatDate(fromDate);
         const until = formatDate(toDate);
-        cmd += ` --since=\"${since}" --until=\"${until}" `;
+        const sinceString = ` --since=\"${since}" --until=\"${until}" `;
+        const authString = author ? ` --author=\"${author}" ` : '';
 
-        if (author) {
-            cmd += ` --author=\"${author}"`;
-        }
+        let cmd = `git log ${sinceString} ${authString} --pretty=format:'%H|%at|%an|%s' --reverse | while IFS='|' read hash timestamp author subject; do
+            branch=$(git branch --contains $hash | grep -v 'detached' | head -1 | sed 's/^[* ]*//')
+            echo "$timestamp|$author|$subject|$branch"
+        done`;
 
         return cmd;
     }
