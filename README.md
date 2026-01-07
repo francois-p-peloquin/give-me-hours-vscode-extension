@@ -8,7 +8,6 @@
 
 ## ✨ Features
 
-- **🕒 Live Status Bar**: See your daily working hours at a glance in VSCode's status bar
 - **📅 Date Selection**: Pick any date with an intuitive calendar widget
 - **📊 Repository Breakdown**: View hours worked per git repository
 - **💬 Commit Summaries**: See what you worked on with toggleable commit message summaries
@@ -16,12 +15,6 @@
 - **🚀 Auto-Startup**: Extension loads automatically when VSCode starts
 - **🎨 VSCode Native**: Perfect integration with VSCode themes and UI patterns
 
-## 🖼️ Screenshots
-
-### Status Bar Integration
-```
-[🕒 Give Me Hours: 3:45] [Other extensions...]
-```
 
 ### Main Interface
 - Clean, VSCode-themed interface
