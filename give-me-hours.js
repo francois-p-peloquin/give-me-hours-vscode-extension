@@ -143,14 +143,13 @@ class GiveMeHours {
                     const month = String(commitDate.getMonth() + 1).padStart(2, '0');
                     const day = String(commitDate.getDate()).padStart(2, '0');
                     const formattedCommitDate = `${year}-${month}-${day}`;
-                    const refs = parts[3] || '';
 
                     return {
                         timestamp: commitTimestamp,
                         commitDate: formattedCommitDate,
                         author: parts[1],
                         message: parts[2],
-                        branch: this.parseBranchName(refs.trim())
+                        branch: parts[3],
                     };
                 });
 
