@@ -58,8 +58,8 @@ class Summary {
         const formatBranchName = (branchName) => {
             if (!branchName || branchName === 'other') return '';
             // hotfix/my-feature -> Hotfix - my feature
-            return branchName.split(/[-/]/)
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            return branchName.split(/[/]/)
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).split('-').join(' '))
                 .join(' - ') + ':';
         };
 
@@ -77,7 +77,7 @@ class Summary {
 
             const commitMessages = commitsByBranch[branch].map(c => c.message);
             branchGroupParts.push(commitMessages.join('; '));
-            
+
             rawSummaryGroups.push(branchGroupParts.join(' '));
         }
 
@@ -87,13 +87,13 @@ class Summary {
         for (let i = 0; i < rawSummaryGroups.length; i++) {
             const group = rawSummaryGroups[i];
             const groupWords = group.split(/\s+/).filter(Boolean);
-            
+
             // Add words for the separator if it's not the first group
             const separatorWords = finalSummaryGroups.length > 0 ? 1 : 0; // Represents the "\n\n" as one "word" for counting purposes
 
             if (cumulativeWordCount + separatorWords + groupWords.length > this.maxWords) {
                 const remainingWords = this.maxWords - (cumulativeWordCount + separatorWords);
-                
+
                 if (remainingWords > 0) {
                     finalSummaryGroups.push(groupWords.slice(0, remainingWords).join(' ') + '...');
                 } else if (finalSummaryGroups.length > 0) {
@@ -106,13 +106,13 @@ class Summary {
                     finalSummaryGroups.push('...');
                 }
                 cumulativeWordCount = this.maxWords; // Mark as full
-                break; 
+                break;
             } else {
                 finalSummaryGroups.push(group);
                 cumulativeWordCount += groupWords.length + separatorWords;
             }
         }
-        
+
         return finalSummaryGroups.join('\n\n');
     }
 }
