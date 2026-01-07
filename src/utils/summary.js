@@ -33,18 +33,11 @@ class Summary {
             return {
                 ...commit,
                 message: this.sanitizeMessage(commit.message),
-                isMergeCommit: commit.message.indexOf('Merge') === 0
             };
         }).filter(commit => commit.message.length > 0);
 
-        const mergeCommitMessages = allCommits
-            .filter(commit => commit.isMergeCommit)
-            .map(commit => commit.message);
-
-        const subCommits = allCommits.filter(commit => !commit.isMergeCommit);
-
         // Group commits by branch
-        const commitsByBranch = subCommits.reduce((acc, commit) => {
+        const commitsByBranch = allCommits.reduce((acc, commit) => {
             const branch = commit.branch || 'other';
             if (!acc[branch]) {
                 acc[branch] = [];
@@ -56,24 +49,25 @@ class Summary {
         const rawSummaryGroups = []; // Stores groups as strings, without truncation yet
 
         const formatBranchName = (branchName) => {
-            if (!branchName || branchName === 'other') return '';
-            // hotfix/my-feature -> Hotfix - my feature
-            return branchName.split(/[/]/)
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1).split('-').join(' '))
+            if (!branchName || branchName === 'other') return 'Other:';
+            // example: feature/new-summary-format -> Feature - New Summary Format:
+            return branchName
+                .split('/')
+                .map(part =>
+                    part
+                    .split('-')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ')
+                )
                 .join(' - ') + ':';
         };
 
-        // Prepare merge commits group
-        if (mergeCommitMessages.length > 0) {
-            rawSummaryGroups.push(mergeCommitMessages.join('; '));
-        }
+        // Prepare branch groups
+        const branchOrder = Object.keys(commitsByBranch).sort();
 
-        // Prepare other branch groups
-        for (const branch in commitsByBranch) {
+        for (const branch of branchOrder) {
             const branchGroupParts = [];
-            if (branch !== 'master' && branch !== 'dev' && branch !== 'staging' && branch !== 'other') {
-                branchGroupParts.push(formatBranchName(branch));
-            }
+            branchGroupParts.push(formatBranchName(branch));
 
             const commitMessages = commitsByBranch[branch].map(c => c.message);
             branchGroupParts.push(commitMessages.join('; '));
