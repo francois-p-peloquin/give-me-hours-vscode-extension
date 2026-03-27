@@ -71,10 +71,10 @@
         },
         "giveMeHours.words": {
           "type": "number",
-          "default": 50,
-          "minimum": 10,
-          "maximum": 200,
-          "description": "Maximum number of words to show in commit summaries. Longer summaries will be truncated with '...'"
+          "default": 300,
+          "minimum": 50,
+          "maximum": 1000,
+          "description": "Maximum number of words in commit summaries. Used as the word limit for AI-generated summaries, and as a truncation cap for raw log output."
         },
         "giveMeHours.showSummary": {
           "type": "boolean",
