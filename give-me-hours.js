@@ -37,7 +37,7 @@ class GiveMeHours {
         const sinceString = ` --since=\"${since}" --until=\"${until}" `;
         const authString = author ? ` --author=\"${author}" ` : '';
 
-        let cmd = `git fetch --all --quiet 2>/dev/null; git log --all ${sinceString} ${authString} --pretty=format:'%H|%at|%an|%s' --reverse | while IFS='|' read hash timestamp author subject; do
+        let cmd = `git log --all ${sinceString} ${authString} --pretty=format:'%H|%at|%an|%s' --reverse | while IFS='|' read hash timestamp author subject; do
             branch=$(git branch --contains $hash | grep -v 'detached' | head -1 | sed 's/^[* ]*//')
             echo "$timestamp|$author|$subject|$branch"
         done`;

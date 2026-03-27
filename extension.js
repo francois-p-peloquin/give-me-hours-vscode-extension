@@ -268,8 +268,11 @@ function activate(context) {
 	}
 
 	async function generateLLMSummary(commits, maxWords) {
+		if (!vscode.lm) return null;
+
+		const tokenSource = new vscode.CancellationTokenSource();
 		try {
-			const models = await vscode.lm.selectChatModels({ vendor: 'copilot', family: 'gpt-4o' });
+			const models = await vscode.lm.selectChatModels({ family: 'gpt-4o' });
 			if (!models || models.length === 0) return null;
 
 			const commitsByBranch = commits.reduce((acc, commit) => {
@@ -297,7 +300,6 @@ Rules:
 Commits grouped by branch:
 ${commitBlock}`;
 
-			const tokenSource = new vscode.CancellationTokenSource();
 			const response = await models[0].sendRequest(
 				[vscode.LanguageModelChatMessage.User(prompt)],
 				{},
@@ -312,6 +314,8 @@ ${commitBlock}`;
 		} catch (error) {
 			console.error('LLM summary error:', error);
 			return null;
+		} finally {
+			tokenSource.dispose();
 		}
 	}
 
