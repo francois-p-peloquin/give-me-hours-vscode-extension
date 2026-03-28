@@ -123,6 +123,12 @@ function activate(context) {
 			}
 		);
 
+		panel.webview.html = `<!DOCTYPE html><html><head><style>
+			body { display:flex; align-items:center; justify-content:center; height:100vh; margin:0; background:var(--vscode-editor-background); }
+			p { color:#007acc; font-size:1.1em; animation:pulse 1.5s ease-in-out infinite; }
+			@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+		</style></head><body><p>Loading...</p></body></html>`;
+
 		const buildPath = vscode.Uri.joinPath(context.extensionUri, 'build');
 		const indexPath = vscode.Uri.joinPath(buildPath, 'index.html');
 
@@ -239,7 +245,10 @@ function activate(context) {
 
 		const folderPath = path.join(workingDirectory, folderName);
 		// TODO: Run this through out global dateUtils to ensure consistency.
-		const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
+		const [y, m, d] = date.split('-').map(Number);
+		const startOfDay = new Date(y, m - 1, d, 0, 0, 0);
+		const endOfDay = new Date(y, m - 1, d, 23, 59, 59);
+		const result = giveMeHours.getHoursForRepo(startOfDay, endOfDay, giveMeHours.getGitUsername(), folderPath);
 
 		if (!result.commits || result.commits.length === 0) {
 			return 'No activity found for this day.';
@@ -287,16 +296,34 @@ function activate(context) {
 				return `[${branch}]\n${lines}`;
 			}).join('\n\n');
 
-			const prompt = `Summarize a developer's work from their git commit messages.
+			const prompt = `You are summarizing a developer's git commits into a structured work log.
 
-Rules:
-- Use each branch name as a markdown heading (## Branch Name), formatted nicely (hyphens/underscores to spaces, title case)
-- Under each heading, write bullet points (one per distinct piece of work done)
-- Each bullet should be a short, clear phrase — not a full sentence
-- Fix typos and remove noise words: "wip", "misc", "stuff", "almost there", "stable", "ditto", "ready"
-- Omit merge commits and trivial or duplicate messages
-- Write in past tense, professional tone
-- Write no more than ${maxWords} words in total across all sections
+OUTPUT FORMAT — follow this exactly, no variation:
+
+## Type: Subject - BH###
+- Short past-tense phrase describing work done
+- Another phrase
+
+## Type: Subject
+- Short past-tense phrase (no ticket on this branch)
+
+HEADING RULES:
+- "Type" comes from the branch prefix: hotfix → Hotfix, feature → Feature, fix → Fix, chore → Chore, etc.
+- "Subject" is the rest of the branch name with hyphens/underscores replaced by spaces, title case
+- If a BH ticket number appears in the branch name OR any commit on that branch, append " - BH###" to the heading
+- If no type prefix exists on the branch, omit the "Type:" part and just use the subject
+- Never put the ticket ID both in the subject and after the dash
+
+BULLET RULES:
+- One bullet per distinct piece of work (merge similar commits)
+- Short phrase, past tense, no period at the end
+- Remove noise: "wip", "misc", "almost there", "stable", "ditto", "ready"
+- Omit merge commits and trivial/duplicate messages
+- If a commit references a BH ticket not already in the heading, include it in the bullet (e.g. "Fixed thumbnail URL - BH16")
+
+LIMITS:
+- No more than ${maxWords} words total across all sections
+- No extra commentary, preamble, or explanation — output the headings and bullets only
 
 Commits grouped by branch:
 ${commitBlock}`;
