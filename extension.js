@@ -297,6 +297,8 @@ Rules:
 - Under each heading, write bullet points (one per distinct piece of work done)
 - Each bullet should be a short, clear phrase — not a full sentence
 - Fix typos and remove noise words: "wip", "misc", "stuff", "almost there", "stable", "ditto", "ready"
+- Always preserve BugHerd ticket references exactly as they appear (e.g. BH198, BH-198, BH 198, Bugherd #198) — include them in the relevant bullet
+- If any commit under a branch references a BugHerd ticket and the branch heading does not already include it, append the ticket ID(s) to the heading (e.g. "## Fix News Thumbnail URL (BH16)")
 - Omit merge commits and trivial or duplicate messages
 - Write in past tense, professional tone
 - Write no more than ${maxWords} words in total across all sections
