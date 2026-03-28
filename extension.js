@@ -194,18 +194,18 @@ function activate(context) {
 					case 'getWorkSummary':
 						console.log('getWorkSummary command received:', message.folder, message.date, message.requestId);
 						try {
-							const summary = await getCommitSummaryForFolder(message.folder, message.date);
+							const summary = await getCommitSummaryForFolder(message.folder, message.date, message.useAISummary);
 							panel.webview.postMessage({
 								type: 'workSummaryResult',
 								summary: summary,
-								requestId: message.requestId, // Include requestId in the response
+								requestId: message.requestId,
 							});
 						} catch (error) {
 							console.error('Error getting work summary:', error);
 							panel.webview.postMessage({
 								type: 'workSummaryError',
 								error: error.message,
-								requestId: message.requestId, // Include requestId in the response
+								requestId: message.requestId,
 							});
 						}
 						break;
@@ -224,15 +224,16 @@ function activate(context) {
 		calculateAndSendHours(panel);
 	}
 
-	async function getCommitSummaryForFolder(folderName, date) {
+	async function getCommitSummaryForFolder(folderName, date, useAISummary) {
 		const config = getConfiguration();
 		const workingDirectory = getWorkingDirectory();
 		const duration = parseDuration(config.duration);
+		const maxWords = config.words;
 
 		const giveMeHours = new GiveMeHours({
 			duration: duration,
 			minCommitTime: config.minCommitTime,
-			maxWords: config.words,
+			maxWords: maxWords,
 			debug: false
 		});
 
@@ -240,11 +241,83 @@ function activate(context) {
 		// TODO: Run this through out global dateUtils to ensure consistency.
 		const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
 
-		if (result.commits && result.commits.length > 0) {
-			const summary = giveMeHours.summary.generateSummary(result.commits);
-			return summary;
+		if (!result.commits || result.commits.length === 0) {
+			return 'No activity found for this day.';
 		}
-		return 'No activity found for this day.';
+
+		if (useAISummary) {
+			const llmSummary = await generateLLMSummary(result.commits, maxWords);
+			if (llmSummary) return llmSummary;
+		}
+		return generateRawLog(result.commits);
+	}
+
+	function generateRawLog(commits) {
+		const commitsByBranch = commits.reduce((acc, commit) => {
+			const branch = commit.branch || 'other';
+			if (!acc[branch]) acc[branch] = [];
+			acc[branch].push(commit);
+			return acc;
+		}, {});
+
+		return Object.entries(commitsByBranch).map(([branch, branchCommits]) => {
+			const heading = branch.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+			const lines = branchCommits.map(c => `- ${c.message}`).join('\n');
+			return `${heading}:\n${lines}`;
+		}).join('\n\n');
+	}
+
+	async function generateLLMSummary(commits, maxWords) {
+		if (!vscode.lm) return null;
+
+		const tokenSource = new vscode.CancellationTokenSource();
+		try {
+			const models = await vscode.lm.selectChatModels({ family: 'gpt-4o' });
+			if (!models || models.length === 0) return null;
+
+			const commitsByBranch = commits.reduce((acc, commit) => {
+				const branch = commit.branch || 'other';
+				if (!acc[branch]) acc[branch] = [];
+				acc[branch].push(commit);
+				return acc;
+			}, {});
+
+			const commitBlock = Object.entries(commitsByBranch).map(([branch, branchCommits]) => {
+				const lines = branchCommits.map(c => `- ${c.message}`).join('\n');
+				return `[${branch}]\n${lines}`;
+			}).join('\n\n');
+
+			const prompt = `Summarize a developer's work from their git commit messages.
+
+Rules:
+- Use each branch name as a markdown heading (## Branch Name), formatted nicely (hyphens/underscores to spaces, title case)
+- Under each heading, write bullet points (one per distinct piece of work done)
+- Each bullet should be a short, clear phrase — not a full sentence
+- Fix typos and remove noise words: "wip", "misc", "stuff", "almost there", "stable", "ditto", "ready"
+- Omit merge commits and trivial or duplicate messages
+- Write in past tense, professional tone
+- Write no more than ${maxWords} words in total across all sections
+
+Commits grouped by branch:
+${commitBlock}`;
+
+			const response = await models[0].sendRequest(
+				[vscode.LanguageModelChatMessage.User(prompt)],
+				{},
+				tokenSource.token
+			);
+
+			let text = '';
+			for await (const chunk of response.text) {
+				text += chunk;
+			}
+			return text.trim() || null;
+		} catch (error) {
+			console.error('LLM summary error:', error);
+			return null;
+		} finally {
+			tokenSource.dispose();
+		}
 	}
 
 	function getNonce() {

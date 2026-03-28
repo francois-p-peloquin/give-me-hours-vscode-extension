@@ -39,7 +39,7 @@ const processResults = (results, roundHours, config, timeFormat) => {
   return processed;
 };
 
-const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, isRefreshing }) => {
+const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, isRefreshing, useAISummary }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
   const processedResults = useMemo(() => processResults(results, roundHours, config, timeFormat), [results, roundHours, config, timeFormat]);
@@ -187,7 +187,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
                         </span>
                         {cellIndex > 0 && !cell.isTotal && (
                           <>
-                            <GetWorkSummaryButton folder={row[0]} date={cell.date} />
+                            <GetWorkSummaryButton folder={row[0]} date={cell.date} useAISummary={useAISummary} />
                           </>
                         )}
                       </>

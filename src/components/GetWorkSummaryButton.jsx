@@ -1,7 +1,7 @@
 import { VSCodeButton, VSCodeLink } from '@vscode/webview-ui-toolkit/react';
 import React, { useState, useRef, useEffect } from 'react';
 
-const GetWorkSummaryButton = ({ folder, date }) => {
+const GetWorkSummaryButton = ({ folder, date, useAISummary }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
     const requestIdRef = useRef(null); // Use ref to store the requestId
@@ -47,7 +47,8 @@ const GetWorkSummaryButton = ({ folder, date }) => {
                 command: 'getWorkSummary',
                 folder: folder,
                 date: date,
-                requestId: newRequestId, // Include requestId in the message
+                requestId: newRequestId,
+                useAISummary: useAISummary,
             });
 
         } catch (error) {

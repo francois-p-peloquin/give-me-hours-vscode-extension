@@ -15,6 +15,7 @@ function App() {
   const [display, setDisplay] = useState('Week');
   const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
+  const [useAISummary, setUseAISummary] = useState(true);
 
   const isDateInCurrentWeek = (selectedDate) => {
     if (!data || !data.startOfWeek || !data.endOfWeek) {
@@ -128,11 +129,12 @@ function App() {
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </VSCodeButton>
           <VSCodeCheckbox checked={roundHours} onChange={e => setRoundHours(e.target.checked)}>Round hours</VSCodeCheckbox>
+          <VSCodeCheckbox checked={useAISummary} onChange={e => setUseAISummary(e.target.checked)}>Use AI commit summary</VSCodeCheckbox>
           <VSCodeButton onClick={() => window.vscode.postMessage({ command: 'openSettings' })}>Open settings</VSCodeButton>
         </div>
       </div>
       {config && <Configuration config={config} />}
-      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} isRefreshing={isRefreshing} />
+      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} isRefreshing={isRefreshing} useAISummary={useAISummary} />
     </div>
   );
 }

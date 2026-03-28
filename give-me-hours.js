@@ -37,7 +37,7 @@ class GiveMeHours {
         const sinceString = ` --since=\"${since}" --until=\"${until}" `;
         const authString = author ? ` --author=\"${author}" ` : '';
 
-        let cmd = `git log ${sinceString} ${authString} --pretty=format:'%H|%at|%an|%s' --reverse | while IFS='|' read hash timestamp author subject; do
+        let cmd = `git log --all ${sinceString} ${authString} --pretty=format:'%H|%at|%an|%s' --reverse | while IFS='|' read hash timestamp author subject; do
             branch=$(git branch --contains $hash | grep -v 'detached' | head -1 | sed 's/^[* ]*//')
             echo "$timestamp|$author|$subject|$branch"
         done`;
@@ -143,14 +143,13 @@ class GiveMeHours {
                     const month = String(commitDate.getMonth() + 1).padStart(2, '0');
                     const day = String(commitDate.getDate()).padStart(2, '0');
                     const formattedCommitDate = `${year}-${month}-${day}`;
-                    const refs = parts[3] || '';
 
                     return {
                         timestamp: commitTimestamp,
                         commitDate: formattedCommitDate,
                         author: parts[1],
                         message: parts[2],
-                        branch: this.parseBranchName(refs.trim())
+                        branch: parts[3],
                     };
                 });
 
