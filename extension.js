@@ -239,7 +239,10 @@ function activate(context) {
 
 		const folderPath = path.join(workingDirectory, folderName);
 		// TODO: Run this through out global dateUtils to ensure consistency.
-		const result = await giveMeHours.getHoursForRepo(new Date(date), new Date(date + ' 23:59:59'), giveMeHours.getGitUsername(), folderPath);
+		const [y, m, d] = date.split('-').map(Number);
+		const startOfDay = new Date(y, m - 1, d, 0, 0, 0);
+		const endOfDay = new Date(y, m - 1, d, 23, 59, 59);
+		const result = giveMeHours.getHoursForRepo(startOfDay, endOfDay, giveMeHours.getGitUsername(), folderPath);
 
 		if (!result.commits || result.commits.length === 0) {
 			return 'No activity found for this day.';
