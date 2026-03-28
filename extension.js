@@ -291,7 +291,8 @@ function activate(context) {
 
 Rules:
 - Use each branch name as a markdown heading (## Branch Name), formatted nicely (hyphens/underscores to spaces, title case)
-- Under each heading, write 2-4 sentences summarizing the actual work done
+- Under each heading, write bullet points (one per distinct piece of work done)
+- Each bullet should be a short, clear phrase — not a full sentence
 - Fix typos and remove noise words: "wip", "misc", "stuff", "almost there", "stable", "ditto", "ready"
 - Omit merge commits and trivial or duplicate messages
 - Write in past tense, professional tone
