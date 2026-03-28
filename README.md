@@ -2,7 +2,6 @@
 
 > Track your working hours directly from git commits in Visual Studio Code
 
-![Version](https://img.shields.io/badge/version-2.3.1-blue)
 ![VSCode](https://img.shields.io/badge/vscode-%5E1.103.0-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
