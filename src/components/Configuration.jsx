@@ -6,7 +6,7 @@ function Configuration({ config }) {
   return (
     <Accordion title="Configuration">
       <p>Git User: {config.gitUsername}</p>
-      <p>Duration: {config.duration}</p>
+      <p>Duration: {config.durationDisplay || config.duration}</p>
       <p>Hours Rounding: {config.hoursRounding}h</p>
       <p>Project Startup Time: {config.projectStartupTime}h</p>
       <p>Min Commit Time: {config.minCommitTime}h</p>
