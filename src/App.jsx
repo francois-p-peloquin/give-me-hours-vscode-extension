@@ -94,7 +94,7 @@ function App() {
   }
 
   if (loading && !data) {
-    return <div className="loading">Calculating working hours...</div>;
+    return <div className="loading">Loading...</div>;
   }
 
   if (!data) {

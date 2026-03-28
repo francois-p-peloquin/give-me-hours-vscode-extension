@@ -123,6 +123,12 @@ function activate(context) {
 			}
 		);
 
+		panel.webview.html = `<!DOCTYPE html><html><head><style>
+			body { display:flex; align-items:center; justify-content:center; height:100vh; margin:0; background:var(--vscode-editor-background); }
+			p { color:#007acc; font-size:1.1em; animation:pulse 1.5s ease-in-out infinite; }
+			@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+		</style></head><body><p>Loading...</p></body></html>`;
+
 		const buildPath = vscode.Uri.joinPath(context.extensionUri, 'build');
 		const indexPath = vscode.Uri.joinPath(buildPath, 'index.html');
 

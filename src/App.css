@@ -27,8 +27,15 @@ body {
 
 .loading {
     text-align: center;
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscode-textLink-foreground);
     margin: 50px 0;
+    font-size: 1.1em;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
 }
 
 .error {
