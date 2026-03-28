@@ -2,227 +2,158 @@
 
 > Track your working hours directly from git commits in Visual Studio Code
 
-![Version](https://img.shields.io/badge/version-0.0.1-blue)
+![Version](https://img.shields.io/badge/version-2.3.1-blue)
 ![VSCode](https://img.shields.io/badge/vscode-%5E1.103.0-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## ✨ Features
 
-- **📅 Date Selection**: Pick any date with an intuitive calendar widget
-- **📊 Repository Breakdown**: View hours worked per git repository
-- **💬 Commit Summaries**: See what you worked on with toggleable commit message summaries
-- **⚙️ Fully Configurable**: Customize duration gaps, rounding, startup time, and more
-- **🚀 Auto-Startup**: Extension loads automatically when VSCode starts
-- **🎨 VSCode Native**: Perfect integration with VSCode themes and UI patterns
-
-
-### Main Interface
-- Clean, VSCode-themed interface
-- Date picker for any date selection
-- Repository breakdown with hours worked
-- Commit summaries with smart truncation
-- Configuration display with easy settings access
-
-## 📦 Installation
-
-### From Source
-1. Clone this repository
-2. Open in VSCode
-3. Press `F5` to run the extension in a new Extension Development Host window
+- **📅 Date Selection**: Pick any date to view hours for that week
+- **📊 Repository Breakdown**: Hours worked per git repository, grouped by day
+- **🤖 AI Commit Summaries**: Feed your commits to an LLM (via GitHub Copilot) for a clean, structured work summary grouped by branch — with BugHerd ticket references preserved
+- **📋 Raw Commit Log**: Toggle AI off to get a plain bullet-point log of commits grouped by branch
+- **🌐 All-Branch Coverage**: Fetches commits from all local and remote-tracking branches
+- **⚙️ Fully Configurable**: Customize duration gaps, rounding, startup time, summary length, and more
+- **🚀 Auto-Startup**: Loads automatically when VSCode starts and pre-fetches your hours in the background
+- **🎨 VSCode Native**: Seamlessly adapts to your VSCode theme
 
 ## 🚀 Quick Start
 
 1. **Install the extension** and reload VSCode
-2. **Notice the status bar**: `🕒 Give Me Hours` appears in the bottom status bar
-3. **Click the status bar item** to open the main interface
-4. **Select your repository folder**: Click "Select Folder" and choose the directory containing your git repositories
-5. **Set up Git user** (if needed): Run `git config --global user.name "Your Name"` in terminal
-6. **View your hours**: The extension automatically calculates and displays your working hours!
+2. **Click the status bar item** (`🕒 Give Me Hours`) to open the interface
+3. **Select your folder**: Click "Select Folder" and choose the directory containing your git repositories
+4. **Set up Git user** (if needed): `git config --global user.name "Your Name"`
+5. **View your hours** — the extension automatically scans your repos and shows the current week
 
 ## ⚙️ Configuration
 
-Access settings via:
-- **Settings UI**: Search for "Give Me Hours" in VSCode Settings
-- **Command Palette**: `Give Me Hours: Open Settings`
-- **Extension Interface**: Click the "Settings" button
-
-### Available Settings
+Access settings via the **Open Settings** button in the interface, or search for `Give Me Hours` in VSCode Settings.
 
 | Setting | Default | Description |
 |---|---|---|
 | **Working Directory** | _(empty)_ | Folder containing your git repositories |
 | **Duration** | `1h` | Maximum gap between commits to count as continuous work |
-| **Hours Rounding** | `0.25` | Round hours to nearest increment (0.25 = 15 min) |
-| **Project Startup Time** | `0.5` | Add time before each work session (0.5 = 30 min) |
-| **Min Commit Time** | `0.5` | Minimum time credited for a single commit or a commit after a long break, in hours. 0.5 = 30 minutes. |
-| **Words** | `50` | Maximum words in commit summaries |
-| **Show Summary** | `true` | Display commit message summaries in table |
-| **Data Type** | `rounded` | Choose between `rounded` and `clean` hours. |
-
-### Data Types: Clean vs. Rounded Hours
-
-You can now choose how your hours are calculated and displayed:
-
-- **Rounded Hours (default)**: This mode includes all the smart calculations, such as rounding and project startup time. This is useful for getting a more realistic view of your billable hours.
-- **Clean Hours**: This mode shows the raw, unadjusted time calculated from your commit history. This is useful for getting a precise measure of your coding time without any adjustments.
-
-Use the "Hours type" toggle in the extension's main interface to switch between these modes.
+| **Hours Rounding** | `0.25` | Round hours to nearest increment (0.25 = 15 min, 0 = off) |
+| **Project Startup Time** | `0.5` | Hours added before each work session for ramp-up time |
+| **Min Commit Time** | `0.5` | Minimum hours credited for a single commit or after a long break |
+| **Summary Words** | `300` | Maximum word count for AI-generated summaries (50–1000) |
+| **Show Summary** | `true` | Show the commit summary column in the results table |
 
 ### Duration Examples
-- `1h` or `1` = 1 hour
+- `1h` = 1 hour (default)
 - `30m` = 30 minutes
 - `90s` = 90 seconds
 
-### Rounding Examples
-- `0.25` = Round to nearest 15 minutes
-- `0.5` = Round to nearest 30 minutes
-- `1` = Round to nearest hour
-- `0` = No rounding
-
 ## 🎯 How It Works
 
-The extension analyzes your git commit history to calculate working hours:
+1. **Scans repositories** in your configured working directory (including nested repos)
+2. **Reads git logs** across all branches for the selected week
+3. **Groups commits by day** using your git username as the author filter
+4. **Calculates intervals** between commits, applying duration gaps, rounding, and startup time
+5. **Displays results** in a weekly table — click any cell's **Summary** button to get a work log for that day
 
-1. **Scans repositories** in your configured working directory
-2. **Reads git logs** for the selected date range
-3. **Calculates intervals** between commits by the same author
-4. **Applies logic**:
-   - Groups commits within the duration threshold (default: 1 hour)
-   - Adds project startup time for context switching
-   - Rounds hours based on your preference
-5. **Displays results** in an easy-to-read format
+## 📋 Commit Summaries
 
-## 🔧 Usage
+Each cell in the table has a **Summary** button that copies a work log to your clipboard.
 
-### Status Bar
-- **Live Updates**: Shows current working hours automatically
-- **Click to Open**: Access the full interface instantly
-- **Smart Tooltips**: Contextual information based on your setup
+### Use AI Commit Summary (checkbox)
 
-### Main Interface
-- **Date Selection**: Use the calendar to view hours for any date
-- **Repository Breakdown**: See hours worked per project
-- **Commit Summaries**: Toggle detailed view of what you worked on
-- **Quick Actions**: Refresh data, change folders, access settings
+**Checked (default):** Commits are sent to GitHub Copilot's LLM, which returns a structured summary:
+- Branch headings formatted as `## Type: Subject - BH###` (e.g. `## Hotfix: Fix News Thumbnail - BH16`)
+- BugHerd ticket IDs preserved and surfaced in headings
+- Noise words removed, typos cleaned up
+- One bullet per distinct piece of work
 
-### Keyboard Shortcuts
-- `Ctrl+Shift+P` → "Give Me Hours: Open Settings"
-- `Ctrl+Shift+P` → "Give Me Hours: Open Welcome Page"
+**Unchecked:** Returns a plain grouped commit log — no AI, no processing, just commits under branch headings. Useful when Copilot isn't available or you want the raw data.
+
+> **Requires GitHub Copilot** to be installed and active in VSCode for AI summaries. Falls back to raw log automatically if no model is available.
+
+## 🔧 Interface Controls
+
+| Control | Description |
+|---|---|
+| **Day / Week** dropdown | Switch between single-day and weekly view |
+| **Date picker** | Navigate to any week |
+| **Decimal / Chrono** dropdown | Toggle between decimal hours (1.5) and clock format (1:30) |
+| **Refresh** button | Force re-scan of all repositories |
+| **Round hours** checkbox | Apply rounding and startup time to displayed hours |
+| **Use AI commit summary** checkbox | Toggle LLM summarization on/off |
+| **Open Settings** button | Jump to extension settings |
 
 ## 🛠️ Requirements
 
-- **VSCode**: Version 1.103.0 or higher
-- **Git**: Installed and configured with global user name
-- **Git Repositories**: Projects with commit history in a common folder
+- **VSCode**: 1.103.0 or higher
+- **Git**: Installed and configured with a global user name
+- **GitHub Copilot** _(optional)_: Required for AI commit summaries
 
-### Setup Git User
 ```bash
 git config --global user.name "Your Name"
 git config --global user.email "your.email@example.com"
 ```
 
-## 🎨 Customization
-
-### VSCode Theme Integration
-The extension automatically adapts to your VSCode theme:
-- Dark themes: Uses dark color palette
-- Light themes: Uses light color palette
-- High contrast themes: Maintains accessibility
-
-### Summary Display
-Toggle commit summaries on/off to customize your view:
-- **With summaries**: See what you worked on
-- **Without summaries**: Clean, minimal hours-only view
-
 ## 🔍 Troubleshooting
 
-### "Git global username is not set"
-**Solution**: Run `git config --global user.name "Your Name"` in terminal
+**"Git global username is not set"**
+Run `git config --global user.name "Your Name"` in terminal.
 
-### "Please configure a working directory"
-**Solution**: Click "Select Folder" and choose the folder containing your git repositories
+**"Please configure a working directory"**
+Click "Select Folder" and choose the folder containing your git repositories.
 
-### Status bar not showing hours
-**Possible causes**:
-- No commits made today
+**Summary shows "No activity found for this day"**
+The summary queries the same date range as the table. If the table shows hours but summary shows nothing, check that your git global username exactly matches the author name in those commits.
+
+**AI summary falls back to raw log**
+GitHub Copilot is not installed or not signed in. Install Copilot and reload VSCode.
+
+**Status bar not showing hours**
+- No commits found for the current week
 - Working directory not configured
-- Git repositories don't contain commits from you
-
-### Extension not loading
-**Solution**: Check VSCode extension is activated. Look for status bar item on startup.
+- Git repositories don't contain commits from your configured username
 
 ## 📁 Project Structure
 
 ```
-give-me-hours/
-├── give-me-hours.js      # Core calculation engine
-├── hours-panel.html      # Main webview interface
-├── extension.js          # VSCode extension logic
-├── package.json          # Extension manifest
-├── README.md            # This file
-└── DEVELOPMENT_NOTES.md # Development documentation
+give-me-hours-vscode-extension/
+├── extension.js          # VSCode extension host logic
+├── give-me-hours.js      # Core git scanning and hours calculation engine
+├── src/
+│   ├── App.jsx           # Main React UI
+│   ├── components/       # ResultsTable, GetWorkSummaryButton, etc.
+│   └── utils/            # hours.js, summary.js, dateUtils.js
+├── build/                # Compiled React app (committed)
+└── package.json          # Extension manifest and settings
 ```
 
-## 🤝 Contributing
+## 🏗️ Development
 
-Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
+Run from the command line against any directory:
+```bash
+node give-me-hours.js /path/to/your/repos
+```
 
-### Development Setup
-1. Clone the repository
-2. Open in VSCode
-3. Press `F5` to run in Extension Development Host
-4. Make changes and test
-5. Submit pull request
+Inspect raw git output for a date range:
+```bash
+git log --pretty=format:'%at|%s' --reverse \
+  --since="2025-09-01" --before="2025-09-02" \
+  --author="Your Name"
+```
+
+Build the React webview after UI changes:
+```bash
+npm run build
+```
+
+### Publishing to VSCode Marketplace
+
+```bash
+npm version patch   # bug fix
+npm version minor   # new feature
+npm version major   # breaking change
+
+vsce package
+vsce publish patch -p YOUR_PERSONAL_ACCESS_TOKEN
+```
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Inspired by the original bash script concept
-- Built with the VSCode Extension API
-- Uses VSCode's theming system for seamless integration
-
-## 🔗 Links
-
-- [VSCode Extension API](https://code.visualstudio.com/api)
-- [Git Documentation](https://git-scm.com/doc)
-- [Issue Tracker](https://github.com/your-repo/give-me-hours/issues)
-
----
-
-**Happy coding and time tracking! 🚀**
-
-# Development
-To run in any directory, try the following, pointing to your working directory:
-```bash
-node give-me-hours.js /Users/francoispeloquin/Web
-```
-
-To review what Git is logging in each folder, use:
-```bash
-git log --pretty=format:'%at|%s' --reverse --since="2025-09-01"  --before="2025-09-02" --author="Francois Peloquin"
-```
-
-# Developemt
-
-## VSCode Marketplace
-Publish a new patch + publish:
-```bash
-# Update the version
-npm version patch  # for bug fixes (1.0.0 -> 1.0.1)
-npm version minor  # for new features (1.0.0 -> 1.1.0)
-npm version major  # for breaking changes (1.0.0 -> 2.0.0)
-
-# Package the extension
-vsce package
-vsce package
-
-# Publish it
-vsce publish
-vsce publish -p YOUR_PERSONAL_ACCESS_TOKEN
-
-# OR increment a patch and publish it
-vsce publish patch -p YOUR_PERSONAL_ACCESS_TOKEN
-```
+MIT — see [LICENSE](LICENSE) for details.
