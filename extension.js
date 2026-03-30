@@ -394,7 +394,9 @@ ${commitBlock}`;
 			const workingDirectory = getWorkingDirectory();
 
 			const duration = parseDuration(config.duration);
-			// Keep the original human-readable string for display; use parsed seconds for calculations
+			const durationDisplay = config.duration; // e.g. "1h" — for display only
+			config.duration = String(duration);       // seconds string — used by calculateWorkingHours
+			config.durationDisplay = durationDisplay;
 
 			// Create GiveMeHours instance with user settings
 			// Always fetch summaries since we now toggle visibility with JS
