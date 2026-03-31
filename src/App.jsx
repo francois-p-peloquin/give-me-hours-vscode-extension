@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { VSCodeButton, VSCodeTextField, VSCodeDropdown, VSCodeOption, VSCodeCheckbox } from '@vscode/webview-ui-toolkit/react';
+import {
+  VSCodeButton,
+  VSCodeTextField,
+  VSCodeDropdown,
+  VSCodeOption,
+  VSCodeCheckbox,
+} from '@vscode/webview-ui-toolkit/react';
 import './App.css';
 import ResultsTable from './components/ResultsTable';
 import Configuration from './components/Configuration';
@@ -54,7 +60,7 @@ function App() {
           setData({
             ...message.data,
             startOfWeek: createDate(message.data.dateRange.startOfWeek),
-            endOfWeek: createDate(message.data.dateRange.endOfWeek)
+            endOfWeek: createDate(message.data.dateRange.endOfWeek),
           });
           setError(null);
           setLoading(false);
@@ -116,25 +122,43 @@ function App() {
       <div className="header">
         <h1>Give Me Hours</h1>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
-          <VSCodeDropdown value={display} onChange={e => setDisplay(e.target.value)}>
+          <VSCodeDropdown value={display} onChange={(e) => setDisplay(e.target.value)}>
             <VSCodeOption value="Day">Day</VSCodeOption>
             <VSCodeOption value="Week">Week</VSCodeOption>
           </VSCodeDropdown>
           <VSCodeTextField type="date" value={date} onChange={handleDateChange} />
-          <VSCodeDropdown value={timeFormat} onChange={e => setTimeFormat(e.target.value)}>
+          <VSCodeDropdown value={timeFormat} onChange={(e) => setTimeFormat(e.target.value)}>
             <VSCodeOption value="Decimal">Decimal</VSCodeOption>
             <VSCodeOption value="Chrono">Chrono</VSCodeOption>
           </VSCodeDropdown>
           <VSCodeButton onClick={() => handleRefresh(date)} disabled={isRefreshing}>
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </VSCodeButton>
-          <VSCodeCheckbox checked={roundHours} onChange={e => setRoundHours(e.target.checked)}>Round hours</VSCodeCheckbox>
-          <VSCodeCheckbox checked={useAISummary} onChange={e => setUseAISummary(e.target.checked)}>Use AI commit summary</VSCodeCheckbox>
-          <VSCodeButton onClick={() => window.vscode.postMessage({ command: 'openSettings' })}>Open settings</VSCodeButton>
+          <VSCodeCheckbox checked={roundHours} onChange={(e) => setRoundHours(e.target.checked)}>
+            Round hours
+          </VSCodeCheckbox>
+          <VSCodeCheckbox
+            checked={useAISummary}
+            onChange={(e) => setUseAISummary(e.target.checked)}
+          >
+            Use AI commit summary
+          </VSCodeCheckbox>
+          <VSCodeButton onClick={() => window.vscode.postMessage({ command: 'openSettings' })}>
+            Open settings
+          </VSCodeButton>
         </div>
       </div>
       {config && <Configuration config={config} />}
-      <ResultsTable results={results} date={date} display={display} roundHours={roundHours} config={config} timeFormat={timeFormat} isRefreshing={isRefreshing} useAISummary={useAISummary} />
+      <ResultsTable
+        results={results}
+        date={date}
+        display={display}
+        roundHours={roundHours}
+        config={config}
+        timeFormat={timeFormat}
+        isRefreshing={isRefreshing}
+        useAISummary={useAISummary}
+      />
     </div>
   );
 }
