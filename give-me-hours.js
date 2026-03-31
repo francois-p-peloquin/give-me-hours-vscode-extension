@@ -3,7 +3,20 @@ const fs = require('fs');
 const path = require('path');
 const process = require('process');
 const Summary = require('./src/utils/summary');
-const { createDate } = require('./src/utils/dateUtils');
+
+// Inline createDate to avoid ESM import issues when running via Node directly
+const createDate = (...args) => {
+    if (args.length === 1 && args[0] instanceof Date) return new Date(args[0]);
+    if (args.length === 1 && typeof args[0] === 'string') {
+        const [year, month, day] = args[0].split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }
+    if (args.length === 0) {
+        const t = new Date();
+        return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    }
+    return new Date(...args);
+};
 
 class GiveMeHours {
     constructor(options = {}) {
@@ -320,51 +333,156 @@ module.exports = GiveMeHours;
 
 // This block allows the script to be run directly from the command line
 if (require.main === module) {
-    async function main() {
-        try {
-            // Get directory from command line arguments, or use current directory
-            const directoryPath = process.argv[2] || process.cwd();
-            const dateArg = process.argv[3] || 'today';
+    function parseArgs(argv) {
+        const args = argv.slice(2);
+        const opts = {
+            directories: [],
+            date: 'today',
+            duration: '1h',
+            rounding: 0.25,
+            minTime: 0.5,
+            words: 50,
+            debug: false,
+            json: false,
+        };
 
-            console.log(`Calculating hours for "${directoryPath}" for "${dateArg}"...`);
+        const helpText = `
+Usage: node give-me-hours.js [directory...] [options]
 
-            const giveMeHours = new GiveMeHours({
-                duration: 3600,      // Default: 1 hour
-                hoursRounding: 0.25, // Default: 15 minutes
-                projectStartupTime: 0.5, // Default: 30 minutes
-                showSummary: true,
-                maxWords: 50,
-                debug: true       // Enable debug mode
-            });
+Arguments:
+  directory          One or more paths to scan (default: current directory)
 
-            const result = await giveMeHours.getHoursForDirectory(directoryPath, dateArg);
+Options:
+  --date <value>     Date to calculate for: today, yesterday, or YYYY-MM-DD (default: today)
+  --duration <dur>   Max gap between commits to count as same session, e.g. 1h, 30m, 90m (default: 1h)
+  --rounding <n>     Round hours up to nearest N, e.g. 0.25 for 15-min increments (default: 0.25)
+  --min-time <n>     Minimum hours to count per isolated commit (default: 0.5)
+  --words <n>        Max words in commit summary output (default: 50)
+  --debug            Show git commands and per-commit interval details
+  --json             Output raw JSON result instead of formatted text
+  --help             Show this help message
 
+Examples:
+  node give-me-hours.js ~/Web
+  node give-me-hours.js ~/Web/my-project --date yesterday
+  node give-me-hours.js ~/Web ~/Work --date 2026-03-28 --duration 2h
+  node give-me-hours.js ~/Web --rounding 0.5 --min-time 0.25 --debug
+`;
 
-            console.log(`
-                ${JSON.stringify(result, null, 2)}
----
-
-Results for ${result.dateRange.start} to ${result.dateRange.end} ---
-`);
-            console.log(`Git Username: ${result.gitUsername}
-`);
-
-            if (result.results.length > 0) {
-                result.results.forEach(res => {
-                    console.log(`- ${res.folder}: ${res.hours} (${res.hours})`);
-                    if (res.summary) {
-                        console.log(`  Summary: ${res.summary}`);
-                    }
-                });
-                console.log(`
-Total: ${result.total.formatted}`);
+        for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
+            if (arg === '--help' || arg === '-h') {
+                console.log(helpText);
+                process.exit(0);
+            } else if (arg === '--debug') {
+                opts.debug = true;
+            } else if (arg === '--json') {
+                opts.json = true;
+            } else if (arg === '--date' && args[i + 1]) {
+                opts.date = args[++i];
+            } else if (arg === '--duration' && args[i + 1]) {
+                opts.duration = args[++i];
+            } else if (arg === '--rounding' && args[i + 1]) {
+                opts.rounding = parseFloat(args[++i]);
+            } else if (arg === '--min-time' && args[i + 1]) {
+                opts.minTime = parseFloat(args[++i]);
+            } else if (arg === '--words' && args[i + 1]) {
+                opts.words = parseInt(args[++i], 10);
+            } else if (!arg.startsWith('--')) {
+                opts.directories.push(arg);
             } else {
-                console.log('No activity found for the specified period.');
+                console.error(`Unknown option: ${arg}. Run with --help for usage.`);
+                process.exit(1);
+            }
+        }
+
+        if (opts.directories.length === 0) {
+            opts.directories.push(process.cwd());
+        }
+
+        return opts;
+    }
+
+    function parseDurationStr(durationStr) {
+        const match = durationStr.match(/^([0-9]*\.?[0-9]+)([hms]?)$/);
+        if (!match) return 3600;
+        const value = parseFloat(match[1]);
+        switch (match[2]) {
+            case 'h': case '': return Math.floor(value * 3600);
+            case 'm': return Math.floor(value * 60);
+            case 's': return Math.floor(value);
+            default: return 3600;
+        }
+    }
+
+    async function main() {
+        const opts = parseArgs(process.argv);
+        const durationSeconds = parseDurationStr(opts.duration);
+
+        const giveMeHours = new GiveMeHours({
+            duration: durationSeconds,
+            minCommitTime: opts.minTime,
+            maxWords: opts.words,
+            debug: opts.debug,
+        });
+
+        try {
+            const allResults = [];
+
+            for (const dir of opts.directories) {
+                const resolvedDir = path.resolve(dir);
+                if (!opts.json) {
+                    console.log(`\nScanning: ${resolvedDir} (${opts.date})`);
+                }
+                const result = await giveMeHours.getHoursForDirectory(resolvedDir, opts.date);
+                allResults.push({ dir: resolvedDir, result });
+            }
+
+            if (opts.json) {
+                console.log(JSON.stringify(allResults.length === 1 ? allResults[0].result : allResults, null, 2));
+                return;
+            }
+
+            for (const { dir, result } of allResults) {
+                if (allResults.length > 1) {
+                    console.log(`\n── ${dir} ──`);
+                }
+                console.log(`Git user : ${result.gitUsername}`);
+                console.log(`Week     : ${result.dateRange.startOfWeek} → ${result.dateRange.endOfWeek}`);
+                console.log(`Duration : ${opts.duration}  |  Rounding: ${opts.rounding}h  |  Min time: ${opts.minTime}h\n`);
+
+                if (result.results.length === 0) {
+                    console.log('No activity found for this period.');
+                    continue;
+                }
+
+                // Group commits by date for display
+                const byDate = {};
+                for (const folderResult of result.results) {
+                    if (folderResult.data.length > 0 && folderResult.data[0].commits) {
+                        for (const commit of folderResult.data[0].commits) {
+                            const key = `${commit.commitDate}  ${folderResult.folder}`;
+                            if (!byDate[key]) byDate[key] = [];
+                            byDate[key].push(commit);
+                        }
+                    }
+                }
+
+                for (const [key, commits] of Object.entries(byDate).sort()) {
+                    const totalSeconds = giveMeHours.calculateWorkingHours(
+                        commits.map(c => `${c.timestamp}|${c.author}|${c.message}|${c.branch}`).join('\n')
+                    );
+                    const hours = (totalSeconds / 3600).toFixed(2);
+                    console.log(`  ${key}  →  ${hours}h`);
+                    if (opts.debug) {
+                        commits.forEach(c => console.log(`    [${c.branch || 'unknown'}] ${c.message}`));
+                    }
+                }
             }
 
         } catch (error) {
-            console.error(`
-Error: ${error.message}`);
+            console.error(`Error: ${error.message}`);
+            if (opts.debug) console.error(error.stack);
             process.exit(1);
         }
     }
