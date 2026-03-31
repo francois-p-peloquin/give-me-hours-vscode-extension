@@ -301,8 +301,6 @@ class GiveMeHours {
                 }
             }
 
-            console.log(results);
-
         } catch (error) {
             throw new Error(`Error reading directory ${directoryPath}: ${error.message}`);
         }
