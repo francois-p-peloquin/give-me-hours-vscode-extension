@@ -125,10 +125,44 @@ give-me-hours-vscode-extension/
 
 ## 🏗️ Development
 
-Run from the command line against any directory:
+### Running the engine manually
+
+`give-me-hours.js` can be run directly with Node for fast testing without launching the extension:
+
 ```bash
-node give-me-hours.js /path/to/your/repos
+# Scan a directory for today's hours
+node give-me-hours.js ~/Web
+
+# Specific date
+node give-me-hours.js ~/Web/my-project --date 2026-03-28
+
+# Multiple directories at once
+node give-me-hours.js ~/Web ~/Work --date yesterday
+
+# Custom session gap and rounding
+node give-me-hours.js ~/Web --duration 2h --rounding 0.5 --min-time 0.25
+
+# Show per-commit breakdown
+node give-me-hours.js ~/Web --date today --debug
+
+# Get raw JSON output (useful for piping or inspection)
+node give-me-hours.js ~/Web --json
+
+# Full options reference
+node give-me-hours.js --help
 ```
+
+**Available options:**
+
+| Flag | Default | Description |
+|---|---|---|
+| `--date` | `today` | `today`, `yesterday`, or `YYYY-MM-DD` |
+| `--duration` | `1h` | Max gap between commits to count as one session (`1h`, `30m`, etc.) |
+| `--rounding` | `0.25` | Round up to nearest N hours |
+| `--min-time` | `0.5` | Minimum hours credited per isolated commit |
+| `--words` | `50` | Max words in summary output |
+| `--debug` | off | Print git commands and per-commit intervals |
+| `--json` | off | Output raw JSON instead of formatted text |
 
 Inspect raw git output for a date range:
 ```bash
