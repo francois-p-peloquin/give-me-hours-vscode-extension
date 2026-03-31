@@ -38,13 +38,12 @@ const processResults = (results, roundHours, config, timeFormat) => {
   }
   return processed;
 };
-
 const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, isRefreshing, useAISummary }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
   const processedResults = useMemo(() => processResults(results, roundHours, config, timeFormat), [results, roundHours, config, timeFormat]);
 
-  if (!processedResults || processedResults.length === 0) {
+  if (!isRefreshing && (!processedResults || processedResults.length === 0)) {
     return <p>No results to display.</p>;
   }
 
@@ -70,7 +69,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
   if (display === 'Day') {
     const dayResults = processedResults.filter(result => result.date === date);
 
-    if (dayResults.length === 0) {
+    if (!isRefreshing && dayResults.length === 0) {
       return <p>No results for this day.</p>;
     }
 
