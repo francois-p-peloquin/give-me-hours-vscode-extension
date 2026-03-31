@@ -133,11 +133,17 @@ give-me-hours-vscode-extension/
 # Scan a directory for today's hours
 node give-me-hours.js ~/Web
 
-# Specific date
+# Specific date (single day)
 node give-me-hours.js ~/Web/my-project --date 2026-03-28
+
+# Full week view
+node give-me-hours.js ~/Web/my-project --weekOf 2026-03-28
 
 # Multiple directories at once
 node give-me-hours.js ~/Web ~/Work --date yesterday
+
+# Disable rounding to see raw unrounded hours
+node give-me-hours.js ~/Web --rounding 0
 
 # Custom session gap and rounding
 node give-me-hours.js ~/Web --duration 2h --rounding 0.5 --min-time 0.25
@@ -156,9 +162,10 @@ node give-me-hours.js --help
 
 | Flag | Default | Description |
 |---|---|---|
-| `--date` | `today` | `today`, `yesterday`, or `YYYY-MM-DD` |
+| `--date` | `today` | Show a single day: `today`, `yesterday`, or `YYYY-MM-DD` |
+| `--weekOf` | — | Show the full week containing this date (mutually exclusive with `--date`) |
 | `--duration` | `1h` | Max gap between commits to count as one session (`1h`, `30m`, etc.) |
-| `--rounding` | `0.25` | Round up to nearest N hours |
+| `--rounding` | `0.25` | Round up to nearest N hours; `0` to disable |
 | `--min-time` | `0.5` | Minimum hours credited per isolated commit |
 | `--words` | `50` | Max words in summary output |
 | `--debug` | off | Print git commands and per-commit intervals |

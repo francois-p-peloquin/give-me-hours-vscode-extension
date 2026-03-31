@@ -500,12 +500,21 @@ Examples:
                     continue;
                 }
 
+                let lastDate = null;
                 for (const [key, commits] of Object.entries(byDate).sort()) {
-                    const totalSeconds = giveMeHours.calculateWorkingHours(
+                    let totalSeconds = giveMeHours.calculateWorkingHours(
                         commits.map(c => `${c.timestamp}|${c.author}|${c.message}|${c.branch}`).join('\n')
                     );
+                    if (opts.rounding > 0) {
+                        totalSeconds = Math.floor(Math.ceil(totalSeconds / 3600 / opts.rounding) * opts.rounding * 3600);
+                    }
                     const hours = (totalSeconds / 3600).toFixed(2);
-                    console.log(`  ${key}  →  ${hours}h`);
+                    const currentDate = key.slice(0, 10);
+                    if (isWeekMode && lastDate && currentDate !== lastDate) {
+                        console.log('');
+                    }
+                    lastDate = currentDate;
+                    console.log(`${key}  →  ${hours}h`);
                     if (opts.debug) {
                         commits.forEach(c => console.log(`    [${c.branch || 'unknown'}] ${c.message}`));
                     }
