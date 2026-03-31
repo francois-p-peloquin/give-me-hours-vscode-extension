@@ -75,7 +75,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
     }
 
     headers = ['Folder', formatDate(new Date(date))];
-    rows = dayResults.map(result => [result.folder, result.hours]);
+    rows = dayResults.map(result => [result.folder, result]);
 
   } else if (display === 'Week') {
     const weekDates = getWeekDates(date);
@@ -91,7 +91,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
     }, {});
 
     rows = Object.keys(resultsByFolder).map(folder => {
-      const row = [folder];
+      const row = /** @type {any[]} */ ([folder]);
       let totalSeconds = 0;
       weekDates.forEach(d => {
         const dateString = d.toISOString().slice(0, 10);
