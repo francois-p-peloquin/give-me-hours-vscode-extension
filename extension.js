@@ -155,7 +155,6 @@ function activate(context) {
 		// Handle messages from webview
 		panel.webview.onDidReceiveMessage(
 			async message => {
-				console.log('Debug:', message.command, message);
 				switch (message.command) {
 					case 'ready':
 						// Send prefetched data if available
@@ -183,8 +182,6 @@ function activate(context) {
 								openLabel: 'Select Working Directory'
 							});
 
-							console.log('Folder dialog result:', folderUri);
-
 							if (folderUri && folderUri[0]) {
 								const config = vscode.workspace.getConfiguration('giveMeHours');
 								await config.update('workingDirectory', folderUri[0].fsPath, vscode.ConfigurationTarget.Global);
@@ -198,7 +195,6 @@ function activate(context) {
 						}
 						break;
 					case 'getWorkSummary':
-						console.log('getWorkSummary command received:', message.folder, message.date, message.requestId);
 						try {
 							const summary = await getCommitSummaryForFolder(message.folder, message.date, message.useAISummary);
 							panel.webview.postMessage({
@@ -414,7 +410,6 @@ ${commitBlock}`;
 			// Add config info to result
 			result.config = config;
 
-			// console.log('Calculated hours result:', result, duration);
 
 			prefetchedData = result;
 

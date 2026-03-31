@@ -38,13 +38,12 @@ const processResults = (results, roundHours, config, timeFormat) => {
   }
   return processed;
 };
-
 const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, isRefreshing, useAISummary }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
   const processedResults = useMemo(() => processResults(results, roundHours, config, timeFormat), [results, roundHours, config, timeFormat]);
 
-  if (!processedResults || processedResults.length === 0) {
+  if (!isRefreshing && (!processedResults || processedResults.length === 0)) {
     return <p>No results to display.</p>;
   }
 
@@ -70,12 +69,12 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
   if (display === 'Day') {
     const dayResults = processedResults.filter(result => result.date === date);
 
-    if (dayResults.length === 0) {
+    if (!isRefreshing && dayResults.length === 0) {
       return <p>No results for this day.</p>;
     }
 
     headers = ['Folder', formatDate(new Date(date))];
-    rows = dayResults.map(result => [result.folder, result.hours]);
+    rows = dayResults.map(result => [result.folder, result]);
 
   } else if (display === 'Week') {
     const weekDates = getWeekDates(date);
@@ -91,7 +90,7 @@ const ResultsTable = ({ results, date, display, roundHours, config, timeFormat, 
     }, {});
 
     rows = Object.keys(resultsByFolder).map(folder => {
-      const row = [folder];
+      const row = /** @type {any[]} */ ([folder]);
       let totalSeconds = 0;
       weekDates.forEach(d => {
         const dateString = d.toISOString().slice(0, 10);
