@@ -15,6 +15,7 @@ const createDate = (...args) => {
         const t = new Date();
         return new Date(t.getFullYear(), t.getMonth(), t.getDate());
     }
+    // @ts-ignore — variadic Date constructor, args are caller-typed
     return new Date(...args);
 };
 
@@ -266,16 +267,19 @@ class GiveMeHours {
 
         try {
             // First, check if the directoryPath itself is a git repository
-            const isGitRepo = (dir) => {
+            const getGitRoot = (dir) => {
                 try {
-                    execSync('git rev-parse --is-inside-work-tree', { cwd: dir, stdio: 'ignore' });
-                    return true;
+                    return execSync('git rev-parse --show-toplevel', { cwd: dir, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
                 } catch (e) {
-                    return false;
+                    return null;
                 }
             };
 
-            if (isGitRepo(directoryPath)) {
+            const gitRoot = getGitRoot(directoryPath);
+            const isRepoRoot = gitRoot && path.resolve(gitRoot) === path.resolve(directoryPath);
+
+            if (isRepoRoot) {
+                // The target directory is itself a git repo — scan just this repo, not subdirectories
                 if (this.debug) {
                     console.log(`\nChecking git repository: ${directoryPath}`);
                 }
@@ -283,26 +287,28 @@ class GiveMeHours {
                 if (result.commits.length) {
                     folderData[path.basename(directoryPath)] = { folder: path.basename(directoryPath), data: [result] };
                 }
-            }
+            } else {
+                // The target directory is a container — scan subdirectories for repos
+                const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
 
-            const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
+                for (const entry of entries) {
+                    if (entry.isDirectory() && !entry.name.startsWith('.')) {
+                        const subDir = path.join(directoryPath, entry.name);
+                        const subRoot = getGitRoot(subDir);
+                        if (subRoot && path.resolve(subRoot) === path.resolve(subDir)) {
+                            if (this.debug) {
+                                console.log(`\nChecking git repository: ${subDir}`);
+                            }
 
-            for (const entry of entries) {
-                if (entry.isDirectory() && !entry.name.startsWith('.')) {
-                    const subDir = path.join(directoryPath, entry.name);
-                    if (isGitRepo(subDir)) {
-                        if (this.debug) {
-                            console.log(`\nChecking git repository: ${subDir}`);
-                        }
+                            if (!folderData[entry.name]) {
+                                folderData[entry.name] = { folder: entry.name, data: [] };
+                            }
 
-                        if (!folderData[entry.name]) {
-                            folderData[entry.name] = { folder: entry.name, data: [] };
-                        }
+                            const result = this.getHoursForRepo(startOfWeek, endOfWeek, gitUsername, subDir);
 
-                        const result = this.getHoursForRepo(startOfWeek, endOfWeek, gitUsername, subDir);
-
-                        if (result.commits.length) {
-                            folderData[entry.name].data.push(result);
+                            if (result.commits.length) {
+                                folderData[entry.name].data.push(result);
+                            }
                         }
                     }
                 }
@@ -338,6 +344,7 @@ if (require.main === module) {
         const opts = {
             directories: [],
             date: 'today',
+            weekOf: null,
             duration: '1h',
             rounding: 0.25,
             minTime: 0.5,
@@ -353,7 +360,8 @@ Arguments:
   directory          One or more paths to scan (default: current directory)
 
 Options:
-  --date <value>     Date to calculate for: today, yesterday, or YYYY-MM-DD (default: today)
+  --date <value>     Show a single day: today, yesterday, or YYYY-MM-DD (default: today)
+  --weekOf <value>   Show the full week containing this date: today, yesterday, or YYYY-MM-DD
   --duration <dur>   Max gap between commits to count as same session, e.g. 1h, 30m, 90m (default: 1h)
   --rounding <n>     Round hours up to nearest N, e.g. 0.25 for 15-min increments (default: 0.25)
   --min-time <n>     Minimum hours to count per isolated commit (default: 0.5)
@@ -365,6 +373,7 @@ Options:
 Examples:
   node give-me-hours.js ~/Web
   node give-me-hours.js ~/Web/my-project --date yesterday
+  node give-me-hours.js ~/Web/my-project --weekOf 2026-03-28
   node give-me-hours.js ~/Web ~/Work --date 2026-03-28 --duration 2h
   node give-me-hours.js ~/Web --rounding 0.5 --min-time 0.25 --debug
 `;
@@ -378,6 +387,8 @@ Examples:
                 opts.debug = true;
             } else if (arg === '--json') {
                 opts.json = true;
+            } else if (arg === '--weekOf' && args[i + 1]) {
+                opts.weekOf = args[++i];
             } else if (arg === '--date' && args[i + 1]) {
                 opts.date = args[++i];
             } else if (arg === '--duration' && args[i + 1]) {
@@ -418,6 +429,16 @@ Examples:
     async function main() {
         const opts = parseArgs(process.argv);
         const durationSeconds = parseDurationStr(opts.duration);
+        const isWeekMode = opts.weekOf !== null;
+        // getHoursForDirectory always fetches the full week; use weekOf value if set, else date
+        const queryDate = isWeekMode ? opts.weekOf : opts.date;
+
+        // Resolve the single-day filter date string (YYYY-MM-DD) when in day mode
+        const resolveDateString = (val) => {
+            const d = val === 'today' ? new Date() : val === 'yesterday' ? new Date(Date.now() - 86400000) : new Date(val + 'T00:00:00');
+            return d.toISOString().slice(0, 10);
+        };
+        const filterDate = isWeekMode ? null : resolveDateString(opts.date);
 
         const giveMeHours = new GiveMeHours({
             duration: durationSeconds,
@@ -432,9 +453,10 @@ Examples:
             for (const dir of opts.directories) {
                 const resolvedDir = path.resolve(dir);
                 if (!opts.json) {
-                    console.log(`\nScanning: ${resolvedDir} (${opts.date})`);
+                    const label = isWeekMode ? `week of ${opts.weekOf}` : opts.date;
+                    console.log(`\nScanning: ${resolvedDir} (${label})`);
                 }
-                const result = await giveMeHours.getHoursForDirectory(resolvedDir, opts.date);
+                const result = await giveMeHours.getHoursForDirectory(resolvedDir, queryDate);
                 allResults.push({ dir: resolvedDir, result });
             }
 
@@ -448,7 +470,11 @@ Examples:
                     console.log(`\n── ${dir} ──`);
                 }
                 console.log(`Git user : ${result.gitUsername}`);
-                console.log(`Week     : ${result.dateRange.startOfWeek} → ${result.dateRange.endOfWeek}`);
+                if (isWeekMode) {
+                    console.log(`Week     : ${result.dateRange.startOfWeek} → ${result.dateRange.endOfWeek}`);
+                } else {
+                    console.log(`Date     : ${filterDate}`);
+                }
                 console.log(`Duration : ${opts.duration}  |  Rounding: ${opts.rounding}h  |  Min time: ${opts.minTime}h\n`);
 
                 if (result.results.length === 0) {
@@ -461,6 +487,7 @@ Examples:
                 for (const folderResult of result.results) {
                     if (folderResult.data.length > 0 && folderResult.data[0].commits) {
                         for (const commit of folderResult.data[0].commits) {
+                            if (!isWeekMode && commit.commitDate !== filterDate) continue;
                             const key = `${commit.commitDate}  ${folderResult.folder}`;
                             if (!byDate[key]) byDate[key] = [];
                             byDate[key].push(commit);
@@ -468,12 +495,26 @@ Examples:
                     }
                 }
 
+                if (Object.keys(byDate).length === 0) {
+                    console.log('No activity found for this period.');
+                    continue;
+                }
+
+                let lastDate = null;
                 for (const [key, commits] of Object.entries(byDate).sort()) {
-                    const totalSeconds = giveMeHours.calculateWorkingHours(
+                    let totalSeconds = giveMeHours.calculateWorkingHours(
                         commits.map(c => `${c.timestamp}|${c.author}|${c.message}|${c.branch}`).join('\n')
                     );
+                    if (opts.rounding > 0) {
+                        totalSeconds = Math.floor(Math.ceil(totalSeconds / 3600 / opts.rounding) * opts.rounding * 3600);
+                    }
                     const hours = (totalSeconds / 3600).toFixed(2);
-                    console.log(`  ${key}  →  ${hours}h`);
+                    const currentDate = key.slice(0, 10);
+                    if (isWeekMode && lastDate && currentDate !== lastDate) {
+                        console.log('');
+                    }
+                    lastDate = currentDate;
+                    console.log(`${key}  →  ${hours}h`);
                     if (opts.debug) {
                         commits.forEach(c => console.log(`    [${c.branch || 'unknown'}] ${c.message}`));
                     }
