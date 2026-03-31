@@ -1,44 +1,43 @@
 export const calculateWorkingHours = (commits, roundHours, config) => {
-    const { duration, minCommitTime, hoursRounding, projectStartupTime } = config;
-    let totalSeconds = 0;
-    let prevTimestamp = null;
+  const { duration, minCommitTime, hoursRounding, projectStartupTime } = config;
+  let totalSeconds = 0;
+  let prevTimestamp = null;
 
-    if (commits.length === 1) {
+  if (commits.length === 1) {
+    totalSeconds += minCommitTime * 3600;
+  } else {
+    for (const commit of commits) {
+      const currentTimestamp = commit.timestamp;
+
+      if (prevTimestamp !== null) {
+        const interval = currentTimestamp - prevTimestamp;
+
+        if (interval <= duration) {
+          totalSeconds += interval;
+        } else {
+          totalSeconds += minCommitTime * 3600;
+          if (roundHours) {
+            totalSeconds += projectStartupTime * 3600;
+          }
+        }
+      } else {
         totalSeconds += minCommitTime * 3600;
-    } else {
-        for (const commit of commits) {
-            const currentTimestamp = commit.timestamp;
+        // if (roundHours) {
+        //     totalSeconds += projectStartupTime * 3600;
+        // }
+      }
 
-            if (prevTimestamp !== null) {
-                const interval = currentTimestamp - prevTimestamp;
-
-                if (interval <= duration) {
-                    totalSeconds += interval;
-                } else {
-                    totalSeconds += minCommitTime * 3600;
-                    if (roundHours) {
-                        totalSeconds += projectStartupTime * 3600;
-                    }
-                }
-            }
-            else {
-                totalSeconds += minCommitTime * 3600;
-                // if (roundHours) {
-                //     totalSeconds += projectStartupTime * 3600;
-                // }
-            }
-
-            prevTimestamp = currentTimestamp;
-        }
+      prevTimestamp = currentTimestamp;
     }
+  }
 
-    if (roundHours && totalSeconds > 0) {
-        if (hoursRounding > 0) {
-            const hoursDecimal = totalSeconds / 3600;
-            const roundedHours = Math.ceil(hoursDecimal / hoursRounding) * hoursRounding;
-            totalSeconds = Math.floor(roundedHours * 3600);
-        }
+  if (roundHours && totalSeconds > 0) {
+    if (hoursRounding > 0) {
+      const hoursDecimal = totalSeconds / 3600;
+      const roundedHours = Math.ceil(hoursDecimal / hoursRounding) * hoursRounding;
+      totalSeconds = Math.floor(roundedHours * 3600);
     }
+  }
 
-    return totalSeconds;
+  return totalSeconds;
 };
