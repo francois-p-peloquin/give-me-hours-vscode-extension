@@ -8,8 +8,8 @@
     --vscode-button-background: var(--brand-teal-light);
     --vscode-button-foreground: #1a1a1a;
     --vscode-button-hoverBackground: var(--brand-teal-dark);
-    --vscode-textLink-foreground: var(--brand-teal-light);
-    --vscode-textLink-activeForeground: var(--brand-teal-dark);
+    --vscode-textLink-foreground: var(--brand-teal-medium);
+    --vscode-textLink-activeForeground: var(--brand-teal-light);
 }
 
 body {
@@ -189,6 +189,27 @@ vscode-data-grid-row[row-type="header"] {
     overflow: auto;
 }
 
+
+/* Pierce shadow DOM directly — VS Code injects theme tokens after our CSS,
+   so ::part() is the only reliable way to override button/link colors */
+vscode-button::part(control) {
+    background: var(--brand-teal-dark);
+    color: white;
+    border-color: var(--brand-teal-dark);
+}
+
+vscode-button::part(control):hover {
+    background: var(--brand-teal-medium);
+    border-color: var(--brand-teal-medium);
+}
+
+vscode-link::part(control) {
+    color: var(--brand-teal-medium);
+}
+
+vscode-link::part(control):hover {
+    color: var(--brand-teal-light);
+}
 
 .loading-row {
     padding: 20px;
