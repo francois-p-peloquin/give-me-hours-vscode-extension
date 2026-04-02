@@ -254,8 +254,18 @@ const ResultsTable = ({
 
               const formattedTotal = formatTime(totalSecondsForColumn, timeFormat);
 
+              const weekDates = display === 'Week' ? getWeekDates(date) : [];
+              const cellDate = display === 'Day' ? new Date(date) : weekDates[colIndex];
+              const isSelected = isDateSelected(display, date, cellDate);
+              const totalCellClassName = [
+                isSelected ? 'selected-date' : '',
+                header === 'Totals' ? 'text-right' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
+
               return (
-                <th key={colIndex + 1} className={header === 'Totals' ? 'text-right' : ''}>
+                <th key={colIndex + 1} className={totalCellClassName}>
                   <div className="data-cell">
                     <span className="data-cell-hours">
                       {formattedTotal}
