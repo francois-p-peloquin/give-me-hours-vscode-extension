@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ClipboardIcon from './ClipboardIcon';
 
 const CopyToClipboardButton = ({ textToCopy }) => {
   const [copied, setCopied] = useState(false);
@@ -20,10 +21,10 @@ const CopyToClipboardButton = ({ textToCopy }) => {
   return (
     <button
       onClick={handleCopy}
-      title={copied ? 'Coppied!' : 'Copy to clipboard'}
+      title={copied ? 'Copied!' : 'Copy to clipboard'}
       className="copy-button"
     >
-      {copied ? '✅' : '📋'}
+      <ClipboardIcon copied={copied} />
     </button>
   );
 };
