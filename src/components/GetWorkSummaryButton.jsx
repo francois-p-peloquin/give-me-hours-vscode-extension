@@ -1,16 +1,14 @@
-import { VSCodeButton, VSCodeLink } from '@vscode/webview-ui-toolkit/react';
 import React, { useState, useRef, useEffect } from 'react';
-import ClipboardIcon from './ClipboardIcon';
+import CopyButton from './CopyButton';
 
 const GetWorkSummaryButton = ({ folder, date, useAISummary }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const requestIdRef = useRef(null); // Use ref to store the requestId
+  const requestIdRef = useRef(/** @type {string | null} */ (null));
 
   useEffect(() => {
     const handleMessage = (event) => {
       const message = event.data;
-      // Only process messages that match our requestId
       if (message.requestId === requestIdRef.current) {
         switch (message.type) {
           case 'workSummaryResult':
@@ -31,47 +29,40 @@ const GetWorkSummaryButton = ({ folder, date, useAISummary }) => {
             setIsLoading(false);
             break;
         }
-        requestIdRef.current = null; // Clear requestId after processing
+        requestIdRef.current = null;
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []); // Empty dependency array means this effect runs once on mount and cleans up on unmount
+  }, []);
 
-  const handleClick = async () => {
+  const handleClick = () => {
     if (isLoading) return;
     setIsLoading(true);
-    setIsCopied(false); // Reset copied state
+    setIsCopied(false);
 
-    try {
-      const newRequestId =
-        Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      requestIdRef.current = newRequestId; // Store the new requestId
+    const newRequestId =
+      Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    requestIdRef.current = newRequestId;
 
-      window.vscode.postMessage({
-        command: 'getWorkSummary',
-        folder: folder,
-        date: date,
-        requestId: newRequestId,
-        useAISummary: useAISummary,
-      });
-    } catch (error) {
-      console.error('Error getting work summary:', error);
-      setIsLoading(false);
-    }
+    window.vscode.postMessage({
+      command: 'getWorkSummary',
+      folder,
+      date,
+      requestId: newRequestId,
+      useAISummary,
+    });
   };
 
   return (
-
-    <button
-    onClick={handleClick}
-    title={isCopied ? 'Copied!' : 'Get work summary'}
-    className="copy-button"
-    >
-      <span>{isLoading ? 'Loading...' : isCopied ? 'Copied!' : 'Summary'}</span>
-      <ClipboardIcon copied={isCopied} loading={isLoading} />
-    </button>
+    <CopyButton
+      label="Summary"
+      onCopy={handleClick}
+      loading={isLoading}
+      copied={isCopied}
+      className="summary-button"
+    />
   );
 };
 

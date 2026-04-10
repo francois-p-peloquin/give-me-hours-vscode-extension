@@ -5,7 +5,8 @@
 		"target": "ES2022",
 		"checkJs": true,
 		"lib": [
-			"ES2022"
+			"ES2022",
+			"DOM"
 		]
 	},
 	"exclude": [
