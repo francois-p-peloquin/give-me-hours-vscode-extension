@@ -1,5 +1,6 @@
 import { VSCodeButton, VSCodeLink } from '@vscode/webview-ui-toolkit/react';
 import React, { useState, useRef, useEffect } from 'react';
+import ClipboardIcon from './ClipboardIcon';
 
 const GetWorkSummaryButton = ({ folder, date, useAISummary }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -39,6 +40,7 @@ const GetWorkSummaryButton = ({ folder, date, useAISummary }) => {
   }, []); // Empty dependency array means this effect runs once on mount and cleans up on unmount
 
   const handleClick = async () => {
+    if (isLoading) return;
     setIsLoading(true);
     setIsCopied(false); // Reset copied state
 
@@ -61,15 +63,15 @@ const GetWorkSummaryButton = ({ folder, date, useAISummary }) => {
   };
 
   return (
-    <VSCodeLink
-      onClick={handleClick}
-      disabled={isLoading}
-      className="summmary-button"
-      title={isCopied ? 'Copied!' : 'Get work summary'}
+
+    <button
+    onClick={handleClick}
+    title={isCopied ? 'Copied!' : 'Get work summary'}
+    className="copy-button"
     >
-      {isLoading ? 'Loading...' : isCopied ? 'Copied!' : 'Summary'}
-      {isCopied ? ' ✅' : ' 📋'}
-    </VSCodeLink>
+      <span>{isLoading ? 'Loading...' : isCopied ? 'Copied!' : 'Summary'}</span>
+      <ClipboardIcon copied={isCopied} loading={isLoading} />
+    </button>
   );
 };
 

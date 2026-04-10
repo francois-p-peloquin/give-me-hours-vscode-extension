@@ -52,6 +52,10 @@ body {
     50% { opacity: 0.4; }
 }
 
+.pulse {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
 .error {
     color: var(--vscode-errorForeground);
     background-color: var(--vscode-inputValidation-errorBackground);
@@ -137,13 +141,21 @@ vscode-data-grid-row[row-type="header"] {
 .summary-button {
     white-space: nowrap;
 }
+.data-cell-hours {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
 .copy-button {
+    display: flex;
+    gap: 5px;
+    align-items: center;
     background: none;
     border: none;
     color: var(--vscode-foreground);
     cursor: pointer;
     font-size: 1em;
-    margin-left: 5px;
     padding: 0;
 }
 
