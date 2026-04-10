@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { getWeekDates } from '../utils/dateUtils';
 import { calculateWorkingHours } from '../utils/hours';
 import { formatTime } from '../utils/rounding';
-import CopyToClipboardButton from './CopyToClipboardButton';
+import CopyButton from './CopyButton';
 import GetWorkSummaryButton from './GetWorkSummaryButton';
 // Removed VSCodeLink import as it's no longer needed for copying
 
@@ -197,16 +197,11 @@ const ResultsTable = ({
                           emptyCell
                         ) : (
                           <>
-                            <span className="data-cell-hours">
-                              {cell.hours ? (
-                                <>
-                                  {cell.hours}
-                                  <CopyToClipboardButton textToCopy={cell.hours} />
-                                </>
-                              ) : (
-                                cell
-                              )}
-                            </span>
+                            {cell.hours ? (
+                              <CopyButton textToCopy={cell.hours} />
+                            ) : (
+                              <span className="data-cell-hours">{cell}</span>
+                            )}
                             {cellIndex > 0 && !cell.isTotal && (
                               <>
                                 <GetWorkSummaryButton
@@ -267,10 +262,7 @@ const ResultsTable = ({
               return (
                 <th key={colIndex + 1} className={totalCellClassName}>
                   <div className="data-cell">
-                    <span className="data-cell-hours">
-                      {formattedTotal}
-                      <CopyToClipboardButton textToCopy={formattedTotal} />
-                    </span>
+                    <CopyButton textToCopy={formattedTotal} />
                   </div>
                 </th>
               );
