@@ -159,6 +159,10 @@ vscode-data-grid-row[row-type="header"] {
     padding: 0;
 }
 
+.copy-button span {
+    font-size: 0.9em;
+}
+
 .copy-button:hover {
     color: var(--brand-teal-dark);
 }
