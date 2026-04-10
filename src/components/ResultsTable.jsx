@@ -6,6 +6,12 @@ import CopyButton from './CopyButton';
 import GetWorkSummaryButton from './GetWorkSummaryButton';
 // Removed VSCodeLink import as it's no longer needed for copying
 
+/**
+ * @param {any[]} results
+ * @param {boolean} roundHours
+ * @param {object} config
+ * @param {string} timeFormat
+ */
 const processResults = (results, roundHours, config, timeFormat) => {
   if (!results) {
     return [];
@@ -38,6 +44,18 @@ const processResults = (results, roundHours, config, timeFormat) => {
   }
   return processed;
 };
+/**
+ * @param {{
+ *   results: any[],
+ *   date: string,
+ *   display: string,
+ *   roundHours: boolean,
+ *   config: object,
+ *   timeFormat: string,
+ *   isRefreshing: boolean,
+ *   useAISummary: boolean,
+ * }} props
+ */
 const ResultsTable = ({
   results,
   date,

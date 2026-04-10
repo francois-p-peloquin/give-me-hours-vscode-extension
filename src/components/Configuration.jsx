@@ -2,6 +2,17 @@ import React from 'react';
 import { VSCodeDivider } from '@vscode/webview-ui-toolkit/react';
 import Accordion from './Accordion';
 
+/**
+ * @param {{ config: {
+ *   gitUsername: string,
+ *   duration: string,
+ *   durationDisplay?: string,
+ *   hoursRounding: number,
+ *   projectStartupTime: number,
+ *   minCommitTime: number,
+ *   workingDirectory?: string,
+ * }}} props
+ */
 function Configuration({ config }) {
   return (
     <Accordion title="Configuration">

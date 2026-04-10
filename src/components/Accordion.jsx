@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+/** @param {{ title: string, children: React.ReactNode }} props */
 const Accordion = ({ title, children }) => {
   const [isOpen, setIsOpen] = useState(false);
 

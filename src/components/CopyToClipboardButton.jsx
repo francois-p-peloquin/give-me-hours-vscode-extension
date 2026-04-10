@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ClipboardIcon from './ClipboardIcon';
 
+/** @param {{ textToCopy: string }} props */
 const CopyToClipboardButton = ({ textToCopy }) => {
   const [copied, setCopied] = useState(false);
 

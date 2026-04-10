@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import CopyButton from './CopyButton';
 
+/** @param {{ folder: string, date: string, useAISummary: boolean }} props */
 const GetWorkSummaryButton = ({ folder, date, useAISummary }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
