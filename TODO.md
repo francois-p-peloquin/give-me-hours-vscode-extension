@@ -3,6 +3,7 @@
 * Actionable:
   * [ ] Reduce duplicate repos (smartsweets, smartsweets-theme-3).
     - Locate same remotes, use that as source of truth
+  * [ ] Consider Git action as deploy
   * [x] Get hours from both remotes + and local (in case we have stash branches)
   * [x] Actually use a summary service. Right now, it's just concatenating the letters.
   * [x] Summary grabbing data from the wrong days. See Monday, October 27. It's grabbing messages from Sunday's commits.
