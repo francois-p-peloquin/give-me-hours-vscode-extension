@@ -7,8 +7,10 @@
 #     since both put the PR title in the commit message.
 #   - Or locally: run `npm version minor` (or `major`), then `git push --follow-tags`.
 #     The pushed tag points at HEAD, so that version is published as-is.
-#   - package.json version changed without a tag (e.g. edited in a PR): publishes
-#     that version and creates its tag.
+#   - package.json version changed without a tag and not yet on the Marketplace
+#     (e.g. edited in a PR): publishes that version and creates its tag.
+#   A version already live on the Marketplace is always bumped, even if its git tag
+#   is missing.
 #
 # Auth: Marketplace Trusted Publishing (GitHub OIDC), so there's no stored token.
 # The publisher needs a Trusted Publishing policy for this repo + `release.yml`
@@ -65,24 +67,35 @@ jobs:
 
           current=$(node -p "require('./package.json').version")
           tag="v$current"
+          ext=$(node -p "const p=require('./package.json'); p.publisher + '.' + p.name")
 
-          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-            if [ "$(git rev-list -n1 "$tag")" = "$(git rev-parse HEAD)" ]; then
-              echo "HEAD is already tagged $tag (manual release or re-run); publishing as-is."
+          # What's live on the Marketplace is the source of truth; git tags may be missing.
+          published=$(npx --yes @vscode/vsce@4 show "$ext" --json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).versions[0].version))')
+          if [ -z "$published" ]; then
+            echo "::error::Could not read the published version of $ext from the Marketplace."
+            exit 1
+          fi
+          echo "package.json: $current, Marketplace: $published"
+
+          tag_exists=false
+          git rev-parse -q --verify "refs/tags/$tag" >/dev/null && tag_exists=true
+
+          if $tag_exists && [ "$(git rev-list -n1 "$tag")" = "$(git rev-parse HEAD)" ]; then
+            echo "HEAD is already tagged $tag (manual release or re-run); publishing as-is."
+          elif [ "$current" = "$published" ] || $tag_exists; then
+            message=$(git log -1 --format=%B "$TRIGGER_SHA")
+            if grep -qi '\[major\]' <<<"$message"; then
+              bump=major
+            elif grep -qi '\[minor\]' <<<"$message"; then
+              bump=minor
             else
-              message=$(git log -1 --format=%B "$TRIGGER_SHA")
-              if grep -qi '\[major\]' <<<"$message"; then
-                bump=major
-              elif grep -qi '\[minor\]' <<<"$message"; then
-                bump=minor
-              else
-                bump=patch
-              fi
-              echo "$tag already released; bumping $bump."
-              npm version "$bump" -m "%s [skip ci]"
+              bump=patch
             fi
+            echo "$current already released; bumping $bump."
+            npm version "$bump" -m "%s [skip ci]"
           else
-            echo "$tag has no tag yet; tagging and publishing it."
+            echo "$current is new (not on the Marketplace, no tag); tagging and publishing it."
             git tag "$tag"
           fi
 
