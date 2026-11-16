@@ -164,6 +164,19 @@ function activate(context) {
     panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case 'copyToClipboard':
+            try {
+              await vscode.env.clipboard.writeText(String(message.text ?? ''));
+              panel.webview.postMessage({ type: 'copyResult', requestId: message.requestId });
+            } catch (error) {
+              console.error('Error copying to clipboard:', error);
+              panel.webview.postMessage({
+                type: 'copyError',
+                error: error.message,
+                requestId: message.requestId,
+              });
+            }
+            break;
           case 'ready':
             // Send prefetched data if available
             if (prefetchedData) {

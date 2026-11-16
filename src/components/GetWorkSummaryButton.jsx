@@ -1,70 +1,44 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import CopyButton from './CopyButton';
 
-/** @param {{ folder: string, date: string, useAISummary: boolean }} props */
-const GetWorkSummaryButton = ({ folder, date, useAISummary }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
-  const requestIdRef = useRef(/** @type {string | null} */ (null));
+/**
+ * Ask the extension for a work summary and resolve with its text.
+ * @param {{ folder: string, date: string, useAISummary: boolean }} params
+ * @returns {Promise<string>}
+ */
+const fetchWorkSummary = ({ folder, date, useAISummary }) =>
+  new Promise((resolve, reject) => {
+    const requestId = Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-  useEffect(() => {
     const handleMessage = (event) => {
       const message = event.data;
-      if (message.requestId === requestIdRef.current) {
-        switch (message.type) {
-          case 'workSummaryResult':
-            navigator.clipboard
-              .writeText(message.summary)
-              .then(() => {
-                setIsCopied(true);
-                setIsLoading(false);
-                setTimeout(() => setIsCopied(false), 1500);
-              })
-              .catch((err) => {
-                console.error('Failed to copy summary:', err);
-                setIsLoading(false);
-              });
-            break;
-          case 'workSummaryError':
-            console.error('Error from extension:', message.error);
-            setIsLoading(false);
-            break;
-        }
-        requestIdRef.current = null;
+      if (!message || message.requestId !== requestId) return;
+      if (message.type === 'workSummaryResult') {
+        window.removeEventListener('message', handleMessage);
+        resolve(message.summary);
+      } else if (message.type === 'workSummaryError') {
+        window.removeEventListener('message', handleMessage);
+        reject(new Error(message.error));
       }
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  const handleClick = () => {
-    if (isLoading) return;
-    setIsLoading(true);
-    setIsCopied(false);
-
-    const newRequestId =
-      Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    requestIdRef.current = newRequestId;
-
     window.vscode.postMessage({
       command: 'getWorkSummary',
       folder,
       date,
-      requestId: newRequestId,
+      requestId,
       useAISummary,
     });
-  };
+  });
 
-  return (
-    <CopyButton
-      label="Summary"
-      onCopy={handleClick}
-      loading={isLoading}
-      copied={isCopied}
-      className="summary-button"
-    />
-  );
-};
+/** @param {{ folder: string, date: string, useAISummary: boolean }} props */
+const GetWorkSummaryButton = ({ folder, date, useAISummary }) => (
+  <CopyButton
+    label="Summary"
+    getText={() => fetchWorkSummary({ folder, date, useAISummary })}
+    className="summary-button"
+  />
+);
 
 export default GetWorkSummaryButton;
