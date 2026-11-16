@@ -1,0 +1,100 @@
+# Publishes the extension to the VS Code Marketplace on every push to main.
+#
+# How the version is chosen:
+#   - Normal merge: bumps the patch version (3.6.0 -> 3.6.1), commits, tags, publishes.
+#   - Minor/major: run `npm version minor` (or `major`) locally, then
+#     `git push --follow-tags`. The pushed tag points at HEAD, so that version
+#     is published as-is with no extra bump.
+#   - package.json version changed without a tag (e.g. edited in a PR): publishes
+#     that version and creates its tag.
+#
+# Requires the repo secret VSCE_PAT (Azure DevOps PAT with Marketplace > Manage scope).
+#
+# Re-running a failed run is safe: the bump is pushed before publishing, so a
+# re-run sees a tagged HEAD and only retries the publish (duplicates are skipped).
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Decide version
+        id: version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          current=$(node -p "require('./package.json').version")
+          tag="v$current"
+
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            if [ "$(git rev-list -n1 "$tag")" = "$(git rev-parse HEAD)" ]; then
+              echo "HEAD is already tagged $tag (manual release or re-run); publishing as-is."
+            else
+              echo "$tag already released; bumping patch."
+              npm version patch -m "%s [skip ci]"
+            fi
+          else
+            echo "$tag has no tag yet; tagging and publishing it."
+            git tag "$tag"
+          fi
+
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Push version commit and tag
+        run: git push origin HEAD:main "refs/tags/${{ steps.version.outputs.tag }}"
+
+      - name: Build webview
+        run: yarn build
+
+      - name: Package
+        run: npx --yes @vscode/vsce@3 package -o "give-me-hours-${{ steps.version.outputs.version }}.vsix"
+
+      - name: Publish to VS Code Marketplace
+        run: npx --yes @vscode/vsce@3 publish --packagePath "give-me-hours-${{ steps.version.outputs.version }}.vsix" --skip-duplicate
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          file="give-me-hours-${{ steps.version.outputs.version }}.vsix"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$file" --clobber
+          else
+            gh release create "$tag" "$file" --title "$tag" --generate-notes
+          fi
