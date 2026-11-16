@@ -8,6 +8,7 @@ const SECRET_TOKEN = 'giveMeHours.harvestToken';
 const STATE_ACCOUNT = 'harvest.account'; // { id, name }
 const STATE_SENDS = 'harvest.sends'; // { [selectionKey]: { at, totalHours, count } }
 const STATE_SUGGESTIONS = 'harvest.suggestions'; // { accountId, at, map }
+const STATE_INTRO_DISMISSED = 'harvest.introDismissed'; // true once "Not now" is clicked
 const SUGGESTION_TTL_MS = 24 * 60 * 60 * 1000;
 const SUGGESTION_LOOKBACK_MONTHS = 6;
 const MAX_NOTES_LENGTH = 5000;
@@ -96,7 +97,7 @@ function createHarvestController(context, { getSummary }) {
 
     return new Promise((resolve) => {
       const input = vscode.window.createInputBox();
-      input.title = 'Connect Harvest (1/3): Personal Access Token';
+      input.title = 'Configure Harvest (1/3): Personal Access Token';
       input.prompt =
         `Use a Personal Access Token, not an OAuth application. On ${developersUrl}, click ` +
         '"Create new personal access token", then copy "Your Token" (the Account ID isn\'t needed).';
@@ -153,7 +154,7 @@ function createHarvestController(context, { getSummary }) {
     if (accounts.length > 1) {
       const picked = await vscode.window.showQuickPick(
         accounts.map((a) => ({ label: a.name, account: a })),
-        { title: 'Connect Harvest: choose an account', ignoreFocusOut: true }
+        { title: 'Configure Harvest: choose an account', ignoreFocusOut: true }
       );
       if (!picked) return false;
       account = picked.account;
@@ -176,7 +177,7 @@ function createHarvestController(context, { getSummary }) {
   async function pickDefault({ step = false } = {}) {
     const client = await getClient();
     if (!client) {
-      vscode.window.showWarningMessage('Connect Harvest first.');
+      vscode.window.showWarningMessage('Configure Harvest first.');
       return false;
     }
 
@@ -201,7 +202,7 @@ function createHarvestController(context, { getSummary }) {
       })),
       {
         title: step
-          ? 'Connect Harvest (2/3): fallback project'
+          ? 'Configure Harvest (2/3): fallback project'
           : 'Harvest fallback project',
         placeHolder: 'Time for repos without their own project goes here (e.g. Internal 2026)',
         matchOnDescription: true,
@@ -216,7 +217,7 @@ function createHarvestController(context, { getSummary }) {
       const pickedTask = await vscode.window.showQuickPick(
         tasks.map((t) => ({ label: t.name, task: t })),
         {
-          title: step ? 'Connect Harvest (3/3): fallback task' : 'Harvest fallback task',
+          title: step ? 'Configure Harvest (3/3): fallback task' : 'Harvest fallback task',
           placeHolder: `Task within ${project.assignment.projectName} (e.g. Non-Billable Development)`,
           ignoreFocusOut: true,
         }
@@ -237,18 +238,37 @@ function createHarvestController(context, { getSummary }) {
     return true;
   }
 
+  /** Hide the "New: Harvest" banner for people who don't use Harvest. */
+  async function dismissIntro() {
+    await context.globalState.update(STATE_INTRO_DISMISSED, true);
+  }
+
+  /** Forget cached projects so the next getState() asks Harvest again (Retry). */
+  function retry() {
+    clearCaches();
+  }
+
   async function disconnect() {
     await context.secrets.delete(SECRET_TOKEN);
     await context.globalState.update(STATE_ACCOUNT, undefined);
     await context.globalState.update(STATE_SUGGESTIONS, undefined);
+    // A deliberate disconnect shouldn't bring back the "New: Harvest" banner.
+    await context.globalState.update(STATE_INTRO_DISMISSED, true);
     clearCaches();
-    vscode.window.showInformationMessage('Disconnected from Harvest.');
+    vscode.window.showInformationMessage(
+      'Disconnected from Harvest. Your repo project picks and fallback are kept in settings.'
+    );
   }
 
   /** Everything the webview needs to render dropdowns and the confirm dialog. */
   async function getState() {
     const client = await getClient();
-    if (!client) return { connected: false };
+    if (!client) {
+      return {
+        connected: false,
+        introDismissed: !!context.globalState.get(STATE_INTRO_DISMISSED),
+      };
+    }
 
     try {
       const [assignments, suggestions, url] = await Promise.all([
@@ -268,7 +288,12 @@ function createHarvestController(context, { getSummary }) {
       };
     } catch (error) {
       console.error('Harvest state failed:', error);
-      return { connected: error.status !== 401, error: error.message };
+      if (error.status === 401) {
+        // Token revoked or expired: back to "not connected", with the reason.
+        return { connected: false, introDismissed: true, error: error.message };
+      }
+      // Network or Harvest outage: still connected, but nothing to pick from right now.
+      return { connected: true, unavailable: true, error: error.message };
     }
   }
 
@@ -346,7 +371,17 @@ function createHarvestController(context, { getSummary }) {
     await vscode.env.openExternal(vscode.Uri.parse(`${url}/time/week`));
   }
 
-  return { connect, disconnect, pickDefault, getState, setMapping, send, openInHarvest };
+  return {
+    connect,
+    disconnect,
+    dismissIntro,
+    retry,
+    pickDefault,
+    getState,
+    setMapping,
+    send,
+    openInHarvest,
+  };
 }
 
 module.exports = { createHarvestController };

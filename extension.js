@@ -250,6 +250,21 @@ function activate(context) {
             // onDidChangeConfiguration pushes the new state to every panel.
             await harvest.setMapping(message.key, message.mapping);
             break;
+          case 'harvestDisconnect':
+            await vscode.commands.executeCommand('give-me-hours.disconnectHarvest');
+            break;
+          case 'harvestDismissIntro':
+            await harvest.dismissIntro();
+            await pushHarvestState();
+            break;
+          case 'harvestSetFallback':
+            // Saving the fallback changes settings, which pushes fresh state.
+            await vscode.commands.executeCommand('give-me-hours.setHarvestFallback');
+            break;
+          case 'harvestRetry':
+            harvest.retry();
+            await pushHarvestState();
+            break;
           case 'harvestOpen':
             await harvest.openInHarvest();
             break;

@@ -85,7 +85,7 @@ Hotfix: Slide Toggle Cancel
 | **Round hours** checkbox | Apply rounding and startup time to displayed hours |
 | **Include secondary accounts** checkbox | Count commits from **Secondary Authors** in hours, summaries and Harvest notes. Shown only when that setting has names. Your choice is remembered (setting **Include Secondary Authors**). |
 | **Open Settings** button | Jump to extension settings |
-| **Add time to Harvest** button | Send the hours on screen (the selected day, or the whole week) to Harvest. Reads **Connect Harvest** until you've connected. |
+| **Add time to Harvest** button | Send the hours on screen (the selected day, or the whole week) to Harvest. Reads **Configure Harvest** until you've set it up. Harvest is optional. |
 
 ## ⏱️ Harvest
 
@@ -94,8 +94,21 @@ Send your hours straight to [Harvest](https://www.getharvest.com), one time entr
 ### Connect
 
 1. Create a **Personal Access Token** (not an OAuth application) at [id.getharvest.com/developers](https://id.getharvest.com/developers): click **Create new personal access token**, then copy **Your Token**. You don't need the Account ID.
-2. Click **Connect Harvest**, or run **Give Me Hours: Connect Harvest**, and paste the token. It's stored in VS Code's secret storage.
+2. Click **Configure Harvest** (in the header, or the "New" banner), or run **Give Me Hours: Configure Harvest**, and paste the token. It's stored in VS Code's secret storage.
 3. Pick a **fallback project and task**, e.g. *Internal 2026 › Non-Billable Development*. Time for any repo without its own project goes here. Change it later with **Give Me Hours: Change Harvest Fallback Project**.
+
+Harvest is optional: hours, summaries and copying all work without it. If you don't use Harvest, click **Not now** on the banner and it won't come back. The header's **Configure Harvest** button stays available.
+
+If Harvest can't be reached (offline, outage), the panel says so and offers **Retry**. If your token is revoked, it offers **Reconnect**. If there's no fallback project, it offers **Choose fallback**.
+
+### Change account or disconnect
+
+Open the **Harvest** section in the panel (its title shows the status, e.g. "Harvest · Connected to Mellenger"):
+- **Change account or token:** paste a new token, or switch to another Harvest account. Cancelling keeps your current connection.
+- **Change fallback:** pick a different fallback project.
+- **Disconnect:** asks to confirm, then removes the token from this machine. Your repo project picks and fallback stay in settings, so reconnecting picks up where you left off. After switching accounts, picks for projects the new account can't see go back to the fallback until you re-pick them.
+
+The same actions are in the command palette (**Give Me Hours: Configure Harvest**, **Change Harvest Fallback Project**, **Disconnect Harvest**) and as links in the Harvest settings under **Settings → Give Me Hours**.
 
 ### Pick a project per repo
 

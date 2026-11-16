@@ -31,7 +31,7 @@
       },
       {
         "command": "give-me-hours.connectHarvest",
-        "title": "Give Me Hours: Connect Harvest"
+        "title": "Give Me Hours: Configure Harvest"
       },
       {
         "command": "give-me-hours.setHarvestFallback",
@@ -152,7 +152,7 @@
               "taskId"
             ]
           },
-          "markdownDescription": "Harvest project and task per repo, keyed by `owner/repo` (or folder name for repos without a remote). Set with the dropdown under each repo name in the Give Me Hours table. `label` is for readability only."
+          "markdownDescription": "Harvest project and task per repo, keyed by `owner/repo` (or folder name for repos without a remote). Set with the dropdown under each repo name in the Give Me Hours table. `label` is for readability only. Actions: [Configure Harvest](command:give-me-hours.connectHarvest) · [Change fallback](command:give-me-hours.setHarvestFallback) · [Disconnect Harvest](command:give-me-hours.disconnectHarvest)."
         },
         "giveMeHours.harvestDefault": {
           "type": [
@@ -172,7 +172,7 @@
               "type": "string"
             }
           },
-          "markdownDescription": "Fallback Harvest project and task for repos without their own pick (e.g. Internal › Non-Billable Development). Set during **Give Me Hours: Connect Harvest**, or change it with **Give Me Hours: Change Harvest Fallback Project**."
+          "markdownDescription": "Fallback Harvest project and task for repos without their own pick (e.g. Internal › Non-Billable Development). Set during **Give Me Hours: Configure Harvest**, or change it with **Give Me Hours: Change Harvest Fallback Project**. Actions: [Configure Harvest](command:give-me-hours.connectHarvest) · [Change fallback](command:give-me-hours.setHarvestFallback) · [Disconnect Harvest](command:give-me-hours.disconnectHarvest)."
         }
       }
     }

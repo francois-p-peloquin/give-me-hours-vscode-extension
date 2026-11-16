@@ -442,3 +442,40 @@ vscode-button.primary-button[disabled]::part(control) {
     opacity: 1;
     animation: pulse 1.5s ease-in-out infinite;
 }
+
+/* Notices with buttons (Harvest prompts) */
+.notice--actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+}
+
+.notice__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.notice--intro {
+    background: var(--brand-teal-highlight);
+    border-color: var(--brand-teal-medium);
+}
+
+.notice--muted {
+    border-color: var(--vscode-panel-border);
+    opacity: 0.85;
+}
+
+/* Harvest section of the Configuration panel */
+.harvest-settings p {
+    margin: 4px 0;
+}
+
+.harvest-settings__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 12px;
+}

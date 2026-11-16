@@ -156,10 +156,20 @@ const HarvestDialog = ({
               </div>
             )}
             {unmapped.length > 0 && (
-              <div className="notice notice--error">
-                No Harvest project for {unmapped.map((g) => g.folder).join(', ')}. Pick one in the
-                table, or set a fallback with &ldquo;Give Me Hours: Change Harvest Fallback
-                Project&rdquo;.
+              <div className="notice notice--error notice--actions">
+                <span>
+                  No Harvest project for {unmapped.map((g) => g.folder).join(', ')}. Pick one in
+                  the table, or choose a fallback for all repos without one.
+                </span>
+                <VSCodeButton
+                  appearance="secondary"
+                  onClick={() => {
+                    window.vscode.postMessage({ command: 'harvestSetFallback' });
+                    onClose();
+                  }}
+                >
+                  Choose fallback
+                </VSCodeButton>
               </div>
             )}
 
