@@ -46,7 +46,7 @@ async function httpJson(url, { method = 'GET', token, accountId, body }, retried
   if (!res.ok) {
     if (res.status === 401) {
       throw new HarvestError(
-        'Harvest rejected the token. Reconnect with "Give Me Hours: Connect Harvest".',
+        'Harvest rejected the token. Reconnect with "Give Me Hours: Configure Harvest".',
         401
       );
     }

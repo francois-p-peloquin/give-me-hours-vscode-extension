@@ -9,6 +9,7 @@ import {
 import './App.css';
 import ResultsTable from './components/ResultsTable';
 import Configuration from './components/Configuration';
+import HarvestSettings from './components/HarvestSettings';
 import HarvestDialog from './components/HarvestDialog';
 import {
   getFormattedLocalDate,
@@ -17,7 +18,73 @@ import {
   getWeekDates,
 } from './utils/dateUtils';
 import { processResults } from './utils/processResults';
-import { mappingLabel } from './utils/harvestMapping';
+import { isValidMapping, mappingLabel } from './utils/harvestMapping';
+
+const post = (command) => () => window.vscode.postMessage({ command });
+
+/**
+ * Harvest prompts under the header. Harvest is optional: everything else works
+ * without it, and the intro can be dismissed for good.
+ * @param {{ harvest: import('./utils/harvestMapping').HarvestState }} props
+ */
+function HarvestNotices({ harvest }) {
+  if (!harvest.connected) {
+    if (harvest.error) {
+      // Token rejected (revoked or expired).
+      return (
+        <div className="notice notice--error notice--actions">
+          <span>Harvest: {harvest.error}</span>
+          <VSCodeButton onClick={post('harvestConnect')}>Reconnect</VSCodeButton>
+        </div>
+      );
+    }
+    if (harvest.introDismissed === false) {
+      return (
+        <div className="notice notice--intro notice--actions">
+          <span>
+            <strong>New:</strong> send your hours straight to Harvest, one entry per repo per
+            day, with the work log as notes. Optional; everything else works without it.
+          </span>
+          <span className="notice__buttons">
+            <VSCodeButton className="primary-button" onClick={post('harvestConnect')}>
+              Configure Harvest
+            </VSCodeButton>
+            <VSCodeButton appearance="secondary" onClick={post('harvestDismissIntro')}>
+              Not now
+            </VSCodeButton>
+          </span>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  if (harvest.unavailable) {
+    return (
+      <div className="notice notice--muted notice--actions">
+        <span>Couldn&rsquo;t reach Harvest: {harvest.error}</span>
+        <VSCodeButton appearance="secondary" onClick={post('harvestRetry')}>
+          Retry
+        </VSCodeButton>
+      </div>
+    );
+  }
+
+  if (!isValidMapping(harvest, harvest.defaultMapping)) {
+    return (
+      <div className="notice notice--warning notice--actions">
+        <span>
+          {harvest.defaultMapping
+            ? 'Your fallback Harvest project is no longer available.'
+            : 'No fallback Harvest project yet.'}{' '}
+          Repos without their own project need one before you can send time.
+        </span>
+        <VSCodeButton onClick={post('harvestSetFallback')}>Choose fallback</VSCodeButton>
+      </div>
+    );
+  }
+  return null;
+}
 
 function App() {
   const [date, setDate] = useState(getFormattedLocalDate());
@@ -42,7 +109,11 @@ function App() {
     window.vscode.postMessage({ command: 'setIncludeSecondary', value: checked });
   };
   const [harvest, setHarvest] = useState(
-    /** @type {import('./utils/harvestMapping').HarvestState} */ ({ connected: false })
+    // `pending` until the host sends the real state, so nothing flashes "Not connected".
+    /** @type {import('./utils/harvestMapping').HarvestState & { pending?: boolean }} */ ({
+      connected: false,
+      pending: true,
+    })
   );
   const [harvestDialogOpen, setHarvestDialogOpen] = useState(false);
 
@@ -227,29 +298,32 @@ function App() {
           <VSCodeButton onClick={() => window.vscode.postMessage({ command: 'openSettings' })}>
             Open settings
           </VSCodeButton>
-          {harvest.connected ? (
+          {harvest.pending ? null : harvest.connected ? (
             <VSCodeButton
               className="primary-button"
-              disabled={selection.rows.length === 0 || isRefreshing}
+              disabled={selection.rows.length === 0 || isRefreshing || harvest.unavailable}
               title={
-                selection.rows.length === 0
-                  ? `No hours for this ${display.toLowerCase()}`
-                  : `Send ${selection.label.toLowerCase()} to Harvest`
+                harvest.unavailable
+                  ? "Can't reach Harvest right now"
+                  : selection.rows.length === 0
+                    ? `No hours for this ${display.toLowerCase()}`
+                    : `Send ${selection.label.toLowerCase()} to Harvest`
               }
               onClick={() => setHarvestDialogOpen(true)}
             >
               Add time to Harvest
             </VSCodeButton>
           ) : (
+            // Optional feature: a regular button, not the primary style.
             <VSCodeButton
-              className="primary-button"
+              title="Send your hours to Harvest (optional)"
               onClick={() => window.vscode.postMessage({ command: 'harvestConnect' })}
             >
-              Connect Harvest
+              Configure Harvest
             </VSCodeButton>
           )}
         </div>
-        {harvest.error && <div className="notice notice--error">Harvest: {harvest.error}</div>}
+        <HarvestNotices harvest={harvest} />
         {data.fetching && (
           <div className="fetch-note fetch-note--pending">Checking remotes for new commits…</div>
         )}
@@ -267,13 +341,16 @@ function App() {
       {config && (
         <Configuration
           config={{ ...config, gitUsername: data.gitUsername }}
-          harvestDefault={
-            harvest.connected && harvest.defaultMapping
-              ? mappingLabel(harvest, harvest.defaultMapping) || harvest.defaultMapping.label
-              : null
-          }
         />
       )}
+      <HarvestSettings
+        harvest={harvest}
+        defaultLabel={
+          harvest.defaultMapping
+            ? mappingLabel(harvest, harvest.defaultMapping) || harvest.defaultMapping.label
+            : null
+        }
+      />
       <ResultsTable
         results={results}
         date={date}
