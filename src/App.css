@@ -235,3 +235,193 @@ vscode-link::part(control):hover {
     justify-content: center;
     text-align: center;
 }
+
+/* ---------- Harvest ---------- */
+
+/* Primary action: lighter, filled brand teal so it stands out from the dark-teal default.
+   Must come after the global vscode-button::part(control) rule above. */
+vscode-button.primary-button::part(control) {
+    background: var(--brand-teal-light);
+    color: #1a1a1a;
+    border-color: var(--brand-teal-light);
+    font-weight: 600;
+}
+
+vscode-button.primary-button::part(control):hover {
+    background: var(--brand-teal-medium);
+    border-color: var(--brand-teal-medium);
+    color: white;
+}
+
+vscode-button.primary-button[disabled]::part(control) {
+    background: var(--brand-teal-light);
+    color: #1a1a1a;
+    opacity: 0.5;
+}
+
+/* Per-repo project picker under the repo name */
+.data-table .folder-header {
+    width: 200px;
+    max-width: 240px;
+}
+
+.harvest-select {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.harvest-select__control {
+    max-width: 100%;
+    font-family: inherit;
+    font-size: 0.85em;
+    font-weight: normal;
+    color: var(--vscode-dropdown-foreground);
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
+    border-radius: 2px;
+    padding: 2px 4px;
+    cursor: pointer;
+}
+
+.harvest-select__control:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
+.harvest-select__hint {
+    font-size: 0.75em;
+    font-weight: normal;
+    opacity: 0.7;
+    white-space: normal;
+}
+
+/* Notices */
+.notice {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 10px 0;
+    border: 1px solid;
+}
+
+.notice ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+}
+
+.notice--warning {
+    background: var(--vscode-inputValidation-warningBackground);
+    border-color: var(--vscode-inputValidation-warningBorder);
+}
+
+.notice--error {
+    color: var(--vscode-errorForeground);
+    background: var(--vscode-inputValidation-errorBackground);
+    border-color: var(--vscode-inputValidation-errorBorder);
+}
+
+.notice--success {
+    background: var(--brand-teal-highlight);
+    border-color: var(--brand-teal-medium);
+}
+
+/* Confirmation dialog */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 60px 16px;
+    z-index: 100;
+    overflow-y: auto;
+}
+
+.modal {
+    width: 100%;
+    max-width: 560px;
+    background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+    color: var(--vscode-foreground);
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 6px;
+    padding: 20px 24px;
+    box-shadow: 0 8px 24px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.4));
+}
+
+.modal h2 {
+    margin: 0;
+}
+
+.modal__subtitle {
+    margin: 2px 0 12px;
+    opacity: 0.75;
+}
+
+.modal__note {
+    font-size: 0.85em;
+    opacity: 0.75;
+}
+
+.modal__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.modal__progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 0;
+}
+
+.harvest-summary {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.harvest-summary__repo {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.harvest-summary__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 12px;
+}
+
+.harvest-summary__project {
+    opacity: 0.85;
+}
+
+.harvest-summary__days {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+}
+
+.harvest-summary__days li {
+    display: flex;
+    justify-content: space-between;
+    max-width: 220px;
+    font-variant-numeric: tabular-nums;
+}
+
+.tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 8px;
+    font-size: 0.75em;
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+}

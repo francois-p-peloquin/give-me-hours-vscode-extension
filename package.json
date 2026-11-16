@@ -28,6 +28,18 @@
       {
         "command": "give-me-hours.openSettings",
         "title": "Give Me Hours: Open Settings"
+      },
+      {
+        "command": "give-me-hours.connectHarvest",
+        "title": "Give Me Hours: Connect Harvest"
+      },
+      {
+        "command": "give-me-hours.setHarvestFallback",
+        "title": "Give Me Hours: Change Harvest Fallback Project"
+      },
+      {
+        "command": "give-me-hours.disconnectHarvest",
+        "title": "Give Me Hours: Disconnect Harvest"
       }
     ],
     "configuration": {
@@ -100,6 +112,32 @@
           ],
           "description": "Choose the time format for displaying hours. 'Decimal' shows hours as a decimal number (e.g., 1.5), while 'Chrono' shows hours and minutes (e.g., 1:30).",
           "markdownDescription": "Choose the time format for displaying hours:\n- `decimal`: Shows hours as a decimal number (e.g., 1.5) (default).\n- `chrono`: Shows hours and minutes (e.g., 1:30)."
+        },
+        "giveMeHours.harvestProjects": {
+          "type": "object",
+          "default": {},
+          "scope": "application",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "projectId": { "type": "number" },
+              "taskId": { "type": "number" },
+              "label": { "type": "string" }
+            },
+            "required": ["projectId", "taskId"]
+          },
+          "markdownDescription": "Harvest project and task per repo, keyed by `owner/repo` (or folder name for repos without a remote). Set with the dropdown under each repo name in the Give Me Hours table. `label` is for readability only."
+        },
+        "giveMeHours.harvestDefault": {
+          "type": ["object", "null"],
+          "default": null,
+          "scope": "application",
+          "properties": {
+            "projectId": { "type": "number" },
+            "taskId": { "type": "number" },
+            "label": { "type": "string" }
+          },
+          "markdownDescription": "Fallback Harvest project and task for repos without their own pick (e.g. Internal › Non-Billable Development). Set during **Give Me Hours: Connect Harvest**, or change it with **Give Me Hours: Change Harvest Fallback Project**."
         }
       }
     }

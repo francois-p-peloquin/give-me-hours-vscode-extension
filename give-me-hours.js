@@ -303,6 +303,22 @@ class GiveMeHours {
         }
       };
 
+      // "owner/repo" from the origin remote, used to remember per-repo Harvest projects.
+      const getRemote = (dir) => {
+        try {
+          const url = execSync('git remote get-url origin', {
+            cwd: dir,
+            stdio: ['ignore', 'pipe', 'ignore'],
+          })
+            .toString()
+            .trim();
+          const match = /[:/]([^/:]+\/[^/]+?)(?:\.git)?\/?$/.exec(url);
+          return match ? match[1] : null;
+        } catch (e) {
+          return null;
+        }
+      };
+
       const gitRoot = getGitRoot(directoryPath);
       const isRepoRoot = gitRoot && path.resolve(gitRoot) === path.resolve(directoryPath);
 
@@ -315,6 +331,7 @@ class GiveMeHours {
         if (result.commits.length) {
           folderData[path.basename(directoryPath)] = {
             folder: path.basename(directoryPath),
+            remote: getRemote(directoryPath),
             data: [result],
           };
         }
@@ -332,7 +349,11 @@ class GiveMeHours {
               }
 
               if (!folderData[entry.name]) {
-                folderData[entry.name] = { folder: entry.name, data: [] };
+                folderData[entry.name] = {
+                  folder: entry.name,
+                  remote: getRemote(subDir),
+                  data: [],
+                };
               }
 
               const result = this.getHoursForRepo(startOfWeek, endOfWeek, gitUsername, subDir);
