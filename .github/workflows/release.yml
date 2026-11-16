@@ -1,24 +1,15 @@
 # Publishes the extension to the VS Code Marketplace on every push to main.
 #
-# How the version is chosen:
-#   - Normal merge: bumps the patch version (3.6.0 -> 3.6.1), commits, tags, publishes.
-#   - PR title contains [minor] or [major]: bumps that instead
-#     (e.g. "[major] Auto-publish on merge" -> 4.0.0). Works for merge and squash merges,
-#     since both put the PR title in the commit message.
-#   - Or locally: run `npm version minor` (or `major`), then `git push --follow-tags`.
+# Version: patch by default; [minor] or [major] in the PR title bumps that instead.
+# A version counts as released when its GitHub Release exists. This workflow creates it
+# only after a successful publish, and it shows up immediately. (The Marketplace listing
+# lags ~10 minutes, which made back-to-back merges reuse a version.) package.json is
+# bumped only when its version is released. Otherwise (manual `npm version`, or a
+# previous run that bumped but failed to publish) it's published as-is, so re-runs are
+# safe and no version is skipped.
 #
-# The Marketplace is the source of truth: the version in package.json is bumped
-# only if it's already live there. If it isn't live yet (manual `npm version`, a
-# version edited in a PR, or a previous run that bumped but failed to publish),
-# it's published from HEAD as-is and its tag is moved to HEAD.
-#
-# Auth: Marketplace Trusted Publishing (GitHub OIDC), so there's no stored token.
-# The publisher needs a Trusted Publishing policy for this repo + `release.yml`
-# (marketplace.visualstudio.com/manage -> publisher -> Trusted Publishing).
-# Renaming this file breaks publishing until the policy is updated.
-#
-# Re-running a failed run is safe: the bumped version isn't live, so a re-run
-# publishes it without bumping again.
+# Auth: Marketplace Trusted Publishing (GitHub OIDC), no stored token. The publisher's
+# policy names this file, so renaming it breaks publishing until the policy is updated.
 
 name: Release
 
@@ -61,24 +52,15 @@ jobs:
         env:
           # The triggering commit, not the latest main (a queued run may check out a newer HEAD).
           TRIGGER_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           current=$(node -p "require('./package.json').version")
           tag="v$current"
-          ext=$(node -p "const p=require('./package.json'); p.publisher + '.' + p.name")
 
-          # What's live on the Marketplace is the source of truth; git tags may be missing.
-          published=$(npx --yes @vscode/vsce@4 show "$ext" --json \
-            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).versions[0].version))')
-          if [ -z "$published" ]; then
-            echo "::error::Could not read the published version of $ext from the Marketplace."
-            exit 1
-          fi
-          echo "package.json: $current, Marketplace: $published"
-
-          if [ "$current" = "$published" ]; then
+          if gh release view "$tag" >/dev/null 2>&1; then
             message=$(git log -1 --format=%B "$TRIGGER_SHA")
             if grep -qi '\[major\]' <<<"$message"; then
               bump=major
@@ -90,10 +72,10 @@ jobs:
             echo "$current already released; bumping $bump."
             npm version "$bump" -m "%s [skip ci]"
           else
-            # Not live yet: a manual `npm version`, a version edited in a PR, or a
+            # Not released yet: a manual `npm version`, a version edited in a PR, or a
             # previous run that bumped but failed to publish. Ship it from HEAD and
-            # (re)point its tag here, since an unpublished tag never shipped anything.
-            echo "$current is not on the Marketplace yet; publishing it from HEAD."
+            # (re)point its tag here, since an unreleased tag never shipped anything.
+            echo "$current has no GitHub Release yet; publishing it from HEAD."
             git tag -f -a "$tag" -m "$current"
           fi
 
@@ -116,13 +98,9 @@ jobs:
         run: npx --yes @vscode/vsce@4 publish --oidc --packagePath "give-me-hours-${{ steps.version.outputs.version }}.vsix" --skip-duplicate
 
       - name: GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          tag="${{ steps.version.outputs.tag }}"
-          file="give-me-hours-${{ steps.version.outputs.version }}.vsix"
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "$file" --clobber
-          else
-            gh release create "$tag" "$file" --title "$tag" --generate-notes
-          fi
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          files: give-me-hours-${{ steps.version.outputs.version }}.vsix
+          generate_release_notes: true
