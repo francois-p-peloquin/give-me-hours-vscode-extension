@@ -86,7 +86,7 @@
           "default": 300,
           "minimum": 50,
           "maximum": 1000,
-          "description": "Maximum number of words in commit summaries. Used as the word limit for AI-generated summaries, and as a truncation cap for raw log output."
+          "description": "Maximum words in a work log (the Summary button and Harvest notes). Commits past the limit are cut and counted (\"…and 4 more\")."
         },
         "giveMeHours.fetchBeforeScan": {
           "type": "boolean",

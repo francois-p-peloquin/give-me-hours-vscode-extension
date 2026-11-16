@@ -9,8 +9,7 @@
 
 - **📅 Date Selection**: Pick any date to view hours for that week
 - **📊 Repository Breakdown**: Hours worked per git repository, grouped by day
-- **🤖 AI Commit Summaries**: Feed your commits to an LLM (via GitHub Copilot) for a clean, structured work summary grouped by branch — with BugHerd ticket references preserved
-- **📋 Raw Commit Log**: Toggle AI off to get a plain bullet-point log of commits grouped by branch
+- **📋 Work Log Summaries**: A tidy log of each day's commits, grouped by branch, with BugHerd tickets in the headings. Copy it, or send it to Harvest as notes.
 - **🌐 All-Branch Coverage**: Fetches commits from all local and remote-tracking branches
 - **⚙️ Fully Configurable**: Customize duration gaps, rounding, startup time, summary length, and more
 - **🚀 Auto-Startup**: Loads automatically when VSCode starts and pre-fetches your hours in the background
@@ -35,7 +34,7 @@ Access settings via the **Open Settings** button in the interface, or search for
 | **Hours Rounding** | `0.25` | Round hours to nearest increment (0.25 = 15 min, 0 = off) |
 | **Project Startup Time** | `0.5` | Hours added before each work session for ramp-up time |
 | **Min Commit Time** | `0.5` | Minimum hours credited for a single commit or after a long break |
-| **Summary Words** | `300` | Maximum word count for AI-generated summaries (50–1000) |
+| **Summary Words** | `300` | Maximum words in a work log; extra commits are cut and counted (50–1000) |
 | **Show Summary** | `true` | Show the commit summary column in the results table |
 | **Fetch Before Scan** | `true` | `git fetch --all` each repo before scanning, so commits pushed from elsewhere (teammates, bots, other machines) count. Fetch only; local branches and files aren't changed. Skips repos fetched in the last 5 minutes, except on **Refresh**. |
 | **Secondary Authors** | _(empty)_ | Extra git authors whose commits count as your time, separated by commas or line breaks (e.g. `site-security-watcher[bot]`). Matched as plain text against `Name <email>`. |
@@ -55,19 +54,25 @@ Access settings via the **Open Settings** button in the interface, or search for
 
 ## 📋 Commit Summaries
 
-Each cell in the table has a **Summary** button that copies a work log to your clipboard.
+Each cell in the table has a **Summary** button that copies a work log to your clipboard. The same text is used for Harvest notes.
 
-### Use AI Commit Summary (checkbox)
+The log only reorganizes what your commits say; it never adds anything:
+- One section per branch, with a readable heading: `hotfix/Sibling-bugs` becomes **Hotfix: Sibling Bugs**
+- BugHerd tickets found in the branch name or its commits go in the heading, e.g. **Feature: News Thumbnail - BH16**
+- Merge commits, duplicates and noise ("wip", "Fix", "Styles", "Ditto"…) are left out
+- Long days are cut at **Summary Words**, ending with "…and N more"
 
-**Checked (default):** Commits are sent to GitHub Copilot's LLM, which returns a structured summary:
-- Branch headings formatted as `## Type: Subject - BH###` (e.g. `## Hotfix: Fix News Thumbnail - BH16`)
-- BugHerd ticket IDs preserved and surfaced in headings
-- Noise words removed, typos cleaned up
-- One bullet per distinct piece of work
+```
+Hotfix: Sibling Bugs
+- Breadcrumbs fix
+- Bump .nvmrc to Node v24.15
+- Switch gsap from @gsap/business to public gsap ^3.13.0
 
-**Unchecked:** Returns a plain grouped commit log — no AI, no processing, just commits under branch headings. Useful when Copilot isn't available or you want the raw data.
+Hotfix: Slide Toggle Cancel
+- Slide toggle: cancel in-flight slides before reversing them
+```
 
-> **Requires GitHub Copilot** to be installed and active in VSCode for AI summaries. Falls back to raw log automatically if no model is available.
+> AI summaries were removed. Copilot wasn't available to us, so they always fell back to the plain log anyway. Apple's on-device model was tested as a replacement and invented work and ticket numbers, which doesn't belong in client billing notes.
 
 ## 🔧 Interface Controls
 
@@ -78,7 +83,6 @@ Each cell in the table has a **Summary** button that copies a work log to your c
 | **Decimal / Chrono** dropdown | Toggle between decimal hours (1.5) and clock format (1:30) |
 | **Refresh** button | Fetch every repo from its remotes, then re-scan |
 | **Round hours** checkbox | Apply rounding and startup time to displayed hours |
-| **Use AI commit summary** checkbox | Toggle LLM summarization on/off |
 | **Include secondary accounts** checkbox | Count commits from **Secondary Authors** in hours, summaries and Harvest notes. Shown only when that setting has names. |
 | **Open Settings** button | Jump to extension settings |
 | **Add time to Harvest** button | Send the hours on screen (the selected day, or the whole week) to Harvest. Reads **Connect Harvest** until you've connected. |
@@ -103,13 +107,12 @@ Repos you've tracked time against from GitHub issues in the last 6 months are pr
 
 **Add time to Harvest** shows each repo's project and hours for review before anything is sent. Every send **adds new entries**. If you've already sent the same day or week, you'll see when and how much before confirming.
 
-Notes use the same text as the **Summary** button, so the **Use AI commit summary** checkbox applies.
+Notes use the same work log as the **Summary** button.
 
 ## 🛠️ Requirements
 
 - **VSCode**: 1.103.0 or higher
 - **Git**: Installed and configured with a global user name
-- **GitHub Copilot** _(optional)_: Required for AI commit summaries
 
 ```bash
 git config --global user.name "Your Name"
@@ -126,9 +129,6 @@ Click "Select Folder" and choose the folder containing your git repositories.
 
 **Summary shows "No activity found for this day"**
 The summary queries the same date range as the table. If the table shows hours but summary shows nothing, check that your git global username exactly matches the author name in those commits.
-
-**AI summary falls back to raw log**
-GitHub Copilot is not installed or not signed in. Install Copilot and reload VSCode.
 
 **Status bar not showing hours**
 - No commits found for the current week

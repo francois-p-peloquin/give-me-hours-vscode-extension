@@ -23,7 +23,6 @@ const formatWhen = (ms) =>
  *   rows: Array<{ folder: string, remote: string|null, date: string, hoursDecimal: number }>,
  *   selectionKey: string,
  *   selectionLabel: string,
- *   useAISummary: boolean,
  *   includeSecondary: boolean,
  *   onClose: () => void,
  * }} props
@@ -33,7 +32,6 @@ const HarvestDialog = ({
   rows,
   selectionKey,
   selectionLabel,
-  useAISummary,
   includeSecondary,
   onClose,
 }) => {
@@ -91,7 +89,6 @@ const HarvestDialog = ({
         'harvestSend',
         {
           selectionKey,
-          useAISummary,
           includeSecondary,
           append,
           entries: toSend.map((e) => ({
@@ -194,7 +191,7 @@ const HarvestDialog = ({
             </ul>
 
             <p className="modal__note">
-              Notes use the {useAISummary ? 'AI' : 'commit-log'} summary for each day.
+              Notes use each day&rsquo;s commit log, the same text as the Summary button.
             </p>
 
             <div className="modal__actions">

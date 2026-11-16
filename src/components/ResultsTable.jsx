@@ -16,7 +16,6 @@ import HarvestProjectSelect from './HarvestProjectSelect';
  *   config: object,
  *   timeFormat: string,
  *   isRefreshing: boolean,
- *   useAISummary: boolean,
  *   includeSecondary: boolean,
  *   harvest: import('../utils/harvestMapping').HarvestState,
  *   onHarvestMappingChange: (key: string, mapping: any) => void,
@@ -30,7 +29,6 @@ const ResultsTable = ({
   config,
   timeFormat,
   isRefreshing,
-  useAISummary,
   includeSecondary,
   harvest,
   onHarvestMappingChange,
@@ -205,7 +203,6 @@ const ResultsTable = ({
                                 <GetWorkSummaryButton
                                   folder={row[0]}
                                   date={cell.date}
-                                  useAISummary={useAISummary}
                                   includeSecondary={includeSecondary}
                                 />
                               </>

@@ -17,6 +17,7 @@ import {
   getWeekDates,
 } from './utils/dateUtils';
 import { processResults } from './utils/processResults';
+import { mappingLabel } from './utils/harvestMapping';
 
 function App() {
   const [date, setDate] = useState(getFormattedLocalDate());
@@ -28,7 +29,6 @@ function App() {
   const [display, setDisplay] = useState('Week');
   const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
-  const [useAISummary, setUseAISummary] = useState(true);
   const [includeSecondary, setIncludeSecondary] = useState(true);
   const [harvest, setHarvest] = useState(
     /** @type {import('./utils/harvestMapping').HarvestState} */ ({ connected: false })
@@ -204,12 +204,6 @@ function App() {
           <VSCodeCheckbox checked={roundHours} onChange={(e) => setRoundHours(e.target.checked)}>
             Round hours
           </VSCodeCheckbox>
-          <VSCodeCheckbox
-            checked={useAISummary}
-            onChange={(e) => setUseAISummary(e.target.checked)}
-          >
-            Use AI commit summary
-          </VSCodeCheckbox>
           {config?.secondaryAuthors?.length > 0 && (
             <VSCodeCheckbox
               checked={includeSecondary}
@@ -256,7 +250,16 @@ function App() {
           </div>
         )}
       </div>
-      {config && <Configuration config={config} />}
+      {config && (
+        <Configuration
+          config={{ ...config, gitUsername: data.gitUsername }}
+          harvestDefault={
+            harvest.connected && harvest.defaultMapping
+              ? mappingLabel(harvest, harvest.defaultMapping) || harvest.defaultMapping.label
+              : null
+          }
+        />
+      )}
       <ResultsTable
         results={results}
         date={date}
@@ -265,7 +268,6 @@ function App() {
         config={config}
         timeFormat={timeFormat}
         isRefreshing={isRefreshing}
-        useAISummary={useAISummary}
         includeSecondary={includeSecondary}
         harvest={harvest}
         onHarvestMappingChange={handleMappingChange}
@@ -276,7 +278,6 @@ function App() {
           rows={selection.rows}
           selectionKey={selection.key}
           selectionLabel={selection.label}
-          useAISummary={useAISummary}
           includeSecondary={includeSecondary}
           onClose={() => setHarvestDialogOpen(false)}
         />

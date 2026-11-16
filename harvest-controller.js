@@ -14,8 +14,7 @@ const MAX_NOTES_LENGTH = 5000;
 
 /**
  * @param {vscode.ExtensionContext} context
- * @param {{ getSummary: (folder: string, date: string, useAISummary: boolean,
- *   includeSecondary: boolean) => Promise<string> }} deps
+ * @param {{ getSummary: (folder: string, date: string, includeSecondary: boolean) => Promise<string> }} deps
  */
 function createHarvestController(context, { getSummary }) {
   /** @type {Promise<any[]> | null} */
@@ -288,11 +287,11 @@ function createHarvestController(context, { getSummary }) {
   /**
    * Create one Harvest time entry per row. Always adds new entries; the webview warns
    * beforehand when the same selection was sent before.
-   * @param {{ selectionKey: string, useAISummary: boolean, includeSecondary?: boolean, append?: boolean,
+   * @param {{ selectionKey: string, includeSecondary?: boolean, append?: boolean,
    *   entries: Array<{ folder: string, date: string, hours: number, projectId: number, taskId: number }> }} payload
    * @param {(done: number, total: number) => void} onProgress
    */
-  async function send({ selectionKey, useAISummary, includeSecondary, append, entries }, onProgress) {
+  async function send({ selectionKey, includeSecondary, append, entries }, onProgress) {
     const client = await getClient();
     if (!client) throw new Error('Harvest is not connected.');
 
@@ -303,7 +302,7 @@ function createHarvestController(context, { getSummary }) {
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
       try {
-        let notes = await getSummary(entry.folder, entry.date, useAISummary, includeSecondary);
+        let notes = await getSummary(entry.folder, entry.date, includeSecondary);
         if (notes.length > MAX_NOTES_LENGTH) notes = `${notes.slice(0, MAX_NOTES_LENGTH - 1)}…`;
         const hours = Math.round(entry.hours * 100) / 100;
         await client.createTimeEntry({
