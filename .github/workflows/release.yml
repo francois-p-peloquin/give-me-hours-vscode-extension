@@ -2,13 +2,18 @@
 #
 # How the version is chosen:
 #   - Normal merge: bumps the patch version (3.6.0 -> 3.6.1), commits, tags, publishes.
-#   - Minor/major: run `npm version minor` (or `major`) locally, then
-#     `git push --follow-tags`. The pushed tag points at HEAD, so that version
-#     is published as-is with no extra bump.
+#   - PR title contains [minor] or [major]: bumps that instead
+#     (e.g. "[major] Auto-publish on merge" -> 4.0.0). Works for merge and squash merges,
+#     since both put the PR title in the commit message.
+#   - Or locally: run `npm version minor` (or `major`), then `git push --follow-tags`.
+#     The pushed tag points at HEAD, so that version is published as-is.
 #   - package.json version changed without a tag (e.g. edited in a PR): publishes
 #     that version and creates its tag.
 #
-# Requires the repo secret VSCE_PAT (Azure DevOps PAT with Marketplace > Manage scope).
+# Auth: Marketplace Trusted Publishing (GitHub OIDC), so there's no stored token.
+# The publisher needs a Trusted Publishing policy for this repo + `release.yml`
+# (marketplace.visualstudio.com/manage -> publisher -> Trusted Publishing).
+# Renaming this file breaks publishing until the policy is updated.
 #
 # Re-running a failed run is safe: the bump is pushed before publishing, so a
 # re-run sees a tagged HEAD and only retries the publish (duplicates are skipped).
@@ -26,6 +31,7 @@ concurrency:
 
 permissions:
   contents: write
+  id-token: write # Marketplace Trusted Publishing (vsce --oidc)
 
 jobs:
   release:
@@ -50,6 +56,9 @@ jobs:
 
       - name: Decide version
         id: version
+        env:
+          # The triggering commit, not the latest main (a queued run may check out a newer HEAD).
+          TRIGGER_SHA: ${{ github.sha }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -61,8 +70,16 @@ jobs:
             if [ "$(git rev-list -n1 "$tag")" = "$(git rev-parse HEAD)" ]; then
               echo "HEAD is already tagged $tag (manual release or re-run); publishing as-is."
             else
-              echo "$tag already released; bumping patch."
-              npm version patch -m "%s [skip ci]"
+              message=$(git log -1 --format=%B "$TRIGGER_SHA")
+              if grep -qi '\[major\]' <<<"$message"; then
+                bump=major
+              elif grep -qi '\[minor\]' <<<"$message"; then
+                bump=minor
+              else
+                bump=patch
+              fi
+              echo "$tag already released; bumping $bump."
+              npm version "$bump" -m "%s [skip ci]"
             fi
           else
             echo "$tag has no tag yet; tagging and publishing it."
@@ -80,12 +97,10 @@ jobs:
         run: yarn build
 
       - name: Package
-        run: npx --yes @vscode/vsce@3 package -o "give-me-hours-${{ steps.version.outputs.version }}.vsix"
+        run: npx --yes @vscode/vsce@4 package -o "give-me-hours-${{ steps.version.outputs.version }}.vsix"
 
       - name: Publish to VS Code Marketplace
-        run: npx --yes @vscode/vsce@3 publish --packagePath "give-me-hours-${{ steps.version.outputs.version }}.vsix" --skip-duplicate
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx --yes @vscode/vsce@4 publish --oidc --packagePath "give-me-hours-${{ steps.version.outputs.version }}.vsix" --skip-duplicate
 
       - name: GitHub Release
         env:
