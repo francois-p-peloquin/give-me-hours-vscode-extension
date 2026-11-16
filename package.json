@@ -91,7 +91,7 @@
         "giveMeHours.fetchBeforeScan": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Run `git fetch --all` on each repo before scanning, so commits pushed from elsewhere (teammates, bots, other machines) are counted. Fetch only: your local branches and files are never changed. Repos fetched in the last 5 minutes are skipped, except when you click **Refresh**."
+          "markdownDescription": "Run `git fetch --all` on each repo so commits pushed from elsewhere (teammates, bots, other machines) are counted. Local results show first; the fetch runs in the background and the table updates if new commits arrive. Fetch only: your local branches and files are never changed. Repos fetched in the last 5 minutes are skipped, except when you click **Refresh**."
         },
         "giveMeHours.secondaryAuthors": {
           "type": "string",

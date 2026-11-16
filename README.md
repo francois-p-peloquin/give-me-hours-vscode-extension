@@ -37,7 +37,7 @@ Access settings via the **Open Settings** button in the interface, or search for
 | **Min Commit Time** | `0.5` | Minimum hours credited for a single commit or after a long break |
 | **Summary Words** | `300` | Maximum word count for AI-generated summaries (50–1000) |
 | **Show Summary** | `true` | Show the commit summary column in the results table |
-| **Fetch Before Scan** | `true` | `git fetch --all` each repo before scanning, so commits pushed from elsewhere (teammates, bots, other machines) count. Fetch only; local branches and files aren't changed. Skips repos fetched in the last 5 minutes, except on **Refresh**. |
+| **Fetch Before Scan** | `true` | `git fetch --all` each repo, so commits pushed from elsewhere (teammates, bots, other machines) count. Your local commits show right away; the fetch runs in the background ("Checking remotes…") and the table updates if anything new came in. Fetch only; local branches and files aren't changed. Skips repos fetched in the last 5 minutes, except on **Refresh**. |
 | **Secondary Authors** | _(empty)_ | Extra git authors whose commits count as your time, separated by commas or line breaks (e.g. `site-security-watcher[bot]`). Matched as plain text against `Name <email>`. |
 
 ### Duration Examples
