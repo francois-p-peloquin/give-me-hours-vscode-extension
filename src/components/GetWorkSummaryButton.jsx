@@ -3,10 +3,10 @@ import CopyButton from './CopyButton';
 
 /**
  * Ask the extension for a work summary and resolve with its text.
- * @param {{ folder: string, date: string, useAISummary: boolean, includeSecondary: boolean }} params
+ * @param {{ folder: string, date: string, includeSecondary: boolean }} params
  * @returns {Promise<string>}
  */
-const fetchWorkSummary = ({ folder, date, useAISummary, includeSecondary }) =>
+const fetchWorkSummary = ({ folder, date, includeSecondary }) =>
   new Promise((resolve, reject) => {
     const requestId = Math.random().toString(36).slice(2) + Date.now().toString(36);
 
@@ -28,16 +28,15 @@ const fetchWorkSummary = ({ folder, date, useAISummary, includeSecondary }) =>
       folder,
       date,
       requestId,
-      useAISummary,
       includeSecondary,
     });
   });
 
-/** @param {{ folder: string, date: string, useAISummary: boolean, includeSecondary: boolean }} props */
-const GetWorkSummaryButton = ({ folder, date, useAISummary, includeSecondary }) => (
+/** @param {{ folder: string, date: string, includeSecondary: boolean }} props */
+const GetWorkSummaryButton = ({ folder, date, includeSecondary }) => (
   <CopyButton
     label="Summary"
-    getText={() => fetchWorkSummary({ folder, date, useAISummary, includeSecondary })}
+    getText={() => fetchWorkSummary({ folder, date, includeSecondary })}
     className="summary-button"
   />
 );

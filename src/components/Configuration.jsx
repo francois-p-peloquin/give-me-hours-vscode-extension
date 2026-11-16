@@ -3,7 +3,7 @@ import { VSCodeDivider } from '@vscode/webview-ui-toolkit/react';
 import Accordion from './Accordion';
 
 /**
- * @param {{ config: {
+ * @param {{ harvestDefault?: string | null, config: {
  *   gitUsername: string,
  *   duration: string,
  *   durationDisplay?: string,
@@ -13,7 +13,7 @@ import Accordion from './Accordion';
  *   workingDirectory?: string,
  * }}} props
  */
-function Configuration({ config }) {
+function Configuration({ config, harvestDefault }) {
   return (
     <Accordion title="Configuration">
       <p>Git User: {config.gitUsername}</p>
@@ -22,6 +22,7 @@ function Configuration({ config }) {
       <p>Project Startup Time: {config.projectStartupTime}h</p>
       <p>Min Commit Time: {config.minCommitTime}h</p>
       <p>Directory: {config.workingDirectory || 'Current workspace'}</p>
+      {harvestDefault && <p>Default Harvest project: {harvestDefault}</p>}
       <VSCodeDivider />
     </Accordion>
   );

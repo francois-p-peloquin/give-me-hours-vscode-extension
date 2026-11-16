@@ -3,6 +3,7 @@
 const vscode = require('vscode');
 const GiveMeHours = require('./give-me-hours');
 const { createHarvestController } = require('./harvest-controller');
+const { formatWorkLog } = require('./work-log');
 const fs = require('fs');
 const path = require('path');
 
@@ -76,8 +77,8 @@ function activate(context) {
   const panels = new Set();
 
   const harvest = createHarvestController(context, {
-    getSummary: (folder, date, useAISummary, includeSecondary) =>
-      getCommitSummaryForFolder(folder, date, useAISummary, includeSecondary),
+    getSummary: (folder, date, includeSecondary) =>
+      getCommitSummaryForFolder(folder, date, includeSecondary),
   });
 
   async function pushHarvestState(targets = panels) {
@@ -138,7 +139,7 @@ function activate(context) {
       hoursRounding: config.get('hoursRounding', 0.25),
       projectStartupTime: config.get('projectStartupTime', 0.5),
       minCommitTime: config.get('minCommitTime', 0.5),
-      words: config.get('words', 50),
+      words: config.get('words', 300),
       secondaryAuthors: parseAuthorList(config.get('secondaryAuthors', '')),
       fetchBeforeScan: config.get('fetchBeforeScan', true),
       timeFormat: config.get('timeFormat', 'decimal'),
@@ -316,7 +317,6 @@ function activate(context) {
               const summary = await getCommitSummaryForFolder(
                 message.folder,
                 message.date,
-                message.useAISummary,
                 message.includeSecondary
               );
               panel.webview.postMessage({
@@ -342,7 +342,7 @@ function activate(context) {
     // No scan here: the webview requests one ('refresh') as soon as it loads.
   }
 
-  async function getCommitSummaryForFolder(folderName, date, useAISummary, includeSecondary) {
+  async function getCommitSummaryForFolder(folderName, date, includeSecondary) {
     const config = getConfiguration();
     const workingDirectory = getWorkingDirectory();
     const duration = parseDuration(config.duration);
@@ -373,101 +373,7 @@ function activate(context) {
       return 'No activity found for this day.';
     }
 
-    if (useAISummary) {
-      const llmSummary = await generateLLMSummary(result.commits, maxWords);
-      if (llmSummary) return llmSummary;
-    }
-    return generateRawLog(result.commits);
-  }
-
-  function generateRawLog(commits) {
-    const commitsByBranch = commits.reduce((acc, commit) => {
-      const branch = commit.branch || 'other';
-      if (!acc[branch]) acc[branch] = [];
-      acc[branch].push(commit);
-      return acc;
-    }, {});
-
-    return Object.entries(commitsByBranch)
-      .map(([branch, branchCommits]) => {
-        const heading = branch.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-        const lines = branchCommits.map((c) => `- ${c.message}`).join('\n');
-        return `${heading}:\n${lines}`;
-      })
-      .join('\n\n');
-  }
-
-  async function generateLLMSummary(commits, maxWords) {
-    if (!vscode.lm) return null;
-
-    const tokenSource = new vscode.CancellationTokenSource();
-    try {
-      const models = await vscode.lm.selectChatModels({ family: 'gpt-4o' });
-      if (!models || models.length === 0) return null;
-
-      const commitsByBranch = commits.reduce((acc, commit) => {
-        const branch = commit.branch || 'other';
-        if (!acc[branch]) acc[branch] = [];
-        acc[branch].push(commit);
-        return acc;
-      }, {});
-
-      const commitBlock = Object.entries(commitsByBranch)
-        .map(([branch, branchCommits]) => {
-          const lines = branchCommits.map((c) => `- ${c.message}`).join('\n');
-          return `[${branch}]\n${lines}`;
-        })
-        .join('\n\n');
-
-      const prompt = `You are summarizing a developer's git commits into a structured work log.
-
-OUTPUT FORMAT — follow this exactly, no variation:
-
-## Type: Subject - BH###
-- Short past-tense phrase describing work done
-- Another phrase
-
-## Type: Subject
-- Short past-tense phrase (no ticket on this branch)
-
-HEADING RULES:
-- "Type" comes from the branch prefix: hotfix → Hotfix, feature → Feature, fix → Fix, chore → Chore, etc.
-- "Subject" is the rest of the branch name with hyphens/underscores replaced by spaces, title case
-- If a BH ticket number appears in the branch name OR any commit on that branch, append " - BH###" to the heading
-- If no type prefix exists on the branch, omit the "Type:" part and just use the subject
-- Never put the ticket ID both in the subject and after the dash
-
-BULLET RULES:
-- One bullet per distinct piece of work (merge similar commits)
-- Short phrase, past tense, no period at the end
-- Remove noise: "wip", "misc", "almost there", "stable", "ditto", "ready"
-- Omit merge commits and trivial/duplicate messages
-- If a commit references a BH ticket not already in the heading, include it in the bullet (e.g. "Fixed thumbnail URL - BH16")
-
-LIMITS:
-- No more than ${maxWords} words total across all sections
-- No extra commentary, preamble, or explanation — output the headings and bullets only
-
-Commits grouped by branch:
-${commitBlock}`;
-
-      const response = await models[0].sendRequest(
-        [vscode.LanguageModelChatMessage.User(prompt)],
-        {},
-        tokenSource.token
-      );
-
-      let text = '';
-      for await (const chunk of response.text) {
-        text += chunk;
-      }
-      return text.trim() || null;
-    } catch (error) {
-      console.error('LLM summary error:', error);
-      return null;
-    } finally {
-      tokenSource.dispose();
-    }
+    return formatWorkLog(result.commits, { maxWords });
   }
 
   function getNonce() {
