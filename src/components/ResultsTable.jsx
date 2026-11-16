@@ -17,6 +17,7 @@ import HarvestProjectSelect from './HarvestProjectSelect';
  *   timeFormat: string,
  *   isRefreshing: boolean,
  *   useAISummary: boolean,
+ *   includeSecondary: boolean,
  *   harvest: import('../utils/harvestMapping').HarvestState,
  *   onHarvestMappingChange: (key: string, mapping: any) => void,
  * }} props
@@ -30,14 +31,15 @@ const ResultsTable = ({
   timeFormat,
   isRefreshing,
   useAISummary,
+  includeSecondary,
   harvest,
   onHarvestMappingChange,
 }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
   const processedResults = useMemo(
-    () => processResults(results, roundHours, config, timeFormat),
-    [results, roundHours, config, timeFormat]
+    () => processResults(results, roundHours, config, timeFormat, includeSecondary),
+    [results, roundHours, config, timeFormat, includeSecondary]
   );
   const remoteByFolder = useMemo(
     () => Object.fromEntries((results || []).map((r) => [r.folder, r.remote || null])),
@@ -204,6 +206,7 @@ const ResultsTable = ({
                                   folder={row[0]}
                                   date={cell.date}
                                   useAISummary={useAISummary}
+                                  includeSecondary={includeSecondary}
                                 />
                               </>
                             )}

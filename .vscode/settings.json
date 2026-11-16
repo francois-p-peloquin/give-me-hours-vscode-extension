@@ -1,0 +1,5 @@
+{
+  // The JS debugger's network view makes the Extension Development Host's Node abort
+  // (SIGABRT in node::inspector::Agent::ToggleNetworkTracking) when F5 attaches.
+  "debug.javascript.enableNetworkView": false
+}

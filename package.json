@@ -88,6 +88,18 @@
           "maximum": 1000,
           "description": "Maximum number of words in commit summaries. Used as the word limit for AI-generated summaries, and as a truncation cap for raw log output."
         },
+        "giveMeHours.fetchBeforeScan": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Run `git fetch --all` on each repo before scanning, so commits pushed from elsewhere (teammates, bots, other machines) are counted. Fetch only: your local branches and files are never changed. Repos fetched in the last 5 minutes are skipped, except when you click **Refresh**."
+        },
+        "giveMeHours.secondaryAuthors": {
+          "type": "string",
+          "default": "",
+          "editPresentation": "multilineText",
+          "description": "Extra git authors whose commits count as your time, separated by commas or line breaks (e.g. site-security-watcher[bot]). Matched as plain text against the commit's \"Name <email>\", like git log --author. Toggle with the \"Include secondary accounts\" checkbox.",
+          "markdownDescription": "Extra git authors whose commits count as your time, separated by commas or line breaks, e.g. `site-security-watcher[bot]`. Matched as plain text against the commit's `Name <email>`, like `git log --author`. Toggle with the **Include secondary accounts** checkbox."
+        },
         "giveMeHours.showSummary": {
           "type": "boolean",
           "default": true,

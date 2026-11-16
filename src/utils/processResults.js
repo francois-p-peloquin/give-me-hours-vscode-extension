@@ -8,11 +8,12 @@ import { formatTime } from './rounding';
  * @param {boolean} roundHours
  * @param {object} config
  * @param {string} timeFormat
+ * @param {boolean} [includeSecondary]  false drops commits from secondary accounts
  * @returns {Array<{ folder: string, remote: string|null, date: string, hours: string,
  *   hoursDecimal: number, dailyCommits: any[] }>}
  *   `hours` is the display string; `hoursDecimal` the same value as a number.
  */
-export const processResults = (results, roundHours, config, timeFormat) => {
+export const processResults = (results, roundHours, config, timeFormat, includeSecondary = true) => {
   if (!results) {
     return [];
   }
@@ -22,6 +23,7 @@ export const processResults = (results, roundHours, config, timeFormat) => {
     const commitsByDate = {};
     if (folderResult.data.length > 0 && folderResult.data[0].commits) {
       for (const commit of folderResult.data[0].commits) {
+        if (!includeSecondary && commit.isSecondary) continue;
         const commitDate = commit.commitDate;
         if (!commitsByDate[commitDate]) {
           commitsByDate[commitDate] = [];

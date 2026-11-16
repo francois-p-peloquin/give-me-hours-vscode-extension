@@ -29,6 +29,7 @@ function App() {
   const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
   const [useAISummary, setUseAISummary] = useState(true);
+  const [includeSecondary, setIncludeSecondary] = useState(true);
   const [harvest, setHarvest] = useState(
     /** @type {import('./utils/harvestMapping').HarvestState} */ ({ connected: false })
   );
@@ -55,8 +56,11 @@ function App() {
   };
 
   const processedResults = useMemo(
-    () => (data ? processResults(data.results, roundHours, data.config, timeFormat) : []),
-    [data, roundHours, timeFormat]
+    () =>
+      data
+        ? processResults(data.results, roundHours, data.config, timeFormat, includeSecondary)
+        : [],
+    [data, roundHours, timeFormat, includeSecondary]
   );
 
   // What "Add time to Harvest" sends: the selected day, or every day of the selected week.
@@ -167,12 +171,13 @@ function App() {
 
   const { results, config } = data;
 
-  const handleRefresh = (refreshDate = date) => {
+  /** @param {string} [refreshDate] @param {boolean} [force] re-fetch every repo */
+  const handleRefresh = (refreshDate = date, force = false) => {
     if (!data) {
       setLoading(true);
     }
     setIsRefreshing(true);
-    window.vscode.postMessage({ command: 'refresh', date: refreshDate });
+    window.vscode.postMessage({ command: 'refresh', date: refreshDate, force });
   };
 
   return (
@@ -189,7 +194,11 @@ function App() {
             <VSCodeOption value="Decimal">Decimal</VSCodeOption>
             <VSCodeOption value="Chrono">Chrono</VSCodeOption>
           </VSCodeDropdown>
-          <VSCodeButton onClick={() => handleRefresh(date)} disabled={isRefreshing}>
+          <VSCodeButton
+            onClick={() => handleRefresh(date, true)}
+            disabled={isRefreshing}
+            title="Fetch every repo from its remotes, then recalculate"
+          >
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </VSCodeButton>
           <VSCodeCheckbox checked={roundHours} onChange={(e) => setRoundHours(e.target.checked)}>
@@ -201,6 +210,15 @@ function App() {
           >
             Use AI commit summary
           </VSCodeCheckbox>
+          {config?.secondaryAuthors?.length > 0 && (
+            <VSCodeCheckbox
+              checked={includeSecondary}
+              onChange={(e) => setIncludeSecondary(e.target.checked)}
+              title={`Count commits by: ${config.secondaryAuthors.join(', ')}`}
+            >
+              Include secondary accounts
+            </VSCodeCheckbox>
+          )}
           <VSCodeButton onClick={() => window.vscode.postMessage({ command: 'openSettings' })}>
             Open settings
           </VSCodeButton>
@@ -227,6 +245,16 @@ function App() {
           )}
         </div>
         {harvest.error && <div className="notice notice--error">Harvest: {harvest.error}</div>}
+        {data.fetch?.failed?.length > 0 && (
+          <div
+            className="fetch-note"
+            title={data.fetch.failed.map((f) => `${f.folder}: ${f.error}`).join('\n')}
+          >
+            Couldn&rsquo;t fetch {data.fetch.failed.length}{' '}
+            {data.fetch.failed.length === 1 ? 'repo' : 'repos'} (showing local commits only):{' '}
+            {data.fetch.failed.map((f) => f.folder).join(', ')}
+          </div>
+        )}
       </div>
       {config && <Configuration config={config} />}
       <ResultsTable
@@ -238,6 +266,7 @@ function App() {
         timeFormat={timeFormat}
         isRefreshing={isRefreshing}
         useAISummary={useAISummary}
+        includeSecondary={includeSecondary}
         harvest={harvest}
         onHarvestMappingChange={handleMappingChange}
       />
@@ -248,6 +277,7 @@ function App() {
           selectionKey={selection.key}
           selectionLabel={selection.label}
           useAISummary={useAISummary}
+          includeSecondary={includeSecondary}
           onClose={() => setHarvestDialogOpen(false)}
         />
       )}

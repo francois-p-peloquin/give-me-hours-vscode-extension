@@ -6,6 +6,9 @@ VS Code extension that estimates hours worked per repo per day from git commits,
 - **Extension host (CommonJS, Node):**
   - `extension.js`: activation, commands, webview panel, and one `switch` handling every webview message.
   - `give-me-hours.js`: git scanning. `getHoursForDirectory` returns raw commits plus `remote` ("owner/repo") per repo.
+    - Authors: `[git user.name, ...secondaryAuthors]` become several `--author` flags with `--fixed-strings` (so `[bot]` isn't a regex). Commits by anyone but the first author get `isSecondary: true`.
+    - Before scanning, `fetchRepos` runs `git fetch --all` (no pull, no prune) on every repo in parallel (8 at a time, 30s timeout, `GIT_TERMINAL_PROMPT=0`). Repos attempted in the last 5 minutes are skipped unless `forceFetch` (the Refresh button) is set. Failures come back in `result.fetch.failed` and show in the panel. Setting: `giveMeHours.fetchBeforeScan`; CLI: `--no-fetch`.
+    - The host always includes secondary authors' commits. The webview's "Include secondary accounts" checkbox filters them in `processResults`, and is passed as `includeSecondary` to summaries and Harvest sends.
   - `harvest.js`: Harvest API v2 client, using global `fetch`.
   - `harvest-controller.js`: token in `context.secrets`; account, suggestion cache and previous sends in `globalState`; mappings and the fallback in settings.
 - **Webview (React, CRA → `build/`):** `src/`. Hours are calculated **in the webview** (`src/utils/processResults.js` → `hours.js`). The host only sends commits.
@@ -23,6 +26,8 @@ VS Code extension that estimates hours worked per repo per day from git commits,
 
 ## Build, run, release
 - `yarn build` for the webview, then F5 ("Run Extension") opens an Extension Development Host. Rebuild and reload that window after React changes.
+- `.vscode/settings.json` turns off `debug.javascript.enableNetworkView`. With it on, the dev host's extension host aborts (SIGABRT in `node::inspector::Agent::ToggleNetworkTracking`) as soon as the debugger attaches.
+- Git scans run with `execSync` on the extension host, so a refresh freezes it for a few seconds ("extension host unresponsive" in the logs). That's expected for now.
 - `yarn lint`. There's no meaningful test suite; test changes by hand in the dev host.
 - Release: merge to `main`, and `.github/workflows/release.yml` publishes. Put `[minor]`/`[major]` in the PR title to bump more than a patch. The Marketplace's live version decides whether to bump. Auth is Trusted Publishing (OIDC); the Marketplace policy names `release.yml`, so don't rename it.
 - The Marketplace rejects icons over 1024×1024 (`public/logo.png` is 256×256).

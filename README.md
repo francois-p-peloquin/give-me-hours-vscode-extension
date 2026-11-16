@@ -37,6 +37,8 @@ Access settings via the **Open Settings** button in the interface, or search for
 | **Min Commit Time** | `0.5` | Minimum hours credited for a single commit or after a long break |
 | **Summary Words** | `300` | Maximum word count for AI-generated summaries (50–1000) |
 | **Show Summary** | `true` | Show the commit summary column in the results table |
+| **Fetch Before Scan** | `true` | `git fetch --all` each repo before scanning, so commits pushed from elsewhere (teammates, bots, other machines) count. Fetch only; local branches and files aren't changed. Skips repos fetched in the last 5 minutes, except on **Refresh**. |
+| **Secondary Authors** | _(empty)_ | Extra git authors whose commits count as your time, separated by commas or line breaks (e.g. `site-security-watcher[bot]`). Matched as plain text against `Name <email>`. |
 
 ### Duration Examples
 - `1h` = 1 hour (default)
@@ -74,9 +76,10 @@ Each cell in the table has a **Summary** button that copies a work log to your c
 | **Day / Week** dropdown | Switch between single-day and weekly view |
 | **Date picker** | Navigate to any week |
 | **Decimal / Chrono** dropdown | Toggle between decimal hours (1.5) and clock format (1:30) |
-| **Refresh** button | Force re-scan of all repositories |
+| **Refresh** button | Fetch every repo from its remotes, then re-scan |
 | **Round hours** checkbox | Apply rounding and startup time to displayed hours |
 | **Use AI commit summary** checkbox | Toggle LLM summarization on/off |
+| **Include secondary accounts** checkbox | Count commits from **Secondary Authors** in hours, summaries and Harvest notes. Shown only when that setting has names. |
 | **Open Settings** button | Jump to extension settings |
 | **Add time to Harvest** button | Send the hours on screen (the selected day, or the whole week) to Harvest. Reads **Connect Harvest** until you've connected. |
 
@@ -194,6 +197,8 @@ node give-me-hours.js --help
 | `--rounding` | `0.25` | Round up to nearest N hours; `0` to disable |
 | `--min-time` | `0.5` | Minimum hours credited per isolated commit |
 | `--words` | `50` | Max words in summary output |
+| `--no-fetch` | _(fetch on)_ | Skip `git fetch` before scanning (local commits only) |
+| `--secondary-authors` | _(none)_ | Comma-separated extra git authors whose commits count as your time |
 | `--debug` | off | Print git commands and per-commit intervals |
 | `--json` | off | Output raw JSON instead of formatted text |
 
