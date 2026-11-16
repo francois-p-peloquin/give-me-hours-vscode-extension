@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
 const GiveMeHours = require('./give-me-hours');
+const { createHarvestController } = require('./harvest-controller');
 const fs = require('fs');
 const path = require('path');
 
@@ -70,6 +71,46 @@ function activate(context) {
     }
   );
 
+  // Open Give Me Hours panels, so Harvest state changes reach all of them.
+  /** @type {Set<vscode.WebviewPanel>} */
+  const panels = new Set();
+
+  const harvest = createHarvestController(context, {
+    getSummary: (folder, date, useAISummary) =>
+      getCommitSummaryForFolder(folder, date, useAISummary),
+  });
+
+  async function pushHarvestState(targets = panels) {
+    const state = await harvest.getState();
+    for (const panel of targets) {
+      panel.webview.postMessage({ type: 'harvestState', state });
+    }
+  }
+
+  const harvestCommandDisposables = [
+    vscode.commands.registerCommand('give-me-hours.connectHarvest', async () => {
+      await harvest.connect();
+      await pushHarvestState();
+    }),
+    vscode.commands.registerCommand('give-me-hours.disconnectHarvest', async () => {
+      await harvest.disconnect();
+      await pushHarvestState();
+    }),
+    vscode.commands.registerCommand('give-me-hours.setHarvestFallback', async () => {
+      await harvest.pickDefault();
+    }),
+    // Mappings and the fallback live in settings; re-sync when they change (from the
+    // table dropdowns, the fallback picker, or a hand edit of settings.json).
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (
+        event.affectsConfiguration('giveMeHours.harvestProjects') ||
+        event.affectsConfiguration('giveMeHours.harvestDefault')
+      ) {
+        pushHarvestState();
+      }
+    }),
+  ];
+
   async function prefetchData() {
     try {
       prefetchedData = await calculateAndSendHours(null);
@@ -126,6 +167,9 @@ function activate(context) {
         localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'build')],
       }
     );
+
+    panels.add(panel);
+    panel.onDidDispose(() => panels.delete(panel), null, context.subscriptions);
 
     panel.webview.html = `<!DOCTYPE html><html><head><style>
 			body { display:flex; align-items:center; justify-content:center; height:100vh; margin:0; background:var(--vscode-editor-background); }
@@ -185,6 +229,42 @@ function activate(context) {
                 data: prefetchedData,
               });
             }
+            await pushHarvestState([panel]);
+            break;
+          case 'harvestConnect':
+            await vscode.commands.executeCommand('give-me-hours.connectHarvest');
+            break;
+          case 'harvestSetMapping':
+            // onDidChangeConfiguration pushes the new state to every panel.
+            await harvest.setMapping(message.key, message.mapping);
+            break;
+          case 'harvestOpen':
+            await harvest.openInHarvest();
+            break;
+          case 'harvestSend':
+            try {
+              const result = await harvest.send(message, (done, total) =>
+                panel.webview.postMessage({
+                  type: 'harvestProgress',
+                  requestId: message.requestId,
+                  done,
+                  total,
+                })
+              );
+              panel.webview.postMessage({
+                type: 'harvestSendResult',
+                requestId: message.requestId,
+                ...result,
+              });
+            } catch (error) {
+              console.error('Error sending to Harvest:', error);
+              panel.webview.postMessage({
+                type: 'harvestSendError',
+                requestId: message.requestId,
+                error: error.message,
+              });
+            }
+            await pushHarvestState(); // previousSends changed
             break;
           case 'refresh':
             currentDate = message.date || 'today';
@@ -492,6 +572,7 @@ ${commitBlock}`;
   context.subscriptions.push(
     openWelcomeDisposable,
     openSettingsDisposable,
+    ...harvestCommandDisposables,
     statusBarItem,
     { dispose: () => clearInterval(statusBarInterval) },
     { dispose: () => clearInterval(prefetchInterval) }

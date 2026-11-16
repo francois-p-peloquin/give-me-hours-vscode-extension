@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   VSCodeButton,
   VSCodeTextField,
@@ -9,7 +9,14 @@ import {
 import './App.css';
 import ResultsTable from './components/ResultsTable';
 import Configuration from './components/Configuration';
-import { getFormattedLocalDate, createDate, formatToYYYYMMDD } from './utils/dateUtils';
+import HarvestDialog from './components/HarvestDialog';
+import {
+  getFormattedLocalDate,
+  createDate,
+  formatToYYYYMMDD,
+  getWeekDates,
+} from './utils/dateUtils';
+import { processResults } from './utils/processResults';
 
 function App() {
   const [date, setDate] = useState(getFormattedLocalDate());
@@ -22,6 +29,57 @@ function App() {
   const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
   const [useAISummary, setUseAISummary] = useState(true);
+  const [harvest, setHarvest] = useState(
+    /** @type {import('./utils/harvestMapping').HarvestState} */ ({ connected: false })
+  );
+  const [harvestDialogOpen, setHarvestDialogOpen] = useState(false);
+
+  // Harvest state is pushed by the host on load and whenever it changes.
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data?.type === 'harvestState') setHarvest(event.data.state);
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const handleMappingChange = (key, mapping) => {
+    // Optimistic update; the host persists it to settings and pushes fresh state.
+    setHarvest((h) => {
+      const mappings = { ...(h.mappings || {}) };
+      if (mapping) mappings[key] = mapping;
+      else delete mappings[key];
+      return { ...h, mappings };
+    });
+    window.vscode.postMessage({ command: 'harvestSetMapping', key, mapping });
+  };
+
+  const processedResults = useMemo(
+    () => (data ? processResults(data.results, roundHours, data.config, timeFormat) : []),
+    [data, roundHours, timeFormat]
+  );
+
+  // What "Add time to Harvest" sends: the selected day, or every day of the selected week.
+  const selection = useMemo(() => {
+    const dates =
+      display === 'Day' ? [date] : getWeekDates(date).map((d) => formatToYYYYMMDD(d));
+    const label =
+      display === 'Day'
+        ? createDate(date).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+          })
+        : `Week of ${createDate(dates[0]).toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+          })}`;
+    return {
+      key: display === 'Day' ? `day:${date}` : `week:${dates[0]}`,
+      label,
+      rows: processedResults.filter((r) => dates.includes(r.date) && r.hoursDecimal > 0),
+    };
+  }, [display, date, processedResults]);
 
   const isDateInCurrentWeek = (selectedDate) => {
     if (!data || !data.startOfWeek || !data.endOfWeek) {
@@ -146,7 +204,29 @@ function App() {
           <VSCodeButton onClick={() => window.vscode.postMessage({ command: 'openSettings' })}>
             Open settings
           </VSCodeButton>
+          {harvest.connected ? (
+            <VSCodeButton
+              className="primary-button"
+              disabled={selection.rows.length === 0 || isRefreshing}
+              title={
+                selection.rows.length === 0
+                  ? `No hours for this ${display.toLowerCase()}`
+                  : `Send ${selection.label.toLowerCase()} to Harvest`
+              }
+              onClick={() => setHarvestDialogOpen(true)}
+            >
+              Add time to Harvest
+            </VSCodeButton>
+          ) : (
+            <VSCodeButton
+              className="primary-button"
+              onClick={() => window.vscode.postMessage({ command: 'harvestConnect' })}
+            >
+              Connect Harvest
+            </VSCodeButton>
+          )}
         </div>
+        {harvest.error && <div className="notice notice--error">Harvest: {harvest.error}</div>}
       </div>
       {config && <Configuration config={config} />}
       <ResultsTable
@@ -158,7 +238,19 @@ function App() {
         timeFormat={timeFormat}
         isRefreshing={isRefreshing}
         useAISummary={useAISummary}
+        harvest={harvest}
+        onHarvestMappingChange={handleMappingChange}
       />
+      {harvestDialogOpen && (
+        <HarvestDialog
+          harvest={harvest}
+          rows={selection.rows}
+          selectionKey={selection.key}
+          selectionLabel={selection.label}
+          useAISummary={useAISummary}
+          onClose={() => setHarvestDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }

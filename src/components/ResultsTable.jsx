@@ -1,49 +1,12 @@
 import React, { useMemo } from 'react';
 import { getWeekDates } from '../utils/dateUtils';
-import { calculateWorkingHours } from '../utils/hours';
 import { formatTime } from '../utils/rounding';
+import { processResults } from '../utils/processResults';
+import { repoKey } from '../utils/harvestMapping';
 import CopyButton from './CopyButton';
 import GetWorkSummaryButton from './GetWorkSummaryButton';
-// Removed VSCodeLink import as it's no longer needed for copying
+import HarvestProjectSelect from './HarvestProjectSelect';
 
-/**
- * @param {any[]} results
- * @param {boolean} roundHours
- * @param {object} config
- * @param {string} timeFormat
- */
-const processResults = (results, roundHours, config, timeFormat) => {
-  if (!results) {
-    return [];
-  }
-
-  const processed = [];
-  for (const folderResult of results) {
-    const commitsByDate = {};
-    if (folderResult.data.length > 0 && folderResult.data[0].commits) {
-      for (const commit of folderResult.data[0].commits) {
-        const commitDate = commit.commitDate; // Use the new commitDate property
-        if (!commitsByDate[commitDate]) {
-          commitsByDate[commitDate] = [];
-        }
-        commitsByDate[commitDate].push(commit);
-      }
-    }
-
-    for (const date in commitsByDate) {
-      const dailyCommits = commitsByDate[date];
-      const totalSeconds = calculateWorkingHours(dailyCommits, roundHours, config);
-      const hours = totalSeconds / 3600;
-      processed.push({
-        folder: folderResult.folder,
-        date: date,
-        hours: formatTime(totalSeconds, timeFormat),
-        dailyCommits: dailyCommits, // Add dailyCommits here
-      });
-    }
-  }
-  return processed;
-};
 /**
  * @param {{
  *   results: any[],
@@ -54,6 +17,8 @@ const processResults = (results, roundHours, config, timeFormat) => {
  *   timeFormat: string,
  *   isRefreshing: boolean,
  *   useAISummary: boolean,
+ *   harvest: import('../utils/harvestMapping').HarvestState,
+ *   onHarvestMappingChange: (key: string, mapping: any) => void,
  * }} props
  */
 const ResultsTable = ({
@@ -65,12 +30,18 @@ const ResultsTable = ({
   timeFormat,
   isRefreshing,
   useAISummary,
+  harvest,
+  onHarvestMappingChange,
 }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
   const processedResults = useMemo(
     () => processResults(results, roundHours, config, timeFormat),
     [results, roundHours, config, timeFormat]
+  );
+  const remoteByFolder = useMemo(
+    () => Object.fromEntries((results || []).map((r) => [r.folder, r.remote || null])),
+    [results]
   );
 
   if (!isRefreshing && (!processedResults || processedResults.length === 0)) {
@@ -219,6 +190,13 @@ const ResultsTable = ({
                               <CopyButton textToCopy={cell.hours} />
                             ) : (
                               <span className="data-cell-hours">{cell}</span>
+                            )}
+                            {isRowHeader && harvest?.connected && harvest.assignments && (
+                              <HarvestProjectSelect
+                                harvest={harvest}
+                                mappingKey={repoKey(cell, remoteByFolder[cell])}
+                                onChange={onHarvestMappingChange}
+                              />
                             )}
                             {cellIndex > 0 && !cell.isTotal && (
                               <>

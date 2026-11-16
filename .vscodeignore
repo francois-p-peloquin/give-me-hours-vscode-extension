@@ -10,3 +10,5 @@ vsc-extension-quickstart.md
 **/.vscode-test.*
 .env
 TODO.md
+AGENTS.md
+.github/**
