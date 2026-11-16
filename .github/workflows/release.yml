@@ -6,19 +6,19 @@
 #     (e.g. "[major] Auto-publish on merge" -> 4.0.0). Works for merge and squash merges,
 #     since both put the PR title in the commit message.
 #   - Or locally: run `npm version minor` (or `major`), then `git push --follow-tags`.
-#     The pushed tag points at HEAD, so that version is published as-is.
-#   - package.json version changed without a tag and not yet on the Marketplace
-#     (e.g. edited in a PR): publishes that version and creates its tag.
-#   A version already live on the Marketplace is always bumped, even if its git tag
-#   is missing.
+#
+# The Marketplace is the source of truth: the version in package.json is bumped
+# only if it's already live there. If it isn't live yet (manual `npm version`, a
+# version edited in a PR, or a previous run that bumped but failed to publish),
+# it's published from HEAD as-is and its tag is moved to HEAD.
 #
 # Auth: Marketplace Trusted Publishing (GitHub OIDC), so there's no stored token.
 # The publisher needs a Trusted Publishing policy for this repo + `release.yml`
 # (marketplace.visualstudio.com/manage -> publisher -> Trusted Publishing).
 # Renaming this file breaks publishing until the policy is updated.
 #
-# Re-running a failed run is safe: the bump is pushed before publishing, so a
-# re-run sees a tagged HEAD and only retries the publish (duplicates are skipped).
+# Re-running a failed run is safe: the bumped version isn't live, so a re-run
+# publishes it without bumping again.
 
 name: Release
 
@@ -78,12 +78,7 @@ jobs:
           fi
           echo "package.json: $current, Marketplace: $published"
 
-          tag_exists=false
-          git rev-parse -q --verify "refs/tags/$tag" >/dev/null && tag_exists=true
-
-          if $tag_exists && [ "$(git rev-list -n1 "$tag")" = "$(git rev-parse HEAD)" ]; then
-            echo "HEAD is already tagged $tag (manual release or re-run); publishing as-is."
-          elif [ "$current" = "$published" ] || $tag_exists; then
+          if [ "$current" = "$published" ]; then
             message=$(git log -1 --format=%B "$TRIGGER_SHA")
             if grep -qi '\[major\]' <<<"$message"; then
               bump=major
@@ -95,8 +90,11 @@ jobs:
             echo "$current already released; bumping $bump."
             npm version "$bump" -m "%s [skip ci]"
           else
-            echo "$current is new (not on the Marketplace, no tag); tagging and publishing it."
-            git tag "$tag"
+            # Not live yet: a manual `npm version`, a version edited in a PR, or a
+            # previous run that bumped but failed to publish. Ship it from HEAD and
+            # (re)point its tag here, since an unpublished tag never shipped anything.
+            echo "$current is not on the Marketplace yet; publishing it from HEAD."
+            git tag -f -a "$tag" -m "$current"
           fi
 
           version=$(node -p "require('./package.json').version")
@@ -104,7 +102,9 @@ jobs:
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
       - name: Push version commit and tag
-        run: git push origin HEAD:main "refs/tags/${{ steps.version.outputs.tag }}"
+        run: |
+          git push origin HEAD:main
+          git push --force origin "refs/tags/${{ steps.version.outputs.tag }}"
 
       - name: Build webview
         run: yarn build
