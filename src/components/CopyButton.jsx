@@ -1,36 +1,41 @@
 import React, { useState } from 'react';
 import ClipboardIcon from './ClipboardIcon';
+import { copyToClipboard } from '../utils/clipboard';
 
 /**
  * @param {{
  *   textToCopy?: string,
+ *   getText?: () => Promise<string>,
  *   label?: string,
- *   onCopy?: () => void,
- *   loading?: boolean,
- *   copied?: boolean,
  *   className?: string,
  * }} props
  *
- * Uncontrolled (hours): pass `textToCopy` only — manages its own copied state.
- * Controlled (Summary): pass `label` + `onCopy` + `loading` + `copied` — state lives in parent.
+ * Every copy in the app goes through this component.
+ * - Static text (hours): pass `textToCopy`; it's also the button label.
+ * - Fetched text (Summary): pass `label` + `getText`; the button shows "Loading" until it resolves.
  */
-const CopyButton = ({ textToCopy, label, onCopy, loading = false, copied: controlledCopied, className }) => {
-  const [ownCopied, setOwnCopied] = useState(false);
-  const copied = controlledCopied !== undefined ? controlledCopied : ownCopied;
+const CopyButton = ({ textToCopy, getText, label, className }) => {
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
   const isLabeled = label !== undefined;
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (loading) return;
-    if (onCopy) {
-      onCopy();
-    } else if (textToCopy) {
-      navigator.clipboard
-        .writeText(textToCopy)
-        .then(() => {
-          setOwnCopied(true);
-          setTimeout(() => setOwnCopied(false), 1500);
-        })
-        .catch((err) => console.error('Failed to copy text: ', err));
+    setCopied(false);
+    try {
+      let text = textToCopy;
+      if (getText) {
+        setLoading(true);
+        text = await getText();
+      }
+      if (!text) return;
+      await copyToClipboard(String(text));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    } finally {
+      setLoading(false);
     }
   };
 
