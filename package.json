@@ -3,7 +3,7 @@
   "displayName": "Give Me Hours",
   "icon": "public/logo.png",
   "description": "A command-line tool to list out hours worked based on git log hours in a working directory.",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "publisher": "FrancoisPPeloquin",
   "repository": {
     "type": "git",
@@ -120,22 +120,40 @@
           "additionalProperties": {
             "type": "object",
             "properties": {
-              "projectId": { "type": "number" },
-              "taskId": { "type": "number" },
-              "label": { "type": "string" }
+              "projectId": {
+                "type": "number"
+              },
+              "taskId": {
+                "type": "number"
+              },
+              "label": {
+                "type": "string"
+              }
             },
-            "required": ["projectId", "taskId"]
+            "required": [
+              "projectId",
+              "taskId"
+            ]
           },
           "markdownDescription": "Harvest project and task per repo, keyed by `owner/repo` (or folder name for repos without a remote). Set with the dropdown under each repo name in the Give Me Hours table. `label` is for readability only."
         },
         "giveMeHours.harvestDefault": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "default": null,
           "scope": "application",
           "properties": {
-            "projectId": { "type": "number" },
-            "taskId": { "type": "number" },
-            "label": { "type": "string" }
+            "projectId": {
+              "type": "number"
+            },
+            "taskId": {
+              "type": "number"
+            },
+            "label": {
+              "type": "string"
+            }
           },
           "markdownDescription": "Fallback Harvest project and task for repos without their own pick (e.g. Internal › Non-Billable Development). Set during **Give Me Hours: Connect Harvest**, or change it with **Give Me Hours: Change Harvest Fallback Project**."
         }
