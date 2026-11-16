@@ -24,10 +24,19 @@ const formatWhen = (ms) =>
  *   selectionKey: string,
  *   selectionLabel: string,
  *   useAISummary: boolean,
+ *   includeSecondary: boolean,
  *   onClose: () => void,
  * }} props
  */
-const HarvestDialog = ({ harvest, rows, selectionKey, selectionLabel, useAISummary, onClose }) => {
+const HarvestDialog = ({
+  harvest,
+  rows,
+  selectionKey,
+  selectionLabel,
+  useAISummary,
+  includeSecondary,
+  onClose,
+}) => {
   const [phase, setPhase] = useState(/** @type {'confirm'|'sending'|'done'} */ ('confirm'));
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [result, setResult] = useState(
@@ -83,6 +92,7 @@ const HarvestDialog = ({ harvest, rows, selectionKey, selectionLabel, useAISumma
         {
           selectionKey,
           useAISummary,
+          includeSecondary,
           append,
           entries: toSend.map((e) => ({
             folder: e.folder,

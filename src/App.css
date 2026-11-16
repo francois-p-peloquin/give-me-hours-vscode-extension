@@ -425,3 +425,10 @@ vscode-button.primary-button[disabled]::part(control) {
     background: var(--vscode-badge-background);
     color: var(--vscode-badge-foreground);
 }
+
+/* Repos that couldn't be fetched */
+.fetch-note {
+    margin-top: 10px;
+    font-size: 0.85em;
+    opacity: 0.75;
+}

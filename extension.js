@@ -76,8 +76,8 @@ function activate(context) {
   const panels = new Set();
 
   const harvest = createHarvestController(context, {
-    getSummary: (folder, date, useAISummary) =>
-      getCommitSummaryForFolder(folder, date, useAISummary),
+    getSummary: (folder, date, useAISummary, includeSecondary) =>
+      getCommitSummaryForFolder(folder, date, useAISummary, includeSecondary),
   });
 
   async function pushHarvestState(targets = panels) {
@@ -122,6 +122,14 @@ function activate(context) {
   // Prefetch data on activation
   prefetchData();
 
+  /** "a, b\nc" → ["a", "b", "c"] */
+  function parseAuthorList(value) {
+    return String(value || '')
+      .split(/[,\n]/)
+      .map((a) => a.trim())
+      .filter(Boolean);
+  }
+
   function getConfiguration() {
     const config = vscode.workspace.getConfiguration('giveMeHours');
     return {
@@ -131,6 +139,8 @@ function activate(context) {
       projectStartupTime: config.get('projectStartupTime', 0.5),
       minCommitTime: config.get('minCommitTime', 0.5),
       words: config.get('words', 50),
+      secondaryAuthors: parseAuthorList(config.get('secondaryAuthors', '')),
+      fetchBeforeScan: config.get('fetchBeforeScan', true),
       timeFormat: config.get('timeFormat', 'decimal'),
     };
   }
@@ -268,8 +278,8 @@ function activate(context) {
             break;
           case 'refresh':
             currentDate = message.date || 'today';
-            // Refresh the panel with the new date
-            await calculateAndSendHours(panel);
+            // Refresh the panel with the new date. The Refresh button forces a fresh fetch.
+            await calculateAndSendHours(panel, { forceFetch: !!message.force });
             break;
           case 'openSettings':
             await vscode.commands.executeCommand('workbench.action.openSettings', 'giveMeHours');
@@ -306,7 +316,8 @@ function activate(context) {
               const summary = await getCommitSummaryForFolder(
                 message.folder,
                 message.date,
-                message.useAISummary
+                message.useAISummary,
+                message.includeSecondary
               );
               panel.webview.postMessage({
                 type: 'workSummaryResult',
@@ -337,7 +348,7 @@ function activate(context) {
     calculateAndSendHours(panel);
   }
 
-  async function getCommitSummaryForFolder(folderName, date, useAISummary) {
+  async function getCommitSummaryForFolder(folderName, date, useAISummary, includeSecondary) {
     const config = getConfiguration();
     const workingDirectory = getWorkingDirectory();
     const duration = parseDuration(config.duration);
@@ -358,7 +369,9 @@ function activate(context) {
     const result = giveMeHours.getHoursForRepo(
       startOfDay,
       endOfDay,
-      giveMeHours.getGitUsername(),
+      includeSecondary
+        ? [giveMeHours.getGitUsername(), ...config.secondaryAuthors]
+        : giveMeHours.getGitUsername(),
       folderPath
     );
 
@@ -492,7 +505,7 @@ ${commitBlock}`;
     }
   }
 
-  async function calculateAndSendHours(panel) {
+  async function calculateAndSendHours(panel, { forceFetch = false } = {}) {
     const config = getConfiguration();
     try {
       // Check if working directory is configured
@@ -520,12 +533,17 @@ ${commitBlock}`;
         duration: duration,
         minCommitTime: config.minCommitTime,
         showSummary: true, // Always fetch summaries
+        // Always fetch secondary accounts too; the webview's checkbox filters them out.
+        secondaryAuthors: config.secondaryAuthors,
+        fetch: config.fetchBeforeScan,
         maxWords: config.words,
         debug: false,
       });
 
       // Get hours for the working directory
-      const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate);
+      const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate, {
+        forceFetch,
+      });
 
       // Add config info to result
       result.config = config;

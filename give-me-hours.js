@@ -1,8 +1,19 @@
-const { execSync } = require('child_process');
+const { execSync, execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const process = require('process');
 const Summary = require('./src/utils/summary');
+
+// Never let git wait on a credential prompt during background fetches.
+const FETCH_ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+const FETCH_TIMEOUT_MS = 30 * 1000;
+const FETCH_CONCURRENCY = 8;
+const FETCH_MAX_AGE_MS = 5 * 60 * 1000;
+/** repo path → { at: ms, error: string|null } for the last fetch attempt (this process) */
+const lastFetch = new Map();
+
+// Single-quote a value for the shell.
+const shellQuote = (value) => `'${String(value).replace(/'/g, `'\\''`)}'`;
 
 // Inline createDate to avoid ESM import issues when running via Node directly
 const createDate = (...args) => {
@@ -24,8 +35,70 @@ class GiveMeHours {
     this.duration = options.duration || 3600; // 1 hour in seconds
     this.minCommitTime = options.minCommitTime || 0.5;
     this.debug = options.debug || false;
-
+    // Extra git authors (e.g. "site-security-watcher[bot]") whose commits count as your time.
+    this.secondaryAuthors = options.secondaryAuthors || [];
+    // `git fetch` each repo before scanning, so commits pushed elsewhere are counted.
+    this.fetch = options.fetch !== false;
     this.summary = new Summary(options);
+  }
+
+  /**
+   * Fetch one repo from all its remotes. Fetch only: no pull, no prune, so local
+   * branches and files are never touched.
+   * @param {string} dir
+   * @returns {Promise<string|null>} error message, or null on success
+   */
+  fetchRepo(dir) {
+    return new Promise((resolve) => {
+      execFile(
+        'git',
+        ['fetch', '--all', '--quiet'],
+        { cwd: dir, timeout: FETCH_TIMEOUT_MS, env: FETCH_ENV },
+        (error, stdout, stderr) => {
+          let message = null;
+          if (error) {
+            const firstLine = String(stderr || error.message)
+              .split('\n')
+              .map((l) => l.trim())
+              .find(Boolean);
+            message = error.killed ? 'Timed out' : firstLine || 'Fetch failed';
+          }
+          lastFetch.set(dir, { at: Date.now(), error: message });
+          resolve(message);
+        }
+      );
+    });
+  }
+
+  /**
+   * Fetch many repos in parallel. Repos attempted in the last few minutes are skipped
+   * unless `force` is set; ones whose last attempt failed are still reported as failed.
+   * @param {Array<{ folder: string, dir: string }>} repos
+   * @param {{ force?: boolean }} [options]
+   */
+  async fetchRepos(repos, { force = false } = {}) {
+    const due = repos.filter(
+      (r) => force || Date.now() - (lastFetch.get(r.dir)?.at || 0) > FETCH_MAX_AGE_MS
+    );
+    let next = 0;
+    const worker = async () => {
+      while (next < due.length) {
+        const repo = due[next++];
+        await this.fetchRepo(repo.dir);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(FETCH_CONCURRENCY, due.length) }, worker));
+
+    const failed = repos
+      .filter((r) => lastFetch.get(r.dir)?.error)
+      .map((r) => ({ folder: r.folder, error: lastFetch.get(r.dir).error }))
+      .sort((a, b) => a.folder.localeCompare(b.folder));
+    return {
+      at: Date.now(),
+      repos: repos.length,
+      attempted: due.length,
+      failed,
+    };
   }
 
   getGitUsername() {
@@ -40,6 +113,11 @@ class GiveMeHours {
     }
   }
 
+  /**
+   * @param {Date} fromDate
+   * @param {Date} toDate
+   * @param {string|string[]} [author]  One author, or several (any of them matches).
+   */
   buildGitCommand(fromDate, toDate, author) {
     const formatDate = (date) => {
       const year = date.getFullYear();
@@ -53,11 +131,16 @@ class GiveMeHours {
     const since = formatDate(fromDate);
     const until = formatDate(toDate);
     const sinceString = ` --since=\"${since}" --until=\"${until}" `;
-    const authString = author ? ` --author=\"${author}" ` : '';
+    const authors = (Array.isArray(author) ? author : [author]).filter(Boolean);
+    // Multiple --author flags are OR'd. --fixed-strings so names like "bot[bot]" aren't regexes.
+    const authString = authors.length
+      ? ` ${authors.map((a) => `--author=${shellQuote(a)}`).join(' ')} --fixed-strings `
+      : '';
 
-    let cmd = `git log --all ${sinceString} ${authString} --pretty=format:'%H|%at|%an|%s' --reverse | while IFS='|' read hash timestamp author subject || [ -n "$hash" ]; do
+    // Email goes last so a "|" in the subject can't shift it.
+    let cmd = `git log --all ${sinceString} ${authString} --pretty=format:'%H|%at|%an|%ae|%s' --reverse | while IFS='|' read hash timestamp author email subject || [ -n "$hash" ]; do
             branch=$(git branch --contains $hash | grep -v 'detached' | head -1 | sed 's/^[* ]*//')
-            echo "$timestamp|$author|$subject|$branch"
+            echo "$timestamp|$author|$subject|$branch|$email"
         done`;
 
     return cmd;
@@ -132,6 +215,13 @@ class GiveMeHours {
     return null;
   }
 
+  /**
+   * @param {Date} fromDate
+   * @param {Date} toDate
+   * @param {string|string[]} author  The first author is you; any others are secondary
+   *   accounts, and their commits get `isSecondary: true`.
+   * @param {string} [repoPath]
+   */
   getHoursForRepo(fromDate, toDate, author, repoPath = '.') {
     const originalCwd = process.cwd();
 
@@ -152,6 +242,9 @@ class GiveMeHours {
         return defaultReturn;
       }
 
+      const primaryAuthor = Array.isArray(author) ? author[0] : author;
+      const hasSecondary = Array.isArray(author) && author.length > 1;
+
       const processedCommits = commitsOutput
         .split('\n')
         .filter((line) => line.trim())
@@ -164,12 +257,15 @@ class GiveMeHours {
           const day = String(commitDate.getDate()).padStart(2, '0');
           const formattedCommitDate = `${year}-${month}-${day}`;
 
+          const email = parts.length > 4 ? parts[parts.length - 1] : '';
           return {
             timestamp: commitTimestamp,
             commitDate: formattedCommitDate,
             author: parts[1],
             message: parts[2],
             branch: parts[3],
+            // git matched --author against "Name <email>", so check the same string.
+            isSecondary: hasSecondary && !`${parts[1]} <${email}>`.includes(primaryAuthor),
           };
         });
 
@@ -271,8 +367,14 @@ class GiveMeHours {
     }
   }
 
-  async getHoursForDirectory(directoryPath, dateArg = 'today') {
+  /**
+   * @param {string} directoryPath  A repo, or a folder of repos.
+   * @param {string} [dateArg]
+   * @param {{ forceFetch?: boolean }} [options]  forceFetch ignores the recent-fetch skip.
+   */
+  async getHoursForDirectory(directoryPath, dateArg = 'today', { forceFetch = false } = {}) {
     const gitUsername = this.getGitUsername();
+    const authors = [gitUsername, ...this.secondaryAuthors];
 
     const initialDate = this.processDate(dateArg);
     const day = initialDate.getDay();
@@ -286,10 +388,9 @@ class GiveMeHours {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
     const results = [];
-    const folderData = {};
+    let fetchSummary = null;
 
     try {
-      // First, check if the directoryPath itself is a git repository
       const getGitRoot = (dir) => {
         try {
           return execSync('git rev-parse --show-toplevel', {
@@ -319,56 +420,37 @@ class GiveMeHours {
         }
       };
 
+      // 1. Find the repos: the directory itself if it's a repo root, otherwise its
+      //    immediate subfolders that are repo roots.
+      /** @type {Array<{ folder: string, dir: string }>} */
+      const repos = [];
       const gitRoot = getGitRoot(directoryPath);
-      const isRepoRoot = gitRoot && path.resolve(gitRoot) === path.resolve(directoryPath);
-
-      if (isRepoRoot) {
-        // The target directory is itself a git repo — scan just this repo, not subdirectories
-        if (this.debug) {
-          console.log(`\nChecking git repository: ${directoryPath}`);
-        }
-        const result = this.getHoursForRepo(startOfWeek, endOfWeek, gitUsername, directoryPath);
-        if (result.commits.length) {
-          folderData[path.basename(directoryPath)] = {
-            folder: path.basename(directoryPath),
-            remote: getRemote(directoryPath),
-            data: [result],
-          };
-        }
+      if (gitRoot && path.resolve(gitRoot) === path.resolve(directoryPath)) {
+        repos.push({ folder: path.basename(directoryPath), dir: directoryPath });
       } else {
-        // The target directory is a container — scan subdirectories for repos
-        const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
-
-        for (const entry of entries) {
-          if (entry.isDirectory() && !entry.name.startsWith('.')) {
-            const subDir = path.join(directoryPath, entry.name);
-            const subRoot = getGitRoot(subDir);
-            if (subRoot && path.resolve(subRoot) === path.resolve(subDir)) {
-              if (this.debug) {
-                console.log(`\nChecking git repository: ${subDir}`);
-              }
-
-              if (!folderData[entry.name]) {
-                folderData[entry.name] = {
-                  folder: entry.name,
-                  remote: getRemote(subDir),
-                  data: [],
-                };
-              }
-
-              const result = this.getHoursForRepo(startOfWeek, endOfWeek, gitUsername, subDir);
-
-              if (result.commits.length) {
-                folderData[entry.name].data.push(result);
-              }
-            }
+        for (const entry of fs.readdirSync(directoryPath, { withFileTypes: true })) {
+          if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+          const subDir = path.join(directoryPath, entry.name);
+          const subRoot = getGitRoot(subDir);
+          if (subRoot && path.resolve(subRoot) === path.resolve(subDir)) {
+            repos.push({ folder: entry.name, dir: subDir });
           }
         }
       }
 
-      for (const folderName in folderData) {
-        if (folderData[folderName].data.length > 0) {
-          results.push(folderData[folderName]);
+      // 2. Fetch, so commits pushed from elsewhere (teammates, bots, other machines) count.
+      if (this.fetch) {
+        fetchSummary = await this.fetchRepos(repos, { force: forceFetch });
+      }
+
+      // 3. Scan each repo's commits for the week.
+      for (const repo of repos) {
+        if (this.debug) {
+          console.log(`\nChecking git repository: ${repo.dir}`);
+        }
+        const result = this.getHoursForRepo(startOfWeek, endOfWeek, authors, repo.dir);
+        if (result.commits.length) {
+          results.push({ folder: repo.folder, remote: getRemote(repo.dir), data: [result] });
         }
       }
     } catch (error) {
@@ -382,6 +464,7 @@ class GiveMeHours {
         endOfWeek: `${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`,
       },
       gitUsername,
+      fetch: fetchSummary,
     };
   }
 }
@@ -400,6 +483,8 @@ if (require.main === module) {
       rounding: 0.25,
       minTime: 0.5,
       words: 50,
+      secondaryAuthors: [],
+      fetch: true,
       debug: false,
       json: false,
     };
@@ -417,6 +502,10 @@ Options:
   --rounding <n>     Round hours up to nearest N, e.g. 0.25 for 15-min increments (default: 0.25)
   --min-time <n>     Minimum hours to count per isolated commit (default: 0.5)
   --words <n>        Max words in commit summary output (default: 50)
+  --secondary-authors <list>
+                     Comma-separated extra git authors whose commits count as your time,
+                     e.g. "site-security-watcher[bot]"
+  --no-fetch         Don't git fetch repos before scanning (faster; local commits only)
   --debug            Show git commands and per-commit interval details
   --json             Output raw JSON result instead of formatted text
   --help             Show this help message
@@ -436,6 +525,8 @@ Examples:
         process.exit(0);
       } else if (arg === '--debug') {
         opts.debug = true;
+      } else if (arg === '--no-fetch') {
+        opts.fetch = false;
       } else if (arg === '--json') {
         opts.json = true;
       } else if (arg === '--weekOf' && args[i + 1]) {
@@ -450,6 +541,11 @@ Examples:
         opts.minTime = parseFloat(args[++i]);
       } else if (arg === '--words' && args[i + 1]) {
         opts.words = parseInt(args[++i], 10);
+      } else if (arg === '--secondary-authors' && args[i + 1]) {
+        opts.secondaryAuthors = args[++i]
+          .split(/[,\n]/)
+          .map((a) => a.trim())
+          .filter(Boolean);
       } else if (!arg.startsWith('--')) {
         opts.directories.push(arg);
       } else {
@@ -505,6 +601,8 @@ Examples:
       duration: durationSeconds,
       minCommitTime: opts.minTime,
       maxWords: opts.words,
+      secondaryAuthors: opts.secondaryAuthors,
+      fetch: opts.fetch,
       debug: opts.debug,
     });
 
