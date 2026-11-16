@@ -245,6 +245,9 @@ function App() {
           )}
         </div>
         {harvest.error && <div className="notice notice--error">Harvest: {harvest.error}</div>}
+        {data.fetching && (
+          <div className="fetch-note fetch-note--pending">Checking remotes for new commits…</div>
+        )}
         {data.fetch?.failed?.length > 0 && (
           <div
             className="fetch-note"

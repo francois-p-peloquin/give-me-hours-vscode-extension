@@ -40,9 +40,13 @@ body {
 }
 
 .loading {
-    text-align: center;
+    /* Centered in the viewport, matching the host's placeholder page so the text
+       doesn't jump when React takes over. body has 20px padding. */
+    min-height: calc(100vh - 40px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--brand-teal-light);
-    margin: 50px 0;
     font-size: 1.1em;
     animation: pulse 1.5s ease-in-out infinite;
 }
@@ -431,4 +435,10 @@ vscode-button.primary-button[disabled]::part(control) {
     margin-top: 10px;
     font-size: 0.85em;
     opacity: 0.75;
+}
+
+.fetch-note--pending {
+    color: var(--brand-teal-light);
+    opacity: 1;
+    animation: pulse 1.5s ease-in-out infinite;
 }

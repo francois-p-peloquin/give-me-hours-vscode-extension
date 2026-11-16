@@ -12,6 +12,20 @@ const FETCH_MAX_AGE_MS = 5 * 60 * 1000;
 /** repo path → { at: ms, error: string|null } for the last fetch attempt (this process) */
 const lastFetch = new Map();
 
+/** Repo root containing `dir`, or null if it isn't in a git repo. */
+const getGitRoot = (dir) => {
+  try {
+    return execSync('git rev-parse --show-toplevel', {
+      cwd: dir,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim();
+  } catch (e) {
+    return null;
+  }
+};
+
 // Single-quote a value for the shell.
 const shellQuote = (value) => `'${String(value).replace(/'/g, `'\\''`)}'`;
 
@@ -46,13 +60,16 @@ class GiveMeHours {
    * Fetch one repo from all its remotes. Fetch only: no pull, no prune, so local
    * branches and files are never touched.
    * @param {string} dir
-   * @returns {Promise<string|null>} error message, or null on success
+   * @returns {Promise<{ error: string|null, changed: boolean }>}
+   *   `changed` is true when the fetch updated any ref (i.e. there may be new commits).
    */
   fetchRepo(dir) {
     return new Promise((resolve) => {
       execFile(
         'git',
-        ['fetch', '--all', '--quiet'],
+        // --porcelain prints one line per updated ref (nothing when up to date).
+        // Not --quiet: it suppresses that output.
+        ['fetch', '--all', '--porcelain'],
         { cwd: dir, timeout: FETCH_TIMEOUT_MS, env: FETCH_ENV },
         (error, stdout, stderr) => {
           let message = null;
@@ -64,10 +81,34 @@ class GiveMeHours {
             message = error.killed ? 'Timed out' : firstLine || 'Fetch failed';
           }
           lastFetch.set(dir, { at: Date.now(), error: message });
-          resolve(message);
+          resolve({ error: message, changed: String(stdout || '').trim().length > 0 });
         }
       );
     });
+  }
+
+  /**
+   * The repos to scan: the directory itself if it's a repo root, otherwise its
+   * immediate subfolders that are repo roots.
+   * @param {string} directoryPath
+   * @returns {Array<{ folder: string, dir: string }>}
+   */
+  findRepos(directoryPath) {
+    const repos = [];
+    const gitRoot = getGitRoot(directoryPath);
+    if (gitRoot && path.resolve(gitRoot) === path.resolve(directoryPath)) {
+      repos.push({ folder: path.basename(directoryPath), dir: directoryPath });
+      return repos;
+    }
+    for (const entry of fs.readdirSync(directoryPath, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+      const subDir = path.join(directoryPath, entry.name);
+      const subRoot = getGitRoot(subDir);
+      if (subRoot && path.resolve(subRoot) === path.resolve(subDir)) {
+        repos.push({ folder: entry.name, dir: subDir });
+      }
+    }
+    return repos;
   }
 
   /**
@@ -80,11 +121,13 @@ class GiveMeHours {
     const due = repos.filter(
       (r) => force || Date.now() - (lastFetch.get(r.dir)?.at || 0) > FETCH_MAX_AGE_MS
     );
+    const changed = [];
     let next = 0;
     const worker = async () => {
       while (next < due.length) {
         const repo = due[next++];
-        await this.fetchRepo(repo.dir);
+        const result = await this.fetchRepo(repo.dir);
+        if (result.changed) changed.push(repo.folder);
       }
     };
     await Promise.all(Array.from({ length: Math.min(FETCH_CONCURRENCY, due.length) }, worker));
@@ -97,6 +140,7 @@ class GiveMeHours {
       at: Date.now(),
       repos: repos.length,
       attempted: due.length,
+      changed: changed.sort(),
       failed,
     };
   }
@@ -370,9 +414,15 @@ class GiveMeHours {
   /**
    * @param {string} directoryPath  A repo, or a folder of repos.
    * @param {string} [dateArg]
-   * @param {{ forceFetch?: boolean }} [options]  forceFetch ignores the recent-fetch skip.
+   * @param {{ forceFetch?: boolean, fetch?: boolean }} [options]
+   *   fetch: override the instance's `fetch` (false = scan local commits only).
+   *   forceFetch: ignore the recent-fetch skip.
    */
-  async getHoursForDirectory(directoryPath, dateArg = 'today', { forceFetch = false } = {}) {
+  async getHoursForDirectory(
+    directoryPath,
+    dateArg = 'today',
+    { forceFetch = false, fetch = this.fetch } = {}
+  ) {
     const gitUsername = this.getGitUsername();
     const authors = [gitUsername, ...this.secondaryAuthors];
 
@@ -391,19 +441,6 @@ class GiveMeHours {
     let fetchSummary = null;
 
     try {
-      const getGitRoot = (dir) => {
-        try {
-          return execSync('git rev-parse --show-toplevel', {
-            cwd: dir,
-            stdio: ['ignore', 'pipe', 'ignore'],
-          })
-            .toString()
-            .trim();
-        } catch (e) {
-          return null;
-        }
-      };
-
       // "owner/repo" from the origin remote, used to remember per-repo Harvest projects.
       const getRemote = (dir) => {
         try {
@@ -420,26 +457,11 @@ class GiveMeHours {
         }
       };
 
-      // 1. Find the repos: the directory itself if it's a repo root, otherwise its
-      //    immediate subfolders that are repo roots.
-      /** @type {Array<{ folder: string, dir: string }>} */
-      const repos = [];
-      const gitRoot = getGitRoot(directoryPath);
-      if (gitRoot && path.resolve(gitRoot) === path.resolve(directoryPath)) {
-        repos.push({ folder: path.basename(directoryPath), dir: directoryPath });
-      } else {
-        for (const entry of fs.readdirSync(directoryPath, { withFileTypes: true })) {
-          if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
-          const subDir = path.join(directoryPath, entry.name);
-          const subRoot = getGitRoot(subDir);
-          if (subRoot && path.resolve(subRoot) === path.resolve(subDir)) {
-            repos.push({ folder: entry.name, dir: subDir });
-          }
-        }
-      }
+      // 1. Find the repos.
+      const repos = this.findRepos(directoryPath);
 
       // 2. Fetch, so commits pushed from elsewhere (teammates, bots, other machines) count.
-      if (this.fetch) {
+      if (fetch) {
         fetchSummary = await this.fetchRepos(repos, { force: forceFetch });
       }
 

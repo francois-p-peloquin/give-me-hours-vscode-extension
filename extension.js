@@ -339,13 +339,7 @@ function activate(context) {
       context.subscriptions
     );
 
-    // Calculate hours on panel creation
-    // const today = new Date();
-    // const year = today.getFullYear();
-    // const month = String(today.getMonth() + 1).padStart(2, '0');
-    // const day = String(today.getDate()).padStart(2, '0');
-    // const localDate = `${year}-${month}-${day}`;
-    calculateAndSendHours(panel);
+    // No scan here: the webview requests one ('refresh') as soon as it loads.
   }
 
   async function getCommitSummaryForFolder(folderName, date, useAISummary, includeSecondary) {
@@ -505,10 +499,34 @@ ${commitBlock}`;
     }
   }
 
-  async function calculateAndSendHours(panel, { forceFetch = false } = {}) {
+  /** The scan in progress, shared by callers asking for the same week and fetch mode. */
+  let inflight = null; // { key: string, promise: Promise<any> }
+  /** Last fetch result, shown with local results until the next fetch finishes. */
+  let lastFetchSummary = null;
+
+  /**
+   * Scan the working directory and send results to every open panel, in two steps:
+   * 1. Local commits right away (a few seconds).
+   * 2. If fetching is on: fetch in the background, then rescan only if a fetch brought
+   *    in new commits.
+   * @param {vscode.WebviewPanel | null} panel  Gets setup/error messages; results go to all panels.
+   * @param {{ forceFetch?: boolean }} [options]
+   */
+  function calculateAndSendHours(panel, { forceFetch = false } = {}) {
+    const key = `${currentDate}|${forceFetch}`;
+    if (inflight && inflight.key === key) return inflight.promise;
+
+    const promise = runScan(panel, { forceFetch }).finally(() => {
+      if (inflight && inflight.promise === promise) inflight = null;
+    });
+    inflight = { key, promise };
+    return promise;
+  }
+
+  async function runScan(panel, { forceFetch }) {
     const config = getConfiguration();
+    const scanDate = currentDate;
     try {
-      // Check if working directory is configured
       if (!isWorkingDirectoryConfigured()) {
         if (panel) {
           panel.webview.postMessage({
@@ -527,62 +545,57 @@ ${commitBlock}`;
       config.duration = String(duration); // seconds string — used by calculateWorkingHours
       config.durationDisplay = durationDisplay;
 
-      // Create GiveMeHours instance with user settings
-      // Always fetch summaries since we now toggle visibility with JS
       const giveMeHours = new GiveMeHours({
         duration: duration,
         minCommitTime: config.minCommitTime,
-        showSummary: true, // Always fetch summaries
+        showSummary: true,
         // Always fetch secondary accounts too; the webview's checkbox filters them out.
         secondaryAuthors: config.secondaryAuthors,
-        fetch: config.fetchBeforeScan,
         maxWords: config.words,
         debug: false,
       });
 
-      // Get hours for the working directory
-      const result = await giveMeHours.getHoursForDirectory(workingDirectory, currentDate, {
-        forceFetch,
+      /** Send results to all panels, unless the user has moved to another week since. */
+      const publish = (result) => {
+        if (currentDate !== scanDate) return false;
+        result.config = config;
+        prefetchedData = result;
+        for (const p of panels) p.webview.postMessage({ type: 'showResults', data: result });
+        updateStatusBar();
+        return true;
+      };
+
+      // 1. Local commits, shown right away.
+      const local = await giveMeHours.getHoursForDirectory(workingDirectory, scanDate, {
+        fetch: false,
       });
+      local.fetch = lastFetchSummary;
+      local.fetching = config.fetchBeforeScan;
+      if (!publish(local) || !config.fetchBeforeScan) return local;
 
-      // Add config info to result
-      result.config = config;
-
-      prefetchedData = result;
-
-      // Send results to webview
-      if (panel) {
-        panel.webview.postMessage({
-          type: 'showResults',
-          data: result,
-        });
-      }
-
-      // Update status bar with new results
-      updateStatusBar();
-
-      return result;
+      // 2. Fetch in the background; rescan only if something new came in.
+      const summary = await giveMeHours.fetchRepos(giveMeHours.findRepos(workingDirectory), {
+        force: forceFetch,
+      });
+      lastFetchSummary = summary;
+      const final = summary.changed.length
+        ? await giveMeHours.getHoursForDirectory(workingDirectory, scanDate, { fetch: false })
+        : local;
+      final.fetch = summary;
+      final.fetching = false;
+      publish(final);
+      return final;
     } catch (error) {
       console.error('Error calculating hours:', error);
-
-      // Check if it's a Git user error
-      if (error.message.includes('Git global username is not set')) {
-        if (panel) {
-          panel.webview.postMessage({
+      const message = error.message.includes('Git global username is not set')
+        ? {
             type: 'showGitUserError',
             error:
               'Git global username is not set. Please set it with: git config --global user.name "Your Name"',
             config: config,
-          });
-        }
-      } else {
-        if (panel) {
-          panel.webview.postMessage({
-            type: 'showError',
-            error: error.message,
-          });
-        }
-      }
+          }
+        : { type: 'showError', error: error.message };
+      for (const p of panel ? [panel] : panels) p.webview.postMessage(message);
     }
   }
 
