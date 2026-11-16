@@ -93,6 +93,11 @@
           "default": true,
           "markdownDescription": "Run `git fetch --all` on each repo so commits pushed from elsewhere (teammates, bots, other machines) are counted. Local results show first; the fetch runs in the background and the table updates if new commits arrive. Fetch only: your local branches and files are never changed. Repos fetched in the last 5 minutes are skipped, except when you click **Refresh**."
         },
+        "giveMeHours.includeSecondaryAuthors": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Count commits from **Secondary Authors** in hours, summaries and Harvest notes. Saved automatically when you toggle the **Include secondary accounts** checkbox."
+        },
         "giveMeHours.secondaryAuthors": {
           "type": "string",
           "default": "",
