@@ -142,6 +142,7 @@ function activate(context) {
       words: config.get('words', 300),
       secondaryAuthors: parseAuthorList(config.get('secondaryAuthors', '')),
       fetchBeforeScan: config.get('fetchBeforeScan', true),
+      includeSecondaryAuthors: config.get('includeSecondaryAuthors', true),
       timeFormat: config.get('timeFormat', 'decimal'),
     };
   }
@@ -281,6 +282,13 @@ function activate(context) {
             currentDate = message.date || 'today';
             // Refresh the panel with the new date. The Refresh button forces a fresh fetch.
             await calculateAndSendHours(panel, { forceFetch: !!message.force });
+            break;
+          case 'setIncludeSecondary':
+            // Remember the checkbox. Not pushed back: the webview already shows it.
+            await vscode.workspace
+              .getConfiguration('giveMeHours')
+              .update('includeSecondaryAuthors', !!message.value, vscode.ConfigurationTarget.Global);
+            if (prefetchedData?.config) prefetchedData.config.includeSecondaryAuthors = !!message.value;
             break;
           case 'openSettings':
             await vscode.commands.executeCommand('workbench.action.openSettings', 'giveMeHours');

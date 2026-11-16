@@ -83,7 +83,7 @@ Hotfix: Slide Toggle Cancel
 | **Decimal / Chrono** dropdown | Toggle between decimal hours (1.5) and clock format (1:30) |
 | **Refresh** button | Fetch every repo from its remotes, then re-scan |
 | **Round hours** checkbox | Apply rounding and startup time to displayed hours |
-| **Include secondary accounts** checkbox | Count commits from **Secondary Authors** in hours, summaries and Harvest notes. Shown only when that setting has names. |
+| **Include secondary accounts** checkbox | Count commits from **Secondary Authors** in hours, summaries and Harvest notes. Shown only when that setting has names. Your choice is remembered (setting **Include Secondary Authors**). |
 | **Open Settings** button | Jump to extension settings |
 | **Add time to Harvest** button | Send the hours on screen (the selected day, or the whole week) to Harvest. Reads **Connect Harvest** until you've connected. |
 

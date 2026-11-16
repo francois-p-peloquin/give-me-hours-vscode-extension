@@ -30,6 +30,17 @@ function App() {
   const [timeFormat, setTimeFormat] = useState('Decimal');
   const [roundHours, setRoundHours] = useState(true);
   const [includeSecondary, setIncludeSecondary] = useState(true);
+  // Start from the saved setting (giveMeHours.includeSecondaryAuthors) once it arrives.
+  const savedIncludeSecondary = data?.config?.includeSecondaryAuthors;
+  useEffect(() => {
+    if (typeof savedIncludeSecondary === 'boolean') setIncludeSecondary(savedIncludeSecondary);
+  }, [savedIncludeSecondary]);
+
+  const handleIncludeSecondaryChange = (checked) => {
+    if (checked === includeSecondary) return; // the toolkit also fires change on programmatic updates
+    setIncludeSecondary(checked);
+    window.vscode.postMessage({ command: 'setIncludeSecondary', value: checked });
+  };
   const [harvest, setHarvest] = useState(
     /** @type {import('./utils/harvestMapping').HarvestState} */ ({ connected: false })
   );
@@ -207,7 +218,7 @@ function App() {
           {config?.secondaryAuthors?.length > 0 && (
             <VSCodeCheckbox
               checked={includeSecondary}
-              onChange={(e) => setIncludeSecondary(e.target.checked)}
+              onChange={(e) => handleIncludeSecondaryChange(e.target.checked)}
               title={`Count commits by: ${config.secondaryAuthors.join(', ')}`}
             >
               Include secondary accounts
