@@ -6,6 +6,7 @@ import { repoKey } from '../utils/harvestMapping';
 import CopyButton from './CopyButton';
 import GetWorkSummaryButton from './GetWorkSummaryButton';
 import HarvestProjectSelect from './HarvestProjectSelect';
+import HarvestCellButton from './HarvestCellButton';
 
 /**
  * @param {{
@@ -19,6 +20,7 @@ import HarvestProjectSelect from './HarvestProjectSelect';
  *   includeSecondary: boolean,
  *   harvest: import('../utils/harvestMapping').HarvestState,
  *   onHarvestMappingChange: (key: string, mapping: any) => void,
+ *   onAddToHarvest: (cell: any) => void,
  * }} props
  */
 const ResultsTable = ({
@@ -32,6 +34,7 @@ const ResultsTable = ({
   includeSecondary,
   harvest,
   onHarvestMappingChange,
+  onAddToHarvest,
 }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
@@ -205,6 +208,15 @@ const ResultsTable = ({
                                   date={cell.date}
                                   includeSecondary={includeSecondary}
                                 />
+                                {harvest?.connected &&
+                                  !harvest.unavailable &&
+                                  cell.hoursDecimal > 0 && (
+                                    <HarvestCellButton
+                                      harvest={harvest}
+                                      cell={cell}
+                                      onClick={() => onAddToHarvest(cell)}
+                                    />
+                                  )}
                               </>
                             )}
                           </>

@@ -118,7 +118,9 @@ Repos you've tracked time against from GitHub issues in the last 6 months are pr
 
 ### Send
 
-**Add time to Harvest** shows each repo's project and hours for review before anything is sent. Every send **adds new entries**. If you've already sent the same day or week, you'll see when and how much before confirming.
+**Add time to Harvest** in the header sends the whole day or week. To send just one repo on one day, use **Add to Harvest** in that table cell. Either way you review the project and hours before anything is sent.
+
+Every send **adds new entries**. If you've already sent the same day, week or cell, you'll see when and how much before confirming. Cells that have been sent (from either button) show **✓ In Harvest**; hover for the time and hours.
 
 Notes use the same work log as the **Summary** button.
 

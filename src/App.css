@@ -479,3 +479,17 @@ vscode-button.primary-button[disabled]::part(control) {
     gap: 8px;
     margin: 8px 0 12px;
 }
+
+/* Per-cell "Add to Harvest" */
+.harvest-cell-button span {
+    color: var(--brand-teal-light);
+}
+
+.harvest-cell-button:hover span {
+    text-decoration: underline;
+}
+
+.harvest-cell-button--sent span {
+    color: var(--vscode-descriptionForeground, var(--vscode-foreground));
+    opacity: 0.8;
+}

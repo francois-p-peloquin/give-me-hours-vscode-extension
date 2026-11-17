@@ -7,6 +7,9 @@ const { HarvestClient, getAccounts } = require('./harvest');
 const SECRET_TOKEN = 'giveMeHours.harvestToken';
 const STATE_ACCOUNT = 'harvest.account'; // { id, name }
 const STATE_SENDS = 'harvest.sends'; // { [selectionKey]: { at, totalHours, count } }
+// Per repo/day sends are also recorded under this key, whatever button sent them.
+// Keep in sync with cellSendKey() in src/utils/harvestMapping.js.
+const cellSendKey = (folder, date) => `cell:${folder}:${date}`;
 const STATE_SUGGESTIONS = 'harvest.suggestions'; // { accountId, at, map }
 const STATE_INTRO_DISMISSED = 'harvest.introDismissed'; // true once "Not now" is clicked
 const SUGGESTION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -322,6 +325,8 @@ function createHarvestController(context, { getSummary }) {
 
     let created = 0;
     let createdHours = 0;
+    /** @type {Array<{ key: string, hours: number }>} */
+    const createdCells = [];
     const failed = [];
 
     for (let i = 0; i < entries.length; i++) {
@@ -339,6 +344,7 @@ function createHarvestController(context, { getSummary }) {
         });
         created++;
         createdHours += hours;
+        createdCells.push({ key: cellSendKey(entry.folder, entry.date), hours });
       } catch (error) {
         failed.push({ ...entry, error: error.message });
         if (error.status === 401) {
@@ -353,10 +359,24 @@ function createHarvestController(context, { getSummary }) {
 
     if (created > 0) {
       const sends = { ...(context.globalState.get(STATE_SENDS) || {}) };
-      const previous = append ? sends[selectionKey] : null;
+      const now = Date.now();
+      const round = (n) => Math.round(n * 100) / 100;
+
+      // Each repo/day accumulates: every send adds entries in Harvest.
+      for (const cell of createdCells) {
+        if (cell.key === selectionKey) continue; // a single-cell send: recorded below
+        const prev = sends[cell.key];
+        sends[cell.key] = {
+          at: now,
+          totalHours: round((prev?.totalHours || 0) + cell.hours),
+          count: (prev?.count || 0) + 1,
+        };
+      }
+
+      const previous = append || selectionKey.startsWith('cell:') ? sends[selectionKey] : null;
       sends[selectionKey] = {
-        at: Date.now(),
-        totalHours: Math.round(((previous?.totalHours || 0) + createdHours) * 100) / 100,
+        at: now,
+        totalHours: round((previous?.totalHours || 0) + createdHours),
         count: (previous?.count || 0) + created,
       };
       await context.globalState.update(STATE_SENDS, sends);

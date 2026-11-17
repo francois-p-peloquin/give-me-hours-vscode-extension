@@ -18,7 +18,7 @@ import {
   getWeekDates,
 } from './utils/dateUtils';
 import { processResults } from './utils/processResults';
-import { isValidMapping, mappingLabel } from './utils/harvestMapping';
+import { cellSendKey, isValidMapping, mappingLabel } from './utils/harvestMapping';
 
 const post = (command) => () => window.vscode.postMessage({ command });
 
@@ -115,7 +115,23 @@ function App() {
       pending: true,
     })
   );
-  const [harvestDialogOpen, setHarvestDialogOpen] = useState(false);
+  // What the Harvest dialog sends: the header's day/week, or one table cell.
+  const [harvestDialog, setHarvestDialog] = useState(
+    /** @type {{ rows: any[], key: string, label: string } | null} */ (null)
+  );
+
+  const openCellHarvestDialog = (cell) => {
+    const day = createDate(cell.date).toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    });
+    setHarvestDialog({
+      rows: [cell],
+      key: cellSendKey(cell.folder, cell.date),
+      label: `${cell.folder} · ${day}`,
+    });
+  };
 
   // Harvest state is pushed by the host on load and whenever it changes.
   useEffect(() => {
@@ -309,7 +325,9 @@ function App() {
                     ? `No hours for this ${display.toLowerCase()}`
                     : `Send ${selection.label.toLowerCase()} to Harvest`
               }
-              onClick={() => setHarvestDialogOpen(true)}
+              onClick={() =>
+                setHarvestDialog({ rows: selection.rows, key: selection.key, label: selection.label })
+              }
             >
               Add time to Harvest
             </VSCodeButton>
@@ -362,15 +380,16 @@ function App() {
         includeSecondary={includeSecondary}
         harvest={harvest}
         onHarvestMappingChange={handleMappingChange}
+        onAddToHarvest={openCellHarvestDialog}
       />
-      {harvestDialogOpen && (
+      {harvestDialog && (
         <HarvestDialog
           harvest={harvest}
-          rows={selection.rows}
-          selectionKey={selection.key}
-          selectionLabel={selection.label}
+          rows={harvestDialog.rows}
+          selectionKey={harvestDialog.key}
+          selectionLabel={harvestDialog.label}
           includeSecondary={includeSecondary}
-          onClose={() => setHarvestDialogOpen(false)}
+          onClose={() => setHarvestDialog(null)}
         />
       )}
     </div>
