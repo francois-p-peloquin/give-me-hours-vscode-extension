@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import { getWeekDates } from '../utils/dateUtils';
+import { getWeekDates, formatToYYYYMMDD, createDate } from '../utils/dateUtils';
 import { formatTime } from '../utils/rounding';
 import { processResults } from '../utils/processResults';
-import { repoKey } from '../utils/harvestMapping';
+import { cellSendKey, repoKey } from '../utils/harvestMapping';
 import CopyButton from './CopyButton';
 import GetWorkSummaryButton from './GetWorkSummaryButton';
 import HarvestProjectSelect from './HarvestProjectSelect';
+import HarvestCellButton from './HarvestCellButton';
 
 /**
  * @param {{
@@ -19,6 +20,7 @@ import HarvestProjectSelect from './HarvestProjectSelect';
  *   includeSecondary: boolean,
  *   harvest: import('../utils/harvestMapping').HarvestState,
  *   onHarvestMappingChange: (key: string, mapping: any) => void,
+ *   onAddToHarvest: (selection: { rows: any[], key: string, label: string }) => void,
  * }} props
  */
 const ResultsTable = ({
@@ -32,6 +34,7 @@ const ResultsTable = ({
   includeSecondary,
   harvest,
   onHarvestMappingChange,
+  onAddToHarvest,
 }) => {
   // Removed hoursCopied state
   const emptyCell = '-';
@@ -43,6 +46,37 @@ const ResultsTable = ({
     () => Object.fromEntries((results || []).map((r) => [r.folder, r.remote || null])),
     [results]
   );
+
+  const canSendToHarvest = !!harvest?.connected && !harvest.unavailable;
+  /** Day cells with hours, ready to send. */
+  const sendable = (cells) => cells.filter((c) => c && c.hoursDecimal > 0 && !c.isTotal);
+  const longDay = (d) =>
+    createDate(d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const shortMonday = () =>
+    createDate(formatToYYYYMMDD(getWeekDates(date)[0])).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+    });
+
+  /** One repo on one day. */
+  const addCell = (cell) =>
+    onAddToHarvest({
+      rows: [cell],
+      key: cellSendKey(cell.folder, cell.date),
+      label: `${cell.folder} · ${longDay(cell.date)}`,
+    });
+  /** Every repo on one day (a column total). */
+  const addDay = (cells, day) =>
+    onAddToHarvest({ rows: cells, key: `day:${day}`, label: `All repos · ${longDay(day)}` });
+  /** One repo, every day of the week (a row total). */
+  const addRepoWeek = (cells, folder) => {
+    const monday = formatToYYYYMMDD(getWeekDates(date)[0]);
+    onAddToHarvest({
+      rows: cells,
+      key: `repoweek:${folder}:${monday}`,
+      label: `${folder} · Week of ${shortMonday()}`,
+    });
+  };
 
   if (!isRefreshing && (!processedResults || processedResults.length === 0)) {
     return <p>No results to display.</p>;
@@ -77,7 +111,7 @@ const ResultsTable = ({
       return <p>No results for this day.</p>;
     }
 
-    headers = ['Folder', formatDate(new Date(date))];
+    headers = ['Folder', formatDate(createDate(date))];
     rows = dayResults.map((result) => [result.folder, result]);
   } else if (display === 'Week') {
     const weekDates = getWeekDates(date);
@@ -109,7 +143,12 @@ const ResultsTable = ({
         }
         row.push(cell || emptyCell);
       });
-      row.push({ hours: formatTime(totalSeconds, timeFormat), isTotal: true });
+      row.push({
+        hours: formatTime(totalSeconds, timeFormat),
+        isTotal: true,
+        folder,
+        dayCells: sendable(row.slice(1)),
+      });
       return row;
     });
   }
@@ -123,7 +162,7 @@ const ResultsTable = ({
               const isDateHeader = index > 0;
               let cellDate = null;
               if (display === 'Day' && isDateHeader) {
-                cellDate = new Date(date);
+                cellDate = createDate(date);
               } else if (display === 'Week' && isDateHeader) {
                 const weekDates = getWeekDates(date);
                 cellDate = weekDates[index - 1];
@@ -159,7 +198,7 @@ const ResultsTable = ({
                 {row.map((cell, cellIndex) => {
                   let cellDate = null;
                   if (display === 'Day' && cellIndex > 0) {
-                    cellDate = new Date(date);
+                    cellDate = createDate(date);
                   } else if (display === 'Week' && cellIndex > 0) {
                     const weekDates = getWeekDates(date);
                     cellDate = weekDates[cellIndex - 1];
@@ -205,7 +244,21 @@ const ResultsTable = ({
                                   date={cell.date}
                                   includeSecondary={includeSecondary}
                                 />
+                                {canSendToHarvest && cell.hoursDecimal > 0 && (
+                                  <HarvestCellButton
+                                    harvest={harvest}
+                                    rows={[cell]}
+                                    onClick={() => addCell(cell)}
+                                  />
+                                )}
                               </>
+                            )}
+                            {cell.isTotal && canSendToHarvest && cell.dayCells?.length > 0 && (
+                              <HarvestCellButton
+                                harvest={harvest}
+                                rows={cell.dayCells}
+                                onClick={() => addRepoWeek(cell.dayCells, cell.folder)}
+                              />
                             )}
                           </>
                         )}
@@ -246,7 +299,7 @@ const ResultsTable = ({
               const formattedTotal = formatTime(totalSecondsForColumn, timeFormat);
 
               const weekDates = display === 'Week' ? getWeekDates(date) : [];
-              const cellDate = display === 'Day' ? new Date(date) : weekDates[colIndex];
+              const cellDate = display === 'Day' ? createDate(date) : weekDates[colIndex];
               const isSelected = isDateSelected(display, date, cellDate);
               const totalCellClassName = [
                 isSelected ? 'selected-date' : '',
@@ -255,10 +308,24 @@ const ResultsTable = ({
                 .filter(Boolean)
                 .join(' ');
 
+              // A day column's total sends that day for every repo. (Not the grand
+              // total: the header's "Add time to Harvest" covers the whole week.)
+              const columnCells = header === 'Totals' ? [] : sendable(rows.map((r) => r[colIndex + 1]));
+              // From the cells themselves: `new Date('YYYY-MM-DD')` is UTC midnight,
+              // which is the previous day west of UTC.
+              const columnDay = columnCells[0]?.date || null;
+
               return (
                 <th key={colIndex + 1} className={totalCellClassName}>
                   <div className="data-cell">
                     <CopyButton textToCopy={formattedTotal} />
+                    {canSendToHarvest && columnCells.length > 0 && columnDay && (
+                      <HarvestCellButton
+                        harvest={harvest}
+                        rows={columnCells}
+                        onClick={() => addDay(columnCells, columnDay)}
+                      />
+                    )}
                   </div>
                 </th>
               );

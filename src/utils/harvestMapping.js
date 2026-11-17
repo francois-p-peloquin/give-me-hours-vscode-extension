@@ -13,6 +13,9 @@ export const PREFERRED_TASK = 'Web Development';
  *   harvestUrl?: string, accountName?: string, error?: string }} HarvestState
  */
 
+/** previousSends key for one repo/day. Keep in sync with harvest-controller.js. */
+export const cellSendKey = (folder, date) => `cell:${folder}:${date}`;
+
 /** Key a repo by its "owner/repo" remote, falling back to the folder name. */
 export const repoKey = (folder, remote) => remote || folder;
 
