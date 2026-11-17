@@ -10,32 +10,41 @@ const formatWhen = (ms) =>
   });
 
 /**
- * "Add to Harvest" for one repo on one day. Shows "✓ In Harvest" once that cell has
- * been sent (from here or from the header's day/week send); clicking again still
- * opens the confirm dialog, which warns before adding more.
+ * "Add to Harvest" for one or more repo/day entries: a single cell, a day column's
+ * total, or a repo's week total. Shows "✓ In Harvest" once every entry has been sent
+ * (from any button), or "✓ 2/3 in Harvest" when only some have. Clicking always opens
+ * the confirm dialog, which warns before adding more.
  *
  * @param {{
  *   harvest: import('../utils/harvestMapping').HarvestState,
- *   cell: { folder: string, date: string, hoursDecimal: number },
+ *   rows: Array<{ folder: string, date: string, hoursDecimal: number }>,
  *   onClick: () => void,
  * }} props
  */
-const HarvestCellButton = ({ harvest, cell, onClick }) => {
-  const sent = harvest.previousSends?.[cellSendKey(cell.folder, cell.date)];
-  const hours = cell.hoursDecimal.toFixed(2);
+const HarvestCellButton = ({ harvest, rows, onClick }) => {
+  const sends = rows
+    .map((r) => harvest.previousSends?.[cellSendKey(r.folder, r.date)])
+    .filter(Boolean);
+  const hours = rows.reduce((sum, r) => sum + r.hoursDecimal, 0).toFixed(2);
+  const entries = rows.length === 1 ? '1 entry' : `${rows.length} entries`;
+
+  let label = 'Add to Harvest';
+  let title = `Add ${hours}h (${entries}) to Harvest`;
+  if (sends.length > 0) {
+    const last = Math.max(...sends.map((s) => s.at));
+    const sentHours = sends.reduce((sum, s) => sum + s.totalHours, 0).toFixed(2);
+    label = sends.length === rows.length ? '✓ In Harvest' : `✓ ${sends.length}/${rows.length} in Harvest`;
+    title = `${sentHours}h already in Harvest (last sent ${formatWhen(last)}). Click to add more.`;
+  }
 
   return (
     <button
       type="button"
-      className={`copy-button harvest-cell-button${sent ? ' harvest-cell-button--sent' : ''}`}
+      className={`copy-button harvest-cell-button${sends.length ? ' harvest-cell-button--sent' : ''}`}
       onClick={onClick}
-      title={
-        sent
-          ? `Sent ${sent.totalHours.toFixed(2)}h to Harvest on ${formatWhen(sent.at)}. Click to add more.`
-          : `Add ${hours}h for ${cell.folder} to Harvest`
-      }
+      title={title}
     >
-      <span>{sent ? '✓ In Harvest' : 'Add to Harvest'}</span>
+      <span>{label}</span>
     </button>
   );
 };

@@ -18,7 +18,7 @@ import {
   getWeekDates,
 } from './utils/dateUtils';
 import { processResults } from './utils/processResults';
-import { cellSendKey, isValidMapping, mappingLabel } from './utils/harvestMapping';
+import { isValidMapping, mappingLabel } from './utils/harvestMapping';
 
 const post = (command) => () => window.vscode.postMessage({ command });
 
@@ -120,18 +120,7 @@ function App() {
     /** @type {{ rows: any[], key: string, label: string } | null} */ (null)
   );
 
-  const openCellHarvestDialog = (cell) => {
-    const day = createDate(cell.date).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    });
-    setHarvestDialog({
-      rows: [cell],
-      key: cellSendKey(cell.folder, cell.date),
-      label: `${cell.folder} · ${day}`,
-    });
-  };
+
 
   // Harvest state is pushed by the host on load and whenever it changes.
   useEffect(() => {
@@ -380,7 +369,7 @@ function App() {
         includeSecondary={includeSecondary}
         harvest={harvest}
         onHarvestMappingChange={handleMappingChange}
-        onAddToHarvest={openCellHarvestDialog}
+        onAddToHarvest={setHarvestDialog}
       />
       {harvestDialog && (
         <HarvestDialog
