@@ -127,7 +127,7 @@ Each repo/day becomes its own time entry, sent one after another with progress. 
 
 Every send **adds new entries**. If you've already sent the same day, week or cell, you'll see when and how much before confirming. Anything already sent shows **✓ In Harvest**, or **✓ 2/3 in Harvest** for a total where only some entries have been sent. Hover for the hours and time.
 
-Notes use the same work log as the **Summary** button.
+Notes use the same work log as the **Summary** button. Entries that go to the fallback project start with the repo's folder as a title (`drupal-security-watcher` → *Drupal security watcher:*), since that project is shared by many repos.
 
 ## 🛠️ Requirements
 
