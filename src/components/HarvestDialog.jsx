@@ -98,6 +98,8 @@ const HarvestDialog = ({
             hours: e.hoursDecimal,
             projectId: e.mapping.projectId,
             taskId: e.mapping.taskId,
+            // The fallback project is shared by many repos, so the notes name the repo.
+            isDefault: e.mapping.source === 'default',
           })),
         },
         {

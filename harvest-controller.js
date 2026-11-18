@@ -17,6 +17,15 @@ const SUGGESTION_LOOKBACK_MONTHS = 6;
 const MAX_NOTES_LENGTH = 5000;
 
 /**
+ * Readable title for a repo folder: "drupal-security-watcher" → "Drupal security watcher".
+ * @param {string} folder
+ */
+const folderTitle = (folder) => {
+  const words = folder.replace(/[-_.]+/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/**
  * @param {vscode.ExtensionContext} context
  * @param {{ getSummary: (folder: string, date: string, includeSecondary: boolean) => Promise<string> }} deps
  */
@@ -316,7 +325,8 @@ function createHarvestController(context, { getSummary }) {
    * Create one Harvest time entry per row. Always adds new entries; the webview warns
    * beforehand when the same selection was sent before.
    * @param {{ selectionKey: string, includeSecondary?: boolean, append?: boolean,
-   *   entries: Array<{ folder: string, date: string, hours: number, projectId: number, taskId: number }> }} payload
+   *   entries: Array<{ folder: string, date: string, hours: number, projectId: number, taskId: number,
+   *     isDefault?: boolean }> }} payload  isDefault: the fallback project, so notes start with the folder title
    * @param {(done: number, total: number) => void} onProgress
    */
   async function send({ selectionKey, includeSecondary, append, entries }, onProgress) {
@@ -333,6 +343,7 @@ function createHarvestController(context, { getSummary }) {
       const entry = entries[i];
       try {
         let notes = await getSummary(entry.folder, entry.date, includeSecondary);
+        if (entry.isDefault) notes = `${folderTitle(entry.folder)}:\n\n${notes}`;
         if (notes.length > MAX_NOTES_LENGTH) notes = `${notes.slice(0, MAX_NOTES_LENGTH - 1)}…`;
         const hours = Math.round(entry.hours * 100) / 100;
         await client.createTimeEntry({
