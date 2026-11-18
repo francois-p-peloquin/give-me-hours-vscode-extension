@@ -123,7 +123,7 @@ Repos you've tracked time against from GitHub issues in the last 6 months are pr
 **Add time to Harvest** in the header sends the whole day or week. The table has smaller **Add to Harvest** buttons for narrower sends:
 - **A cell:** one repo on one day
 - **A day's total** (bottom row): every repo on that day
-- **A repo's week total** (Totals column): that repo, every day of the week
+- **A repo's week total** (Total column): that repo, every day of the week
 
 Each repo/day becomes its own time entry, sent one after another with progress. You always review the projects and hours before anything is sent.
 

@@ -178,7 +178,7 @@ const ResultsTable = ({
     rows = dayResults.map((result) => [result.folder, result]);
   } else if (display === 'Week') {
     const weekDates = getWeekDates(date);
-    headers = ['Folder', ...weekDates.map((d) => formatDate(d)), 'Totals'];
+    headers = ['Folder', ...weekDates.map((d) => formatDate(d)), 'Total'];
 
     const resultsByFolder = processedResults.reduce((acc, result) => {
       const { folder } = result;
@@ -249,7 +249,7 @@ const ResultsTable = ({
               return (
                 <th
                   key={index}
-                  className={`${className} ${header === 'Totals' ? 'text-right' : ''}`}
+                  className={`${className} ${header === 'Total' ? 'text-right' : ''}`}
                   dangerouslySetInnerHTML={{ __html: header }}
                 ></th>
               );
@@ -382,14 +382,14 @@ const ResultsTable = ({
               const isSelected = isDateSelected(display, date, cellDate);
               const totalCellClassName = [
                 isSelected ? 'selected-date' : '',
-                header === 'Totals' ? 'text-right' : '',
+                header === 'Total' ? 'text-right' : '',
               ]
                 .filter(Boolean)
                 .join(' ');
 
               // A day column's total sends that day for every repo. (Not the grand
               // total: the header's "Add time to Harvest" covers the whole week.)
-              const columnCells = header === 'Totals' ? [] : sendable(rows.map((r) => r[colIndex + 1]));
+              const columnCells = header === 'Total' ? [] : sendable(rows.map((r) => r[colIndex + 1]));
               // From the cells themselves: `new Date('YYYY-MM-DD')` is UTC midnight,
               // which is the previous day west of UTC.
               const columnDay = columnCells[0]?.date || null;
