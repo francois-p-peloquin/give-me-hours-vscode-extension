@@ -114,9 +114,9 @@ The same actions are in the command palette (**Give Me Hours: Configure Harvest*
 
 ### Pick a project per repo
 
-Each repo in the table has a dropdown under its name. Choose a Harvest project; the task defaults to *Web Development* when it's available, and a task dropdown appears if the project has others. Picks are saved immediately (setting `giveMeHours.harvestProjects`, keyed by `owner/repo`).
+Under each repo's name, one line shows where its time goes, e.g. *Default » Internal 2026 » Non-Billable Development*. Long names are cut off; hover for the full text. Click the pencil to change it: choose a project (the task defaults to *Web Development* when it's available) and a task, then **Save**. Choose *Use the fallback* to clear a pick. Picks are saved to the setting `giveMeHours.harvestProjects`, keyed by `owner/repo`.
 
-Repos you've tracked time against from GitHub issues in the last 6 months are pre-filled with that project, marked *Suggested from past Harvest entries*.
+Repos you've tracked time against from GitHub issues in the last 6 months are pre-filled with that project and start with *Suggested*. A saved project that's been archived shows *Unavailable*.
 
 ### Send
 

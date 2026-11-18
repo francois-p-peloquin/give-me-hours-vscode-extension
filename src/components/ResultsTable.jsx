@@ -308,6 +308,7 @@ const ResultsTable = ({
                               <HarvestProjectSelect
                                 harvest={harvest}
                                 mappingKey={repoKey(cell, remoteByFolder[cell])}
+                                repoName={cell}
                                 onChange={onHarvestMappingChange}
                               />
                             )}
