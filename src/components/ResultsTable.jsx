@@ -129,6 +129,18 @@ const ResultsTable = ({
     });
   };
 
+  // On every Folder cell, so the column's whole right edge is draggable.
+  const columnResizer = (
+    <div
+      className="column-resizer"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize folder column"
+      title="Drag to resize. Double-click to reset."
+      {...resizeHandleProps}
+    />
+  );
+
   if (!isRefreshing && (!processedResults || processedResults.length === 0)) {
     return <p>No results to display.</p>;
   }
@@ -227,16 +239,9 @@ const ResultsTable = ({
 
               if (index === 0) {
                 return (
-                  <th key={index} className="folder-header folder-header--resizable">
+                  <th key={index} className="folder-header">
                     <div className="folder-cell">{header}</div>
-                    <div
-                      className="column-resizer"
-                      role="separator"
-                      aria-orientation="vertical"
-                      aria-label="Resize folder column"
-                      title="Drag to resize. Double-click to reset."
-                      {...resizeHandleProps}
-                    />
+                    {columnResizer}
                   </th>
                 );
               }
@@ -332,6 +337,7 @@ const ResultsTable = ({
                           </>
                         )}
                       </div>
+                      {isRowHeader && columnResizer}
                     </CellComponent>
                   );
                 })}
@@ -340,6 +346,7 @@ const ResultsTable = ({
           <tr className="total-row">
             <th className="folder-header">
               <div className="folder-cell">Total</div>
+              {columnResizer}
             </th>
             {headers.slice(1).map((header, colIndex) => {
               let totalSecondsForColumn = 0;

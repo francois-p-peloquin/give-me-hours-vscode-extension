@@ -196,6 +196,7 @@ vscode-data-grid-row[row-type="header"] {
    user, saved as giveMeHours.folderColumnWidth). The inner div holds the width, since
    table cells ignore max-width in auto layout. */
 .data-table .folder-header {
+    position: relative;
     white-space: nowrap;
 }
 
@@ -210,10 +211,6 @@ vscode-data-grid-row[row-type="header"] {
     text-overflow: ellipsis;
 }
 
-.data-table .folder-header--resizable {
-    position: relative;
-}
-
 .column-resizer {
     position: absolute;
     top: 0;
@@ -225,7 +222,8 @@ vscode-data-grid-row[row-type="header"] {
     touch-action: none;
 }
 
-.column-resizer:hover,
+/* Highlight the whole edge, not just the hovered cell's piece of it. */
+.data-table:has(.column-resizer:hover) .column-resizer,
 .is-resizing-column .column-resizer {
     background: var(--brand-teal-medium);
     opacity: 0.6;
