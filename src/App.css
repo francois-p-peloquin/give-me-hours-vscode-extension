@@ -192,11 +192,48 @@ vscode-data-grid-row[row-type="header"] {
     text-align: center;
     width: 100%;
 }
+/* Folder column: fixed width from --folder-col-width (set on the table, dragged by the
+   user, saved as giveMeHours.folderColumnWidth). The inner div holds the width, since
+   table cells ignore max-width in auto layout. */
 .data-table .folder-header {
     white-space: nowrap;
-    width: 150px;
+}
+
+.data-table .folder-cell {
+    width: var(--folder-col-width, 200px);
+    min-width: 0;
+}
+
+.data-table .folder-name {
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.data-table .folder-header--resizable {
+    position: relative;
+}
+
+.column-resizer {
+    position: absolute;
+    top: 0;
+    right: -4px;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    z-index: 1;
+    touch-action: none;
+}
+
+.column-resizer:hover,
+.is-resizing-column .column-resizer {
+    background: var(--brand-teal-medium);
+    opacity: 0.6;
+}
+
+.is-resizing-column {
+    cursor: col-resize;
+    user-select: none;
 }
 
 .selected-date {
@@ -264,11 +301,6 @@ vscode-button.primary-button[disabled]::part(control) {
 }
 
 /* Per-repo project picker under the repo name */
-.data-table .folder-header {
-    width: 200px;
-    max-width: 240px;
-}
-
 .harvest-select {
     display: flex;
     flex-direction: column;

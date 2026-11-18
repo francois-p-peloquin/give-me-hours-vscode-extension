@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getWeekDates, formatToYYYYMMDD, createDate } from '../utils/dateUtils';
 import { formatTime } from '../utils/rounding';
 import { processResults } from '../utils/processResults';
@@ -7,6 +7,55 @@ import CopyButton from './CopyButton';
 import GetWorkSummaryButton from './GetWorkSummaryButton';
 import HarvestProjectSelect from './HarvestProjectSelect';
 import HarvestCellButton from './HarvestCellButton';
+
+// Folder column width in px (giveMeHours.folderColumnWidth). Keep in sync with package.json.
+export const FOLDER_WIDTH_DEFAULT = 200;
+const FOLDER_WIDTH_MIN = 120;
+const FOLDER_WIDTH_MAX = 480;
+const clampWidth = (w) => Math.min(FOLDER_WIDTH_MAX, Math.max(FOLDER_WIDTH_MIN, Math.round(w)));
+
+/**
+ * Fixed-width Folder column, resized by dragging its header's right edge.
+ * The width is saved when the drag ends; double-click resets it.
+ */
+const useFolderWidth = (saved) => {
+  const [width, setWidth] = useState(() => clampWidth(saved ?? FOLDER_WIDTH_DEFAULT));
+  useEffect(() => {
+    if (typeof saved === 'number') setWidth(clampWidth(saved));
+  }, [saved]);
+
+  const drag = useRef(/** @type {{ startX: number, startWidth: number, width: number } | null} */ (null));
+  const save = (w) => window.vscode?.postMessage({ command: 'setFolderColumnWidth', value: w });
+
+  const handleProps = {
+    onPointerDown: (e) => {
+      e.preventDefault();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      drag.current = { startX: e.clientX, startWidth: width, width };
+      document.body.classList.add('is-resizing-column');
+    },
+    onPointerMove: (e) => {
+      if (!drag.current) return;
+      const next = clampWidth(drag.current.startWidth + e.clientX - drag.current.startX);
+      drag.current.width = next;
+      setWidth(next);
+    },
+    onPointerUp: () => {
+      if (!drag.current) return;
+      const { width: final, startWidth } = drag.current;
+      drag.current = null;
+      document.body.classList.remove('is-resizing-column');
+      if (final !== startWidth) save(final);
+    },
+    onDoubleClick: () => {
+      setWidth(FOLDER_WIDTH_DEFAULT);
+      save(FOLDER_WIDTH_DEFAULT);
+    },
+  };
+  handleProps.onPointerCancel = handleProps.onPointerUp;
+
+  return { width, handleProps };
+};
 
 /**
  * @param {{
@@ -36,8 +85,10 @@ const ResultsTable = ({
   onHarvestMappingChange,
   onAddToHarvest,
 }) => {
-  // Removed hoursCopied state
   const emptyCell = '-';
+  const { width: folderWidth, handleProps: resizeHandleProps } = useFolderWidth(
+    config?.folderColumnWidth
+  );
   const processedResults = useMemo(
     () => processResults(results, roundHours, config, timeFormat, includeSecondary),
     [results, roundHours, config, timeFormat, includeSecondary]
@@ -155,7 +206,7 @@ const ResultsTable = ({
 
   return (
     <div className="table-container">
-      <table className="data-table">
+      <table className="data-table" style={{ '--folder-col-width': `${folderWidth}px` }}>
         <thead>
           <tr>
             {headers.map((header, index) => {
@@ -172,6 +223,22 @@ const ResultsTable = ({
               let className = isDateHeader ? 'date-header' : '';
               if (isSelected) {
                 className += ' selected-date';
+              }
+
+              if (index === 0) {
+                return (
+                  <th key={index} className="folder-header folder-header--resizable">
+                    <div className="folder-cell">{header}</div>
+                    <div
+                      className="column-resizer"
+                      role="separator"
+                      aria-orientation="vertical"
+                      aria-label="Resize folder column"
+                      title="Drag to resize. Double-click to reset."
+                      {...resizeHandleProps}
+                    />
+                  </th>
+                );
               }
 
               return (
@@ -220,7 +287,7 @@ const ResultsTable = ({
 
                   return (
                     <CellComponent className={cellClassName} key={cellIndex}>
-                      <div className={cellIndex > 0 ? 'data-cell' : ''}>
+                      <div className={cellIndex > 0 ? 'data-cell' : 'folder-cell'}>
                         {cell == emptyCell ? (
                           emptyCell
                         ) : (
@@ -228,7 +295,9 @@ const ResultsTable = ({
                             {cell.hours ? (
                               <CopyButton textToCopy={cell.hours} />
                             ) : (
-                              <span className="data-cell-hours">{cell}</span>
+                              <span className="folder-name" title={cell}>
+                                {cell}
+                              </span>
                             )}
                             {isRowHeader && harvest?.connected && harvest.assignments && (
                               <HarvestProjectSelect
@@ -269,7 +338,9 @@ const ResultsTable = ({
               </tr>
             ))}
           <tr className="total-row">
-            <th>Total</th>
+            <th className="folder-header">
+              <div className="folder-cell">Total</div>
+            </th>
             {headers.slice(1).map((header, colIndex) => {
               let totalSecondsForColumn = 0;
               rows.forEach((row) => {
