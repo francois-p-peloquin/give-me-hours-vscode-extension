@@ -37,6 +37,7 @@ Access settings via the **Open Settings** button in the interface, or search for
 | **Summary Words** | `300` | Maximum words in a work log; extra commits are cut and counted (50–1000) |
 | **Show Summary** | `true` | Show the commit summary column in the results table |
 | **Fetch Before Scan** | `true` | `git fetch --all` each repo, so commits pushed from elsewhere (teammates, bots, other machines) count. Your local commits show right away; the fetch runs in the background ("Checking remotes…") and the table updates if anything new came in. Fetch only; local branches and files aren't changed. Skips repos fetched in the last 5 minutes, except on **Refresh**. |
+| **Folder Column Width** | `200` | Width of the Folder column in pixels (120–480). Saved when you drag the column's edge. |
 | **Secondary Authors** | _(empty)_ | Extra git authors whose commits count as your time, separated by commas or line breaks (e.g. `site-security-watcher[bot]`). Matched as plain text against `Name <email>`. |
 
 ### Duration Examples
@@ -84,6 +85,7 @@ Hotfix: Slide Toggle Cancel
 | **Refresh** button | Fetch every repo from its remotes, then re-scan |
 | **Round hours** checkbox | Apply rounding and startup time to displayed hours |
 | **Include secondary accounts** checkbox | Count commits from **Secondary Authors** in hours, summaries and Harvest notes. Shown only when that setting has names. Your choice is remembered (setting **Include Secondary Authors**). |
+| **Folder** column edge | Drag to resize the Folder column (120–480px); long names are cut off with "…". Double-click to reset. The width is remembered (setting **Folder Column Width**). |
 | **Open Settings** button | Jump to extension settings |
 | **Add time to Harvest** button | Send the hours on screen (the selected day, or the whole week) to Harvest. Reads **Configure Harvest** until you've set it up. Harvest is optional. |
 

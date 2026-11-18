@@ -27,6 +27,8 @@ VS Code extension that estimates hours worked per repo per day from git commits,
 - Repo ↔ Harvest links really live in BugHerd. Auto-mapping through the BugHerd API is a possible follow-up.
 
 ## Styling
+The Folder column's width is a CSS variable (`--folder-col-width`) on the table, applied to an inner `.folder-cell` div, because table cells ignore `max-width` in auto layout. `useFolderWidth` in `ResultsTable.jsx` handles the drag and posts `setFolderColumnWidth` on release, which saves `giveMeHours.folderColumnWidth`. The 120–480 limits are in both the hook and `package.json`.
+
 `src/App.css` forces every `vscode-button` to brand teal using `::part(control)`, because VS Code injects theme tokens later. Overrides such as `.primary-button` must come after that rule.
 
 ## Build, run, release

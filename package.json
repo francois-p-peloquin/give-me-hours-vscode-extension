@@ -93,6 +93,13 @@
           "default": true,
           "markdownDescription": "Run `git fetch --all` on each repo so commits pushed from elsewhere (teammates, bots, other machines) are counted. Local results show first; the fetch runs in the background and the table updates if new commits arrive. Fetch only: your local branches and files are never changed. Repos fetched in the last 5 minutes are skipped, except when you click **Refresh**."
         },
+        "giveMeHours.folderColumnWidth": {
+          "type": "number",
+          "default": 200,
+          "minimum": 120,
+          "maximum": 480,
+          "markdownDescription": "Width of the **Folder** column in the results table, in pixels. Saved automatically when you drag the column's edge; double-click the edge to reset."
+        },
         "giveMeHours.includeSecondaryAuthors": {
           "type": "boolean",
           "default": true,

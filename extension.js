@@ -143,6 +143,7 @@ function activate(context) {
       secondaryAuthors: parseAuthorList(config.get('secondaryAuthors', '')),
       fetchBeforeScan: config.get('fetchBeforeScan', true),
       includeSecondaryAuthors: config.get('includeSecondaryAuthors', true),
+      folderColumnWidth: config.get('folderColumnWidth', 200),
       timeFormat: config.get('timeFormat', 'decimal'),
     };
   }
@@ -305,6 +306,16 @@ function activate(context) {
               .update('includeSecondaryAuthors', !!message.value, vscode.ConfigurationTarget.Global);
             if (prefetchedData?.config) prefetchedData.config.includeSecondaryAuthors = !!message.value;
             break;
+          case 'setFolderColumnWidth': {
+            // Remember the dragged Folder column width. Not pushed back, like the checkbox.
+            const width = Number(message.value);
+            if (!Number.isFinite(width)) break;
+            await vscode.workspace
+              .getConfiguration('giveMeHours')
+              .update('folderColumnWidth', Math.round(width), vscode.ConfigurationTarget.Global);
+            if (prefetchedData?.config) prefetchedData.config.folderColumnWidth = Math.round(width);
+            break;
+          }
           case 'openSettings':
             await vscode.commands.executeCommand('workbench.action.openSettings', 'giveMeHours');
             break;
